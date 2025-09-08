@@ -1,0 +1,238 @@
+import React, { useState, useEffect } from 'react';
+import DashboardLayout from '../components/DashboardLayout';
+import { Plus, Edit, Trash2, Loader, AlertCircle, X } from 'lucide-react';
+import axios from 'axios';
+
+const DepartmentModal = ({ isOpen, onClose, onSave, department, loading }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        code: '',
+        description: ''
+    });
+    const [modalError, setModalError] = useState('');
+
+    useEffect(() => {
+        if (department) {
+            setFormData({
+                name: department.name,
+                code: department.code,
+                description: department.description || ''
+            });
+        } else {
+            setFormData({ name: '', code: '', description: '' });
+        }
+        setModalError('');
+    }, [department, isOpen]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.name || !formData.code) {
+            setModalError('Name and Code are required.');
+            return;
+        }
+        onSave(formData);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="p-4 border-b flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">{department ? 'Edit' : 'Add'} Department</h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-slate-700">Name</label>
+                            <input id="name" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                        </div>
+                        <div>
+                            <label htmlFor="code" className="block text-sm font-medium text-slate-700">Code</label>
+                            <input id="code" name="code" value={formData.code} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                        </div>
+                        <div>
+                            <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
+                            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows="3" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                        </div>
+                        {modalError && <p className="text-red-500 text-sm">{modalError}</p>}
+                    </div>
+                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium" disabled={loading}>Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center" disabled={loading}>
+                            {loading && <Loader className="animate-spin h-4 w-4 mr-2" />}
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const Department = () => {
+    const [departments, setDepartments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingDepartment, setEditingDepartment] = useState(null);
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    const fetchDepartments = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/departments`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            setDepartments(response.data);
+        } catch (err) {
+            setError('Failed to fetch departments. Please try again later.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDepartments();
+    }, [API_URL]);
+
+    const handleAdd = () => {
+        setEditingDepartment(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (department) => {
+        setEditingDepartment(department);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (departmentName) => {
+        if (window.confirm(`Are you sure you want to delete the department "${departmentName}"? This action cannot be undone.`)) {
+            try {
+                const token = localStorage.getItem('token');
+                await axios.delete(`${API_URL}/departments/${departmentName}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                setDepartments(departments.filter(d => d.name !== departmentName));
+            } catch (err) {
+                setError('Failed to delete department.');
+                console.error(err);
+            }
+        }
+    };
+
+    const handleSave = async (departmentData) => {
+        setModalLoading(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            if (editingDepartment) {
+                await axios.put(`${API_URL}/departments/${editingDepartment.id}`, departmentData, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+            } else {
+                await axios.post(`${API_URL}/departments`, departmentData, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+            }
+            setIsModalOpen(false);
+            fetchDepartments(); // Refetch to get the latest data
+        } catch (err) {
+            setError('Failed to save department. The name or code might already exist.');
+            console.error(err);
+        } finally {
+            setModalLoading(false);
+        }
+    };
+
+    return (
+        <DashboardLayout>
+            <div className="p-6 md:p-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold text-slate-800">Departments</h1>
+                    <button 
+                        onClick={handleAdd}
+                        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <Plus className="h-5 w-5 mr-2" />
+                        Add Department
+                    </button>
+                </div>
+
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <strong className="font-bold">Error: </strong>
+                        <span className="block sm:inline">{error}</span>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                    {loading ? (
+                        <div className="flex justify-center items-center h-80"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full bg-white">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Name</th>
+                                        <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Code</th>
+                                        <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Description</th>
+                                        <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-slate-700">
+                                    {departments.length > 0 ? (
+                                        departments.map(dept => (
+                                            <tr key={dept.id} className="border-b border-slate-200 hover:bg-slate-50">
+                                                <td className="py-3 px-4 font-medium">{dept.name}</td>
+                                                <td className="py-3 px-4 text-sm text-slate-500">{dept.code}</td>
+                                                <td className="py-3 px-4 text-sm text-slate-500 max-w-sm truncate" title={dept.description}>{dept.description}</td>
+                                                <td className="py-3 px-4 flex items-center gap-2">
+                                                    <button onClick={() => handleEdit(dept)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Edit">
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(dept.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Delete">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="4" className="text-center py-10 text-slate-500">
+                                                <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
+                                                <h3 className="mt-2 text-sm font-medium text-slate-900">No departments found</h3>
+                                                <p className="mt-1 text-sm text-slate-500">Get started by creating a new department.</p>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <DepartmentModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSave}
+                department={editingDepartment}
+                loading={modalLoading}
+            />
+        </DashboardLayout>
+    );
+}
+
+export default Department;

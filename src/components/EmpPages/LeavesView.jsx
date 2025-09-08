@@ -1,0 +1,259 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
+import { Plus, Loader, AlertCircle, X, Calendar, FileClock, Check, MessageSquare, ArrowRight } from 'lucide-react';
+
+// Modal for requesting a new leave
+const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading }) => {
+    const [formData, setFormData] = useState({
+        leaveType: 'SICK',
+        startDate: '',
+        endDate: '',
+        reason: ''
+    });
+    const [error, setError] = useState('');
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.startDate || !formData.endDate || !formData.reason) {
+            setError('All fields are required.');
+            return;
+        }
+        if (new Date(formData.startDate) > new Date(formData.endDate)) {
+            setError('Start date cannot be after end date.');
+            return;
+        }
+        setError('');
+        onSubmit(formData);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="p-4 border-b flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Request Leave</h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label htmlFor="leaveType" className="block text-sm font-medium text-slate-700">Leave Type</label>
+                            <select id="leaveType" name="leaveType" value={formData.leaveType} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm">
+                                <option value="SICK">Sick Leave</option>
+                                <option value="CASUAL">Casual Leave</option>
+                                <option value="EARNED">Earned Leave</option>
+                                <option value="MATERNITY">Maternity Leave</option>
+                                <option value="PATERNITY">Paternity Leave</option>
+                                <option value="COMP_OFF">Comp Off Leave</option>
+                                <option value="UNPAID">Unpaid Leave</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">Start Date</label>
+                                <input type="date" id="startDate" name="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                            </div>
+                            <div>
+                                <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">End Date</label>
+                                <input type="date" id="endDate" name="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="reason" className="block text-sm font-medium text-slate-700">Reason</label>
+                            <textarea id="reason" name="reason" value={formData.reason} onChange={handleChange} rows="3" required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" placeholder="Please provide a reason for your leave..."></textarea>
+                        </div>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                    </div>
+                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
+                        <button type="submit" className="btn-primary" disabled={loading}>
+                            {loading && <Loader className="animate-spin h-4 w-4 mr-2" />}
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// A map for styling statuses
+const statusStyles = {
+    PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock },
+    APPROVED: { bg: 'bg-green-100', text: 'text-green-800', icon: Check },
+    REJECTED: { bg: 'bg-red-100', text: 'text-red-800', icon: X },
+    CANCELLED: { bg: 'bg-slate-100', text: 'text-slate-600', icon: X },
+};
+
+const LeaveHistoryCard = ({ request }) => {
+    const { leaveType, startDate, endDate, reason, status, approvedBy, approvedDate } = request;
+    const displayStatus = status || 'PENDING';
+    const StatusIcon = statusStyles[displayStatus]?.icon || FileClock;
+
+    const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+
+    return (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div className="flex justify-between items-start">
+                <h4 className="font-semibold text-slate-800">{leaveType.replace('_', ' ')}</h4>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
+                    <StatusIcon className="h-3.5 w-3.5" />
+                    {displayStatus.toLowerCase()}
+                </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500 mt-2">
+                <Calendar className="h-4 w-4" />
+                <span>{formatDate(startDate)}</span>
+                <ArrowRight className="h-4 w-4" />
+                <span>{formatDate(endDate)}</span>
+            </div>
+            <p className="text-sm text-slate-600 mt-3 flex items-start gap-2">
+                <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{reason || 'No reason provided.'}</span>
+            </p>
+            {approvedBy && (
+                <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                    Reviewed by {approvedBy} on {formatDate(approvedDate)}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const LeavesView = () => {
+    const [leaves, setLeaves] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('ALL');
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+    const employeeCode = localStorage.getItem('employeeCode');
+
+    const fetchLeaves = async () => {
+        if (!employeeCode) {
+            setError("Employee code not found. Cannot fetch leave data.");
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/leaves/${employeeCode}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            // Sort leaves by most recent first
+            const sortedLeaves = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setLeaves(sortedLeaves);
+        } catch (err) {
+            setError('Failed to fetch leave history. Please try again later.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchLeaves();
+    }, [API_URL, employeeCode]);
+
+    const handleSubmitLeave = async (leaveData) => {
+        setModalLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API_URL}/leaves/${employeeCode}`, leaveData, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            setIsModalOpen(false);
+            fetchLeaves(); // Refetch to show the new leave request
+            alert('Leave request submitted successfully!');
+        } catch (err) {
+            alert('Failed to submit leave request. Please try again.');
+            console.error(err);
+        } finally {
+            setModalLoading(false);
+        }
+    };
+
+    const filteredLeaves = useMemo(() => {
+        if (activeTab === 'ALL') return leaves;
+        return leaves.filter(leave => (leave.status || 'PENDING') === activeTab);
+    }, [leaves, activeTab]);
+
+    const TABS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
+
+    return (
+        <div className="p-6 md:p-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-slate-800">My Leaves</h1>
+                <button
+                    onClick={() => setIsModalOpen(true)} className="btn-primary">
+                    <Plus className="h-5 w-5 mr-2" />
+                    Request Leave
+                </button>
+            </div>
+
+            <div className="flex border-b border-slate-200 mb-6">
+                {TABS.map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                            activeTab === tab
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'border-b-2 border-transparent text-slate-500 hover:text-slate-800'
+                        }`}
+                    >
+                        {tab.charAt(0) + tab.slice(1).toLowerCase()}
+                    </button>
+                ))}
+            </div>
+
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong className="font-bold">Error: </strong>
+                    <span className="block sm:inline">{error}</span>
+                </div>
+            )}
+
+            {loading ? (
+                <div className="flex justify-center items-center h-64"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredLeaves.length > 0 ? (
+                        filteredLeaves.map(leave => (
+                            <LeaveHistoryCard key={leave.id} request={leave} />
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center text-slate-500 py-10">
+                            <FileClock className="mx-auto h-12 w-12 text-slate-400" />
+                            <h3 className="mt-2 text-sm font-semibold text-slate-900">No leave requests</h3>
+                            <p className="mt-1 text-sm text-slate-500">
+                                {activeTab === 'ALL' ? "You haven't requested any leaves yet." : `You have no ${activeTab.toLowerCase()} leave requests.`}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <RequestLeaveModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSubmitLeave}
+                loading={modalLoading}
+            />
+        </div>
+    );
+}
+
+export default LeavesView;

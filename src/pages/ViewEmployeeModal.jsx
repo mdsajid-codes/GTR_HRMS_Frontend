@@ -1,0 +1,215 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Search, Loader, User, Briefcase, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
+import axios from 'axios';
+import Profile from '../components/Hrpages/Profile';
+import Job from '../components/Hrpages/Job';
+import Leave from '../components/Hrpages/Leave';
+import Payroll from '../components/Hrpages/Payroll';
+
+const employeeNavLinks = [
+    { name: 'Profile', icon: User },
+    { name: 'Job', icon: Briefcase },
+    { name: 'Leave', icon: Calendar },
+    { name: 'Salary', icon: DollarSign },
+    // Add other tabs as needed
+];
+
+const ViewEmployeeModal = ({ isOpen, onClose }) => {
+    const [activeTab, setActiveTab] = useState('Profile');
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [employees, setEmployees] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchEmployees = async () => {
+                setLoading(true);
+                setError('');
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get(`${API_URL}/employees/all`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    setEmployees(response.data);
+                } catch (err) {
+                    console.error("Error fetching employees:", err);
+                    setError('Failed to fetch employees. Please try again later.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchEmployees();
+        } else {
+            // Reset state on close
+            setEmployees([]);
+            setSelectedEmployee(null);
+            setSearchTerm('');
+            setError('');
+        }
+    }, [isOpen, API_URL]);
+
+    const filteredEmployees = useMemo(() => {
+        if (!searchTerm) return employees;
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return employees.filter(emp =>
+            (emp.firstName && emp.firstName.toLowerCase().includes(lowercasedFilter)) ||
+            (emp.lastName && emp.lastName.toLowerCase().includes(lowercasedFilter)) ||
+            (emp.employeeCode && emp.employeeCode.toLowerCase().includes(lowercasedFilter)) ||
+            (emp.emailWork && emp.emailWork.toLowerCase().includes(lowercasedFilter))
+        );
+    }, [employees, searchTerm]);
+
+    const handleSelectEmployee = (employee) => {
+        const name = employee.firstName + " " + employee.lastName;
+        const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+        setSelectedEmployee({ ...employee, initials });
+        setActiveTab('Profile');
+    };
+    
+    const handleBackToList = () => {
+        setSelectedEmployee(null);
+    };
+
+    const handleEmployeeUpdate = (updatedEmployee) => {
+        setSelectedEmployee(updatedEmployee);
+        setEmployees(prev => prev.map(e => e.employeeCode === updatedEmployee.employeeCode ? updatedEmployee : e));
+    };
+
+    const renderContent = () => {
+        if (!selectedEmployee) return null;
+        switch (activeTab) {
+            case 'Profile':
+                return <Profile employee={selectedEmployee} onUpdate={handleEmployeeUpdate} />;
+            case 'Job':
+                return <Job employee={selectedEmployee} />;
+            case 'Leave':
+                return <Leave employee={selectedEmployee} />;
+            case 'Salary':
+                return <Payroll employee={selectedEmployee} />;
+            default:
+                return <div>Details for {activeTab}</div>;
+        }
+    };
+
+    const renderEmployeeList = () => (
+        <div className="p-6">
+            <div className="relative mb-4">
+                <input
+                    type="text"
+                    placeholder="Search by name, code, or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            </div>
+            <div className="overflow-y-auto" style={{maxHeight: 'calc(90vh - 250px)'}}>
+                <table className="min-w-full bg-white">
+                    <thead className="bg-slate-50 sticky top-0">
+                        <tr>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Name</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Employee Code</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Work Email</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Designation</th>
+                        </tr>
+                    </thead>
+                    <tbody className="text-slate-700">
+                        {loading ? (
+                            <tr><td colSpan="4" className="text-center py-10"><Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto" /></td></tr>
+                        ) : error ? (
+                            <tr><td colSpan="4" className="text-center py-10 text-red-500">{error}</td></tr>
+                        ) : filteredEmployees.length > 0 ? (
+                            filteredEmployees.map(emp => (
+                                <tr key={emp.employeeCode} className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer" onClick={() => handleSelectEmployee(emp)}>
+                                    <td className="py-3 px-4 font-medium">{emp.firstName} {emp.lastName}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.employeeCode}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.emailWork}</td>
+                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.jobDetails?.[0]?.designationTitle || 'N/A'}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr><td colSpan="4" className="text-center py-10 text-slate-500">No employees found.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
+                    <h2 className="text-xl font-semibold text-slate-800">
+                        {selectedEmployee ? 'Employee Details' : 'Find Employee'}
+                    </h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="flex-grow overflow-y-auto">
+                    {selectedEmployee ? (
+                        <>
+                            {/* Header inside modal */}
+                            <div className="bg-white shadow-sm sticky top-0 z-10">
+                                <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div className="flex items-center gap-4 min-w-0">
+                                        <button onClick={handleBackToList} className="p-2 rounded-full hover:bg-slate-100">
+                                            <ArrowLeft className="h-5 w-5" />
+                                        </button>
+                                        <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
+                                            {selectedEmployee.initials}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-3">
+                                                <h1 className="text-2xl font-bold text-slate-800 truncate">
+                                                    {`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
+                                                </h1>
+                                                <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
+                                                    selectedEmployee.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>{selectedEmployee.status.toLowerCase()}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-500">{selectedEmployee.jobDetails?.[0]?.designationTitle || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <nav className="flex overflow-x-auto border-b border-slate-200">
+                                    {employeeNavLinks.map((link) => (
+                                        <button
+                                            key={link.name}
+                                            onClick={() => setActiveTab(link.name)}
+                                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                                                activeTab === link.name
+                                                    ? 'border-blue-600 text-blue-600'
+                                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <link.icon className="h-4 w-4" />
+                                            <span>{link.name}</span>
+                                        </button>
+                                    ))}
+                                </nav>
+                            </div>
+
+                            {/* Main Content Area */}
+                            <main className="p-6">
+                                {renderContent()}
+                            </main>
+                        </>
+                    ) : (
+                        renderEmployeeList()
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ViewEmployeeModal;
