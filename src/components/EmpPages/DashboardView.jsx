@@ -39,36 +39,37 @@ const DashboardView = ({ setActiveItem }) => {
                     setLoading(false);
                     return;
                 }
-                // Step 1: Fetch the employee code using the email (username).
-                const codeResponse = await axios.get(`${API_URL}/employees/email/${username}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
+                const headers = { "Authorization": `Bearer ${token}` };
 
-                const employeeCode = codeResponse.data;
-                localStorage.setItem('employeeCode', employeeCode)
-                if (!employeeCode) {
-                    throw new Error("Employee code not found for the user.");
-                }
+                // Fetch the base employee details to get the employeeCode
+                const employeeRes = await axios.get(`${API_URL}/employees/by-user-email/${username}`, { headers });
+                const baseEmployeeData = employeeRes.data;
+                const employeeCode = baseEmployeeData.employeeCode;
+                localStorage.setItem('employeeCode', employeeCode);
 
-                // Step 2: Fetch the full employee details using the employee code.
-                const response = await axios.get(`${API_URL}/employees/${employeeCode}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
+                // Fetch job details concurrently
+                const jobDetailsRes = await axios.get(`${API_URL}/job-details/${employeeCode}`, { headers })
+                    .catch(err => {
+                        if (err.response && err.response.status === 404) {
+                            return { data: null }; // Gracefully handle no job details
+                        }
+                        throw err;
+                    });
 
-                // The backend provides core employee data. We'll merge it with
-                // some placeholder/mock data for UI elements not yet supported by the backend.
-                const employeeData = {
+                // Combine all data
+                const fullEmployeeData = {
                     // Mock data for fields not yet available from backend
                     attendance: {
                         today: { checkIn: '09:30 AM', status: 'PRESENT' },
                         workHours: '4h 30m'
                     },
                     leaveBalance: { sick: 5, casual: 10, earned: 8 },
-                    ...response.data,
+                    ...baseEmployeeData,
+                    jobDetails: jobDetailsRes.data,
                     // Ensure nested arrays from backend are handled gracefully
-                    leaves: response.data.leaves || [],
+                    leaves: baseEmployeeData.leaves || [],
                 };
-                setEmployee(employeeData);
+                setEmployee(fullEmployeeData);
             } catch (err) {
                 console.error("Error fetching employee data:", err);
                 if (err.response?.status === 404) {
@@ -153,7 +154,7 @@ const DashboardView = ({ setActiveItem }) => {
                     </div>
                     <div className="mt-2">
                         <p className="text-xl font-bold text-slate-800">{employee.firstName} {employee.lastName}</p>
-                        <p className="text-sm text-slate-500">{employee.jobDetails?.[0]?.designationTitle || 'N/A'}</p>
+                        <p className="text-sm text-slate-500">{employee.jobDetails?.designation || 'N/A'}</p>
                     </div>
                 </div>
             </div>

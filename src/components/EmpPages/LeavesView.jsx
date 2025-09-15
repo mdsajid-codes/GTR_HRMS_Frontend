@@ -1,16 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Plus, Loader, AlertCircle, X, Calendar, FileClock, Check, MessageSquare, ArrowRight } from 'lucide-react';
+import { Plus, Loader, AlertCircle, X, Calendar, FileClock, Check, MessageSquare, ArrowRight, Trash2 } from 'lucide-react';
 
 // Modal for requesting a new leave
-const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading }) => {
+const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading, leaveTypes = [] }) => {
     const [formData, setFormData] = useState({
-        leaveType: 'SICK',
-        startDate: '',
-        endDate: '',
+        leaveType: '',
+        fromDate: '',
+        toDate: '',
         reason: ''
     });
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            // Reset form and set default leave type when modal opens
+            setFormData({
+                leaveType: leaveTypes[0]?.leaveType || '',
+                fromDate: '',
+                toDate: '',
+                reason: ''
+            });
+            setError('');
+        }
+    }, [isOpen, leaveTypes]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -19,11 +32,11 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.startDate || !formData.endDate || !formData.reason) {
+        if (!formData.fromDate || !formData.toDate || !formData.reason) {
             setError('All fields are required.');
             return;
         }
-        if (new Date(formData.startDate) > new Date(formData.endDate)) {
+        if (new Date(formData.fromDate) > new Date(formData.toDate)) {
             setError('Start date cannot be after end date.');
             return;
         }
@@ -46,24 +59,22 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading }) => {
                     <div className="p-6 space-y-4">
                         <div>
                             <label htmlFor="leaveType" className="block text-sm font-medium text-slate-700">Leave Type</label>
-                            <select id="leaveType" name="leaveType" value={formData.leaveType} onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm">
-                                <option value="SICK">Sick Leave</option>
-                                <option value="CASUAL">Casual Leave</option>
-                                <option value="EARNED">Earned Leave</option>
-                                <option value="MATERNITY">Maternity Leave</option>
-                                <option value="PATERNITY">Paternity Leave</option>
-                                <option value="COMP_OFF">Comp Off Leave</option>
-                                <option value="UNPAID">Unpaid Leave</option>
+                            <select id="leaveType" name="leaveType" value={formData.leaveType} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm">
+                                {leaveTypes.length > 0 ? (
+                                    leaveTypes.map(lt => <option key={lt.id} value={lt.leaveType}>{lt.leaveType.replace('_', ' ')}</option>)
+                                ) : (
+                                    <option value="" disabled>No leave types available</option>
+                                )}
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">Start Date</label>
-                                <input type="date" id="startDate" name="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                                <input type="date" id="fromDate" name="fromDate" value={formData.fromDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
                             </div>
                             <div>
                                 <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">End Date</label>
-                                <input type="date" id="endDate" name="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                                <input type="date" id="toDate" name="toDate" value={formData.toDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
                             </div>
                         </div>
                         <div>
@@ -87,41 +98,52 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading }) => {
 
 // A map for styling statuses
 const statusStyles = {
-    PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock },
+    SUBMITTED: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock },
     APPROVED: { bg: 'bg-green-100', text: 'text-green-800', icon: Check },
     REJECTED: { bg: 'bg-red-100', text: 'text-red-800', icon: X },
     CANCELLED: { bg: 'bg-slate-100', text: 'text-slate-600', icon: X },
 };
 
-const LeaveHistoryCard = ({ request }) => {
-    const { leaveType, startDate, endDate, reason, status, approvedBy, approvedDate } = request;
-    const displayStatus = status || 'PENDING';
+const LeaveHistoryCard = ({ request, onCancel }) => {
+    const { id, leaveType, fromDate, toDate, reason, status, updatedAt, adminNotes } = request;
+    const displayStatus = status || 'SUBMITTED';
     const StatusIcon = statusStyles[displayStatus]?.icon || FileClock;
 
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-            <div className="flex justify-between items-start">
-                <h4 className="font-semibold text-slate-800">{leaveType.replace('_', ' ')}</h4>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
-                    <StatusIcon className="h-3.5 w-3.5" />
-                    {displayStatus.toLowerCase()}
-                </span>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div>
+                <div className="flex justify-between items-start">
+                    <h4 className="font-semibold text-slate-800">{leaveType.leaveType.replace('_', ' ')}</h4>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
+                        <StatusIcon className="h-3.5 w-3.5" />
+                        {displayStatus.toLowerCase()}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-500 mt-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDate(fromDate)}</span>
+                    <ArrowRight className="h-4 w-4" />
+                    <span>{formatDate(toDate)}</span>
+                </div>
+                <p className="text-sm text-slate-600 mt-3 flex items-start gap-2">
+                    <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{reason || 'No reason provided.'}</span>
+                </p>
+                {(status === 'APPROVED' || status === 'REJECTED') && updatedAt && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                        Reviewed on {formatDate(updatedAt)}
+                        {adminNotes && <p className="mt-1 italic">Note: {adminNotes}</p>}
+                    </div>
+                )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500 mt-2">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDate(startDate)}</span>
-                <ArrowRight className="h-4 w-4" />
-                <span>{formatDate(endDate)}</span>
-            </div>
-            <p className="text-sm text-slate-600 mt-3 flex items-start gap-2">
-                <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>{reason || 'No reason provided.'}</span>
-            </p>
-            {approvedBy && (
-                <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                    Reviewed by {approvedBy} on {formatDate(approvedDate)}
+            {displayStatus === 'SUBMITTED' && (
+                <div className="mt-4 pt-3 border-t border-slate-200 flex justify-end">
+                    <button onClick={() => onCancel(id)} className="flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        Cancel Request
+                    </button>
                 </div>
             )}
         </div>
@@ -131,6 +153,7 @@ const LeaveHistoryCard = ({ request }) => {
 const LeavesView = () => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [leaveTypes, setLeaveTypes] = useState([]);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalLoading, setModalLoading] = useState(false);
@@ -149,7 +172,7 @@ const LeavesView = () => {
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/leaves/${employeeCode}`, {
+            const response = await axios.get(`${API_URL}/leave-requests/employee/${employeeCode}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             // Sort leaves by most recent first
@@ -164,33 +187,83 @@ const LeavesView = () => {
     };
 
     useEffect(() => {
+        const fetchLeaveTypes = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`${API_URL}/leave-types`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                setLeaveTypes(response.data);
+            } catch (err) {
+                console.error("Failed to fetch leave types", err);
+            }
+        };
+
         fetchLeaves();
+        fetchLeaveTypes();
     }, [API_URL, employeeCode]);
 
     const handleSubmitLeave = async (leaveData) => {
         setModalLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${API_URL}/leaves/${employeeCode}`, leaveData, {
+
+            const startDate = new Date(leaveData.fromDate);
+            const endDate = new Date(leaveData.toDate);
+            const daysRequested = (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
+
+            const payload = {
+                employeeCode,
+                leaveType: leaveData.leaveType,
+                fromDate: leaveData.fromDate,
+                toDate: leaveData.toDate,
+                reason: leaveData.reason,
+                daysRequested,
+                partialDayInfo: null, // Or implement this field in the modal if needed
+            };
+
+            await axios.post(`${API_URL}/leave-requests`, payload, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             setIsModalOpen(false);
             fetchLeaves(); // Refetch to show the new leave request
             alert('Leave request submitted successfully!');
         } catch (err) {
-            alert('Failed to submit leave request. Please try again.');
+            const errorMessage = err.response?.data?.message || err.response?.data || 'Failed to submit leave request. Please try again.';
+            alert(`Error: ${errorMessage}`);
             console.error(err);
         } finally {
             setModalLoading(false);
         }
     };
 
+    const handleCancelLeave = async (leaveId) => {
+        if (!window.confirm("Are you sure you want to cancel this leave request?")) return;
+
+        setLoading(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            await axios.put(`${API_URL}/leave-requests/${leaveId}/cancel`, {}, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            fetchLeaves();
+            alert('Leave request cancelled successfully.');
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || 'Failed to cancel leave request.';
+            setError(errorMessage);
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const filteredLeaves = useMemo(() => {
         if (activeTab === 'ALL') return leaves;
-        return leaves.filter(leave => (leave.status || 'PENDING') === activeTab);
+        return leaves.filter(leave => (leave.status || 'SUBMITTED') === activeTab);
     }, [leaves, activeTab]);
 
-    const TABS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
+    const TABS = ['ALL', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
     return (
         <div className="p-6 md:p-8">
@@ -232,7 +305,7 @@ const LeavesView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredLeaves.length > 0 ? (
                         filteredLeaves.map(leave => (
-                            <LeaveHistoryCard key={leave.id} request={leave} />
+                            <LeaveHistoryCard key={leave.id} request={leave} onCancel={handleCancelLeave} />
                         ))
                     ) : (
                         <div className="col-span-full text-center text-slate-500 py-10">
@@ -251,6 +324,7 @@ const LeavesView = () => {
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSubmitLeave}
                 loading={modalLoading}
+                leaveTypes={leaveTypes}
             />
         </div>
     );

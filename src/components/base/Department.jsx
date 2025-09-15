@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../components/DashboardLayout';
+import DashboardLayout from '../DashboardLayout';
 import { Plus, Edit, Trash2, Loader, AlertCircle, X } from 'lucide-react';
 import axios from 'axios';
 
@@ -66,8 +66,8 @@ const DepartmentModal = ({ isOpen, onClose, onSave, department, loading }) => {
                         {modalError && <p className="text-red-500 text-sm">{modalError}</p>}
                     </div>
                     <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm font-medium" disabled={loading}>Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center" disabled={loading}>
+                        <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
+                        <button type="submit" className="btn-primary flex items-center" disabled={loading}>
                             {loading && <Loader className="animate-spin h-4 w-4 mr-2" />}
                             Save
                         </button>
@@ -78,7 +78,7 @@ const DepartmentModal = ({ isOpen, onClose, onSave, department, loading }) => {
     );
 };
 
-const Department = () => {
+const Department = ({ embedded = false }) => {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalLoading, setModalLoading] = useState(false);
@@ -119,14 +119,14 @@ const Department = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (departmentName) => {
+    const handleDelete = async (departmentId, departmentName) => {
         if (window.confirm(`Are you sure you want to delete the department "${departmentName}"? This action cannot be undone.`)) {
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`${API_URL}/departments/${departmentName}`, {
+                await axios.delete(`${API_URL}/departments/${departmentId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
-                setDepartments(departments.filter(d => d.name !== departmentName));
+                setDepartments(departments.filter(d => d.id !== departmentId));
             } catch (err) {
                 setError('Failed to delete department.');
                 console.error(err);
@@ -158,8 +158,8 @@ const Department = () => {
         }
     };
 
-    return (
-        <DashboardLayout>
+    const content = (
+        <>
             <div className="p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">Departments</h1>
@@ -203,7 +203,7 @@ const Department = () => {
                                                     <button onClick={() => handleEdit(dept)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Edit">
                                                         <Edit className="h-4 w-4" />
                                                     </button>
-                                                    <button onClick={() => handleDelete(dept.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Delete">
+                                                    <button onClick={() => handleDelete(dept.id, dept.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Delete">
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </td>
@@ -231,7 +231,15 @@ const Department = () => {
                 department={editingDepartment}
                 loading={modalLoading}
             />
-        </DashboardLayout>
+        </>
+    );
+
+    if (embedded) {
+        return content;
+    }
+
+    return (
+        <DashboardLayout>{content}</DashboardLayout>
     );
 }
 

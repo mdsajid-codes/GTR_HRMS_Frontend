@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CalendarClock, Briefcase, UserPlus, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, PartyPopper, Eye, Search } from 'lucide-react';
+import { Users, CalendarClock, Briefcase, UserPlus, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, PartyPopper, Eye, Search, UploadCloud } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import AddEmployeeModal from './AddEmployeeModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
+import BulkAddEmployeesModal from './BulkAddEmployeesModal';
 
 // A reusable card component for displaying stats
 const StatCard = ({ icon: Icon, title, value, change, changeType }) => (
@@ -41,6 +42,7 @@ const ActivityItem = ({ icon: Icon, iconColor, title, description }) => (
 const HrDashboard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const navigate = useNavigate();
 
     const stats = [
@@ -107,6 +109,12 @@ const HrDashboard = () => {
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">HR Dashboard</h1>
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsBulkModalOpen(true)}
+                            className="btn-secondary flex items-center">
+                            <UploadCloud className="h-5 w-5 mr-2" />
+                            Bulk Add
+                        </button>
                         <button 
                             onClick={() => setIsViewModalOpen(true)}
                             className="btn-secondary">
@@ -160,6 +168,12 @@ const HrDashboard = () => {
                 <ViewEmployeeModal
                     isOpen={isViewModalOpen}
                     onClose={() => setIsViewModalOpen(false)}
+                />
+            )}
+            {isBulkModalOpen && (
+                <BulkAddEmployeesModal
+                    isOpen={isBulkModalOpen}
+                    onClose={() => setIsBulkModalOpen(false)}
                 />
             )}
         </DashboardLayout>

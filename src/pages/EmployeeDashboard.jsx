@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -16,16 +16,19 @@ import DashboardView from '../components/EmpPages/DashboardView';
 import LeavesView from '../components/EmpPages/LeavesView';
 import PayrollView from '../components/EmpPages/PayrollView';
 import axios from 'axios';
+import RecruitmentView from '../components/EmpPages/RecruitmentView';
+import Leaves from '../components/EmpPages/Leaves';
 
 // Placeholder components for different sections
 const AttendanceView = () => <div className="p-8"><h1 className="text-3xl font-bold text-slate-800">Attendance</h1><p className="mt-2 text-slate-600">Your attendance records, check-in/out times, and work hours will be displayed here.</p></div>;
 
 
 const navLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, Component: DashboardView },
-    { name: 'Attendance', icon: Clock, Component: AttendanceView },
-    { name: 'Leaves', icon: Calendar, Component: LeavesView },
-    { name: 'Payroll', icon: DollarSign, Component: PayrollView },
+    { name: 'Dashboard', icon: LayoutDashboard, Component: DashboardView }, // All plans
+    { name: 'Attendance', icon: Clock, Component: AttendanceView, requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
+    { name: 'Leaves', icon: Calendar, Component: Leaves, requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
+    { name: 'Payroll', icon: DollarSign, Component: PayrollView, requiredPlans: ['PREMIUM', 'ENTERPRISE'] },
+    { name: 'Recruitment', icon: DollarSign, Component: RecruitmentView, requiredPlans: ['ENTERPRISE'] }
 ];
 
 const NavItem = ({ item, isActive, onClick }) => (
@@ -42,7 +45,7 @@ const NavItem = ({ item, isActive, onClick }) => (
     </button>
 );
 
-const SidebarContent = ({ activeItem, setActiveItem, onLinkClick }) => {
+const SidebarContent = ({ activeItem, setActiveItem, onLinkClick, accessibleNavLinks }) => {
     const navigate = useNavigate();
     const username = localStorage.getItem('username') || 'Employee';
 
@@ -60,7 +63,7 @@ const SidebarContent = ({ activeItem, setActiveItem, onLinkClick }) => {
                 </Link>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                {navLinks.map((item) => (
+                {accessibleNavLinks.map((item) => (
                     <NavItem 
                         key={item.name} 
                         item={item} 
@@ -94,12 +97,33 @@ const SidebarContent = ({ activeItem, setActiveItem, onLinkClick }) => {
 
 const EmployeeDashboard = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [activeItem, setActiveItem] = useState('Dashboard');
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const username = localStorage.getItem('username') || 'Employee';
     const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    const accessibleNavLinks = useMemo(() => {
+        const plan = localStorage.getItem('plan');
+        if (!plan || plan === 'ENTERPRISE') {
+            return navLinks;
+        }
+        return navLinks.filter(link => {
+            if (!link.requiredPlans) {
+                return true;
+            }
+            return link.requiredPlans.includes(plan);
+        });
+    }, []);
+
+    const [activeItem, setActiveItem] = useState('Dashboard');
+
+    useEffect(() => {
+        // If the current active tab is no longer accessible (e.g., due to a plan change),
+        // reset to the default 'Dashboard' tab.
+        const isCurrentActiveItemAccessible = accessibleNavLinks.some(link => link.name === activeItem);
+        if (!isCurrentActiveItemAccessible) setActiveItem('Dashboard');
+    }, [accessibleNavLinks, activeItem]);
 
     useEffect(() => {
         const fetchEmployeeData = async () => {
@@ -110,21 +134,12 @@ const EmployeeDashboard = () => {
                     setLoading(false);
                     return;
                 }
-                // Step 1: Fetch the employee code using the email (username).
-                const codeResponse = await axios.get(`${API_URL}/employees/email/${username}`, {
+                // Fetch the full employee details using the user's email.
+                const response = await axios.get(`${API_URL}/employees/by-user-email/${username}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
 
-                const employeeCode = codeResponse.data;
-                localStorage.setItem('employeeCode', employeeCode)
-                if (!employeeCode) {
-                    throw new Error("Employee code not found for the user.");
-                }
-
-                // Step 2: Fetch the full employee details using the employee code.
-                const response = await axios.get(`${API_URL}/employees/${employeeCode}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
+                localStorage.setItem('employeeCode', response.data.employeeCode);
 
                 // The backend provides core employee data. We'll merge it with
                 // some placeholder/mock data for UI elements not yet supported by the backend.
@@ -156,7 +171,7 @@ const EmployeeDashboard = () => {
     }, [username, API_URL]);
 
     const renderContent = () => {
-        const activeLink = navLinks.find(link => link.name === activeItem) || navLinks[0];
+        const activeLink = accessibleNavLinks.find(link => link.name === activeItem) || accessibleNavLinks[0];
         const Component = activeLink.Component;
         // Pass employee data to the active component.
         return <Component setActiveItem={setActiveItem} employee={employee} />;
@@ -167,7 +182,7 @@ const EmployeeDashboard = () => {
             {/* Static sidebar for desktop */}
             <div className="hidden lg:flex lg:flex-shrink-0">
                 <div className="flex flex-col w-64 border-r border-slate-200">
-                    <SidebarContent activeItem={activeItem} setActiveItem={setActiveItem} />
+                    <SidebarContent activeItem={activeItem} setActiveItem={setActiveItem} accessibleNavLinks={accessibleNavLinks} />
                 </div>
             </div>
 
@@ -233,6 +248,7 @@ const EmployeeDashboard = () => {
                             <SidebarContent 
                                 activeItem={activeItem} 
                                 setActiveItem={setActiveItem} 
+                                accessibleNavLinks={accessibleNavLinks}
                                 onLinkClick={() => setSidebarOpen(false)} 
                             />
                         </motion.div>

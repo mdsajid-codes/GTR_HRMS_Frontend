@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -11,17 +11,21 @@ import {
     LogOut,
     Sparkles,
     Menu,
+    CalendarClock,
+    DollarSign,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const navLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard' },
-    { name: 'Employees', icon: Users, href: '/employees' },
-    { name: 'Department', icon: FileText, href: '/department' },
-    { name: 'Designation', icon: CreditCard, href: '/designation' },
-    { name: 'Resignation/Termination', icon: UserX, href: '/separation' },
-    { name: 'Users', icon: ShieldCheck, href: '/users-details' },
-    { name: 'Reports', icon: BarChart2, href: '/reports' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard' }, // All plans
+    { name: 'Employees', icon: Users, href: '/employees' }, // All plans
+    { name: 'Settings', icon: FileText, href: '/settings', requiredPlans: ['STARTER', 'STANDARD', 'PREMIUM', 'ENTERPRISE'] },
+    { name: 'Attendance', icon: CalendarClock, href: '/attendance', requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
+    { name: 'Leave', icon: CalendarClock, href: '/leave', requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
+    { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', requiredPlans: ['PREMIUM', 'ENTERPRISE'] },
+    { name: 'Resignation/Termination', icon: UserX, href: '/separation', requiredPlans: ['ENTERPRISE'] },
+    { name: 'Users', icon: ShieldCheck, href: '/users-details' }, // All plans
+    { name: 'Reports', icon: BarChart2, href: '/reports', requiredPlans: ['ENTERPRISE'] },
 ];
 
 const NavItem = ({ item, onClick }) => (
@@ -50,6 +54,27 @@ const SidebarContent = ({ onLinkClick }) => {
         navigate('/login');
     };
 
+    const accessibleNavLinks = useMemo(() => {
+        const tenantId = localStorage.getItem('tenantId');
+        if (tenantId === 'master') {
+            return navLinks;
+        }
+        const plan = localStorage.getItem('plan'); // e.g., 'ATTENDANCE_BASIC'
+        
+        return navLinks.filter(link => {
+            // If a link has no specific plan requirements, it's accessible to all tenants.
+            if (!link.requiredPlans) {
+                return true;
+            }
+            // If there's no plan set for the tenant, hide plan-specific links.
+            if (!plan) {
+                return false;
+            }
+            // Otherwise, check if the current plan is in the link's required plans list.
+            return link.requiredPlans.includes(plan);
+        });
+    }, []);
+
     return (
         <div className="flex flex-col h-full bg-white">
             <div className="p-4 border-b border-slate-200 flex-shrink-0">
@@ -59,7 +84,7 @@ const SidebarContent = ({ onLinkClick }) => {
                 </Link>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                {navLinks.map((item) => (
+                {accessibleNavLinks.map((item) => (
                     <NavItem key={item.name} item={item} onClick={onLinkClick} />
                 ))}
             </nav>

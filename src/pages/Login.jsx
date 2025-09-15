@@ -52,6 +52,7 @@ const Login = () => {
                 localStorage.setItem('roles', JSON.stringify(response.data.roles))
                 localStorage.setItem('username', loginData.email)
                 localStorage.setItem('tenantId', loginData.tenantId)
+                localStorage.setItem('plan', response.data.plan)
                 console.log(response.data)
             }
             

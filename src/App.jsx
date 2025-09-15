@@ -6,10 +6,10 @@ import Register from './pages/Register'
 import HrDashboard from './pages/HrDashboard'
 import Employee from './pages/Employee'
 import MasterAdmin from './pages/MasterAdmin'
-import Department from './pages/Department'
-import Designation from './pages/Designation'
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import UsersDetails from './pages/UsersDetails'
+import Settings from './pages/Settings'
+import Leave from './pages/Leave'
 
 function App() {
   return (
@@ -21,10 +21,10 @@ function App() {
         <Route path='/hrdashboard' element={<HrDashboard />} />
         <Route path='/employees' element={<Employee />} />
         <Route path='/master-admin' element={<MasterAdmin />} />
-        <Route path='/department' element={<Department />} />
-        <Route path='/designation' element={<Designation />} />
         <Route path='/employee-dashboard' element={<EmployeeDashboard />} />
-        <Route path='/users-details' element={<UsersDetails />} />
+        <Route path="/users-details" element={<UsersDetails />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path='/leave' element={<Leave />} />
       </Routes>
     </Router>
   )

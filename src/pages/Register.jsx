@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Building2, Eye, EyeOff, Loader } from 'lucide-react';
+import { Sparkles, Building2, Eye, EyeOff, Loader, Briefcase, ChevronDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import AuthNavbar from '../components/AuthNavbar';
@@ -10,6 +10,7 @@ const Register = () => {
         tenantId: '',
         companyName: '',
         adminEmail: '',
+        plan: '', // Default to empty so the placeholder is selected
         adminPassword: '',
         confirmPassword: '',
     });
@@ -106,7 +107,29 @@ const Register = () => {
                             placeholder="e.g., Acme Corporation"
                         />
                     </div>
-
+                    <div>
+                        <label htmlFor="plan" className="block text-sm font-medium text-slate-700">
+                            Choose Plan
+                        </label>
+                        <div className="relative mt-1">
+                            <Briefcase className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                            <select
+                                id="plan"
+                                name="plan"
+                                required
+                                value={formData.plan}
+                                onChange={handleChange}
+                                className="appearance-none block w-full pl-10 pr-10 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+                            >
+                                <option value="" disabled>Select a plan</option>
+                                <option value="STARTER">Starter</option>
+                                <option value="STANDARD">Standard</option>
+                                <option value="PREMIUM">Premium</option>
+                                <option value="ENTERPRISE">Enterprise</option>
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                        </div>
+                    </div>
                     <div>
                         <label htmlFor="adminUsername" className="block text-sm font-medium text-slate-700">
                             Admin Email

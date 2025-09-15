@@ -57,6 +57,7 @@ const TenantList = ({ tenants, onDelete }) => (
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Company Name</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">JdbC Url</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Username</th>
+                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Plan</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Actions</th>
                 </tr>
             </thead>
@@ -67,6 +68,7 @@ const TenantList = ({ tenants, onDelete }) => (
                         <td className="py-3 px-4">{tenant.companyName}</td>
                         <td className="py-3 px-4">{tenant.jdbcUrl}</td>
                         <td className="py-3 px-4 text-sm text-slate-500">{tenant.username}</td>
+                        <td className="py-3 px-4 text-sm text-slate-500">{tenant.plan}</td>
                         <td className="py-3 px-4">
                             <button 
                                 onClick={() => onDelete(tenant.tenantId)}
@@ -92,6 +94,7 @@ const TenantRequestList = ({ requests, onApprove, onReject }) => (
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Company Name</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Admin Email</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Admin Password</th>
+                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Plan</th>
                     <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Actions</th>
                 </tr>
             </thead>
@@ -107,6 +110,7 @@ const TenantRequestList = ({ requests, onApprove, onReject }) => (
                             <td className="py-3 px-4">{request.companyName}</td>
                             <td className="py-3 px-4 text-sm text-slate-500">{request.adminEmail}</td>
                             <td className="py-3 px-4 text-sm text-slate-500">{request.adminPassword}</td>
+                            <td className="py-3 px-4 text-sm text-slate-500">{request.plan}</td>
                             <td className="py-3 px-4 flex items-center gap-2">
                                 <button 
                                     onClick={() => onApprove(request)}
@@ -204,7 +208,8 @@ const MasterAdmin = () => {
                 tenantId: request.tenantId,
                 companyName: request.companyName,
                 adminEmail: request.adminEmail,
-                adminPassword: request.adminPassword
+                adminPassword: request.adminPassword,
+                plan: request.plan
             };
             const createdTenantResponse = await axios.post(`${API_URL}/master/tenants/provision`, newTenant, { headers });
 

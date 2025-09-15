@@ -8,10 +8,14 @@ const PricingCard = ({ name, price, period, features, highlighted }) => (
       <h3 className="text-xl font-semibold">{name}</h3>
       {highlighted && <span className="rounded-full bg-white/20 px-3 py-1 text-xs">Popular</span>}
     </div>
-    <div className="mt-6 flex items-end gap-1">
-      <div className="text-4xl font-bold">{price}</div>
-      <div className={`mb-1 text-sm ${highlighted ? "opacity-80" : "opacity-60"}`}>/{period}</div>
-    </div>
+    {price === 'Custom' ? (
+      <div className="mt-6 text-4xl font-bold">Contact Us</div>
+    ) : (
+      <div className="mt-6 flex items-end gap-1">
+        <div className="text-4xl font-bold">{price}</div>
+        <div className={`mb-1 text-sm ${highlighted ? "opacity-80" : "opacity-60"}`}>/{period}</div>
+      </div>
+    )}
     <ul className="mt-6 space-y-2 text-sm">
       {features.map((f, i) => (
         <li key={i} className="flex items-center gap-2">

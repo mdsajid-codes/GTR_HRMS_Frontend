@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import {
     User,
@@ -13,25 +13,24 @@ import {
     HandCoins,
     Search,
     Loader,
+    Camera,
 } from 'lucide-react';
 import axios from 'axios';
 import Profile from '../components/Hrpages/Profile';
-import Job from '../components/Hrpages/Job';
 import Leave from '../components/Hrpages/Leave';
 import Payroll from '../components/Hrpages/Payroll';
+import Address from '../components/Hrpages/Address';
+import Documents from '../components/Hrpages/Documents';
+import JobDetails from '../components/Hrpages/JobDetails';
+import TimeAttendence from '../components/Hrpages/TimeAttendence';
 
 const employeeNavLinks = [
     { name: 'Summary', icon: User },
     { name: 'Profile', icon: User },
-    { name: 'Job', icon: Briefcase },
+    { name: 'Job Details', icon: Briefcase },
+    { name: 'Address & Bank Details', icon: Briefcase },
     { name: 'Documents', icon: FileText },
-    { name: 'Leave', icon: Calendar },
-    { name: 'Attendance', icon: Clock },
-    { name: 'Salary', icon: DollarSign },
-    { name: 'Tax', icon: Percent },
-    { name: 'Financial Info', icon: Landmark },
-    { name: 'Expense', icon: Receipt },
-    { name: 'Loan', icon: HandCoins },
+    { name: 'Time & Attendance', icon: Clock }
 ];
 
 const Employee = () => {
@@ -40,6 +39,8 @@ const Employee = () => {
     const [employeeId, setEmployeeId] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [photoUrl, setPhotoUrl] = useState(null);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -60,17 +61,27 @@ const Employee = () => {
         }
 
         try {
-            const response = await axios.get(`${API_URL}/employees/${employeeId}`,{
-                headers:{
-                    "Authorization" : `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const data = response.data;
-            const name = data.firstName + " " + data.lastName
-            // Assuming the API returns an object with name and role.
-            // We can derive initials from the name.
+            const token = localStorage.getItem('token');
+            const headers = { "Authorization": `Bearer ${token}` };
+
+            // Use Promise.all to fetch employee and job details concurrently
+            const [employeeRes, jobDetailsRes] = await Promise.all([
+                axios.get(`${API_URL}/employees/${employeeId}`, { headers }),
+                axios.get(`${API_URL}/job-details/${employeeId}`, { headers }).catch(err => {
+                    // Don't fail the whole search if job details are not found (404)
+                    if (err.response && err.response.status === 404) {
+                        return { data: null };
+                    }
+                    // For other errors, re-throw to be caught by the main catch block
+                    throw err;
+                })
+            ]);
+
+            const employeeData = employeeRes.data;
+            const name = employeeData.firstName + " " + employeeData.lastName;
             const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
-            setEmployee({...data, initials});
+            
+            setEmployee({ ...employeeData, jobDetails: jobDetailsRes.data, initials });
         } catch (err) {
             console.error("Error searching for employee:", err);
             if (err.response){
@@ -89,7 +100,38 @@ const Employee = () => {
         }
     };
 
-    console.log(employee)
+    useEffect(() => {
+        if (employee?.employeeCode && employee.photoPath) {
+            const fetchPhoto = async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get(`${API_URL}/employees/${employee.employeeCode}/photo`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        responseType: 'blob'
+                    });
+                    const objectURL = URL.createObjectURL(response.data);
+                    setPhotoUrl(objectURL);
+                } catch (error) {
+                    console.error("Could not load employee photo", error);
+                    setPhotoUrl(null);
+                }
+            };
+            fetchPhoto();
+        } else {
+            setPhotoUrl(null);
+        }
+
+        // Cleanup function
+        return () => {
+            if (photoUrl) {
+                URL.revokeObjectURL(photoUrl);
+            }
+        };
+    }, [employee]);
+
+    const handleEmployeeUpdate = (updatedEmployee) => {
+        setEmployee(updatedEmployee);
+    };
 
     const renderContent = () => {
         if (!employee) {
@@ -99,15 +141,47 @@ const Employee = () => {
             case 'Summary':
                 return <div>Summary Details for {employee.name}</div>;
             case 'Profile':
-                return <Profile employee={employee}/>
-            case 'Job' :
-                return <Job employee={employee} />
+                return <Profile employee={employee} onUpdate={handleEmployeeUpdate} />
+            case 'Job Details':
+                return <JobDetails employee={employee} />
+            case 'Address & Bank Details' :
+                return <Address employee={employee} />
+            case 'Documents' :
+                return <Documents employee = {employee} />
+            case 'Time & Attendance':
+                return <TimeAttendence employee={employee} />
             case 'Leave' :
                 return <Leave employee={employee} />
             case 'Salary':
                 return <Payroll employee={employee} />
             default:
                 return <div>Details for {activeTab}</div>;
+        }
+    };
+
+    const handlePhotoUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file || !employee) return;
+
+        setUploadingPhoto(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${API_URL}/employees/${employee.employeeCode}/photo`, formData, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+            // Update employee state to trigger photo refetch
+            setEmployee(response.data);
+        } catch (err) {
+            console.error("Error uploading photo:", err);
+            alert("Failed to upload photo. Please ensure it's a valid image file.");
+        } finally {
+            setUploadingPhoto(false);
         }
     };
 
@@ -118,8 +192,24 @@ const Employee = () => {
                 <div className="bg-white shadow-sm sticky top-0 z-10">
                     <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[104px]">
                         <div className="flex items-center gap-4 min-w-0">
-                            <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
-                                {employee ? employee.initials : '?'}
+                            <div className="relative group">
+                                {photoUrl ? (
+                                    <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md" />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
+                                        {employee ? employee.initials : '?'}
+                                    </div>
+                                )}
+                                {employee && (
+                                    <label htmlFor="photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full cursor-pointer transition-opacity">
+                                        {uploadingPhoto ? (
+                                            <Loader className="animate-spin h-6 w-6 text-white" />
+                                        ) : (
+                                            <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                    </label>
+                                )}
+                                <input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
@@ -132,7 +222,7 @@ const Employee = () => {
                                         }`}>{employee.status.toLowerCase()}</span>
                                     )}
                                 </div>
-                                <p className="text-sm text-slate-500">{employee ? employee.jobDetails?.[0]?.designationTitle : 'Search by ID to begin'}</p>
+                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || 'Search by ID to begin'}</p>
                             </div>
                         </div>
                         <form onSubmit={handleSearch} className="relative">

@@ -99,6 +99,7 @@ const Profile = ({ employee, onUpdate }) => {
 
     const genderOptions = [ { value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' }, { value: 'OTHER', label: 'Other' } ];
     const martialStatusOptions = [ { value: 'SINGLE', label: 'Single' }, { value: 'MARRIED', label: 'Married' }, { value: 'DIVORCED', label: 'Divorced' }, { value: 'WIDOWED', label: 'Widowed' } ];
+    const statusOptions = [ { value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }, { value: 'ON_PROBATION', label: 'On Probation' }, { value: 'TERMINATED', label: 'Terminated' } ];
 
     return (
         <div>
@@ -143,32 +144,22 @@ const Profile = ({ employee, onUpdate }) => {
                         <EditField label="Work Email" name="emailWork" value={formData.emailWork} onChange={handleChange} type="email" />
                         <EditField label="Personal Email" name="emailPersonal" value={formData.emailPersonal} onChange={handleChange} type="email" />
                         <EditField label="Primary Phone" name="phonePrimary" value={formData.phonePrimary} onChange={handleChange} />
-                        <EditField label="Secondary Phone" name="phoneSecondary" value={formData.phoneSecondary} onChange={handleChange} />
                     </> : <>
                         <InfoField label="Work Email" value={employee.emailWork} />
                         <InfoField label="Personal Email" value={employee.emailPersonal} />
                         <InfoField label="Primary Phone" value={employee.phonePrimary} />
-                        <InfoField label="Secondary Phone" value={employee.phoneSecondary} />
                     </>}
                 </ProfileCard>
 
-                <ProfileCard title="Address">
+                <ProfileCard title="Employment Details">
                     {isEditing ? <>
-                        <EditField label="Current Address" name="currentAddress" value={formData.currentAddress} onChange={handleChange} />
-                        <EditField label="Permanent Address" name="permanentAddress" value={formData.permanentAddress} onChange={handleChange} />
+                        <InfoField label="Joining Date" value={employee.joiningDate} />
+                        <InfoField label="Exit Date" value={employee.exitDate} />
+                        <EditField label="Status" name="status" value={formData.status} onChange={handleChange} type="select" options={statusOptions} />
                     </> : <>
-                        <InfoField label="Current Address" value={employee.currentAddress} />
-                        <InfoField label="Permanent Address" value={employee.permanentAddress} />
-                    </>}
-                </ProfileCard>
-
-                <ProfileCard title="Identity Information">
-                    {isEditing ? <>
-                        <EditField label="National ID Type" name="nationalIdType" value={formData.nationalIdType} onChange={handleChange} />
-                        <EditField label="National ID Number" name="nationalIdNumber" value={formData.nationalIdNumber} onChange={handleChange} />
-                    </> : <>
-                        <InfoField label="National ID Type" value={employee.nationalIdType} />
-                        <InfoField label="National ID Number" value={employee.nationalIdNumber} />
+                        <InfoField label="Joining Date" value={employee.joiningDate} />
+                        <InfoField label="Exit Date" value={employee.exitDate} />
+                        <InfoField label="Status" value={employee.status} />
                     </>}
                 </ProfileCard>
             </div>
