@@ -46,27 +46,31 @@ const Login = () => {
                 localStorage.setItem('tenantId', 'master')
                 console.log(response.data)
             } else {
-                // Assuming a tenant-specific login endpoint
                 response = await axios.post(`${API_URL}/auth/login`,loginData );
                 localStorage.setItem('token', response.data.token)
                 localStorage.setItem('roles', JSON.stringify(response.data.roles))
                 localStorage.setItem('username', loginData.email)
                 localStorage.setItem('tenantId', loginData.tenantId)
-                localStorage.setItem('plan', response.data.plan)
-                console.log(response.data)
+                localStorage.setItem('modules', response.data.modules)
             }
             
             const rolesString = localStorage.getItem('roles');
             if (rolesString) {
                 const roles = JSON.parse(rolesString);
-                // Check if the user has TENANT_ADMIN or HR role
-                if (roles.includes('TENANT_ADMIN') || roles.includes('HR')) {
+                if (roles.includes('SUPER_ADMIN') || (roles.includes('POS_ADMIN') && roles.includes('HRMS_ADMIN'))) {
+                    navigate("/company-dashboard");
+                } else if (roles.includes('MASTER_ADMIN')) {
+                    navigate("/master-admin");
+                } else if (roles.includes('HRMS_ADMIN') || roles.includes('HR')) {
                     navigate("/hrdashboard");
-                } else if(roles.includes('MASTER_ADMIN')){
-                    navigate("/master-admin")
-                } else if(roles.includes('EMPLOYEE')){
-                    navigate("/employee-dashboard")
-                }else {
+                } else if (roles.includes('POS_ADMIN') || roles.includes('POS_MANAGER') || roles.includes('POS_CASHIER')) {
+                    navigate("/pos-dashboard");
+                } else if (roles.includes('MANAGER')) {
+                    // Assuming MANAGER role without other specific roles goes to employee dashboard
+                    navigate("/employee-dashboard");
+                } else if (roles.includes('EMPLOYEE')) {
+                    navigate("/employee-dashboard");
+                } else {
                     navigate('/'); // Navigate to a default dashboard if not an admin/HR
                 }
             } else {

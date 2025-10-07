@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
+    Home,
     LayoutDashboard,
     Users,
     FileText,
@@ -14,18 +15,18 @@ import {
     CalendarClock,
     DollarSign,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from "framer-motion";
+import { useTenant } from "../context/TenantContext.jsx";
 
 const navLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard' }, // All plans
-    { name: 'Employees', icon: Users, href: '/employees' }, // All plans
-    { name: 'Settings', icon: FileText, href: '/settings', requiredPlans: ['STARTER', 'STANDARD', 'PREMIUM', 'ENTERPRISE'] },
-    { name: 'Attendance', icon: CalendarClock, href: '/attendance', requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
-    { name: 'Leave', icon: CalendarClock, href: '/leave', requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
-    { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', requiredPlans: ['PREMIUM', 'ENTERPRISE'] },
-    { name: 'Resignation/Termination', icon: UserX, href: '/separation', requiredPlans: ['ENTERPRISE'] },
-    { name: 'Users', icon: ShieldCheck, href: '/users-details' }, // All plans
-    { name: 'Reports', icon: BarChart2, href: '/reports', requiredPlans: ['ENTERPRISE'] },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard', module: 'HRMS_CORE' },
+    { name: 'Employees', icon: Users, href: '/employees', module: 'HRMS_CORE' },
+    { name: 'Settings', icon: FileText, href: '/settings', module: 'HRMS_CORE' }, // Or a specific settings module
+    { name: 'Attendance', icon: CalendarClock, href: '/attendance', module: 'HRMS_ATTENDANCE' },
+    { name: 'Leave', icon: CalendarClock, href: '/leave', module: 'HRMS_LEAVE' },
+    { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', module: 'HRMS_PAYROLL' },
+    { name: 'Users', icon: ShieldCheck, href: '/users-details' },
+    { name: 'Reports', icon: BarChart2, href: '/reports' },
 ];
 
 const NavItem = ({ item, onClick }) => (
@@ -48,6 +49,10 @@ const NavItem = ({ item, onClick }) => (
 const SidebarContent = ({ onLinkClick }) => {
     const navigate = useNavigate();
     const username = localStorage.getItem('username') || 'Admin';
+    const roles = useMemo(() => JSON.parse(localStorage.getItem('roles') || '[]'), []);
+    const isSuperAdmin = useMemo(() => roles.includes('SUPER_ADMIN'), [roles]);
+
+    const { hasModule } = useTenant();
 
     const handleLogout = () => {
         localStorage.clear();
@@ -55,26 +60,20 @@ const SidebarContent = ({ onLinkClick }) => {
     };
 
     const accessibleNavLinks = useMemo(() => {
-        const tenantId = localStorage.getItem('tenantId');
-        if (tenantId === 'master') {
-            return navLinks;
-        }
-        const plan = localStorage.getItem('plan'); // e.g., 'ATTENDANCE_BASIC'
-        
-        return navLinks.filter(link => {
-            // If a link has no specific plan requirements, it's accessible to all tenants.
-            if (!link.requiredPlans) {
-                return true;
-            }
-            // If there's no plan set for the tenant, hide plan-specific links.
-            if (!plan) {
-                return false;
-            }
-            // Otherwise, check if the current plan is in the link's required plans list.
-            return link.requiredPlans.includes(plan);
-        });
-    }, []);
+        // A user has full access if their plan includes all core HRMS modules.
+        const hasAllAccessPlan =
+            hasModule('HRMS_CORE') &&
+            hasModule('HRMS_ATTENDANCE') &&
+            hasModule('HRMS_LEAVE') &&
+            hasModule('HRMS_PAYROLL');
 
+        if (hasAllAccessPlan) {
+            return navLinks; // Return all links for the all-access plan.
+        }
+
+        // Otherwise, filter links based on individual module subscription.
+        return navLinks.filter(link => !link.module || hasModule(link.module));
+    }, [hasModule]);
     return (
         <div className="flex flex-col h-full bg-white">
             <div className="p-4 border-b border-slate-200 flex-shrink-0">
@@ -87,6 +86,11 @@ const SidebarContent = ({ onLinkClick }) => {
                 {accessibleNavLinks.map((item) => (
                     <NavItem key={item.name} item={item} onClick={onLinkClick} />
                 ))}
+                {isSuperAdmin && (
+                    <div className="pt-4 mt-4 border-t border-slate-200">
+                        <NavItem item={{ name: 'Company Hub', icon: Home, href: '/company-dashboard' }} onClick={onLinkClick} />
+                    </div>
+                )}
             </nav>
             <div className="p-4 border-t border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import * as leaveApi from '../../pages/leaveApi';
 import { Plus, Loader, AlertCircle, X, Calendar, FileClock, Check, MessageSquare, ArrowRight, Trash2 } from 'lucide-react';
 
 // Modal for requesting a new leave
@@ -105,7 +105,7 @@ const statusStyles = {
 };
 
 const LeaveHistoryCard = ({ request, onCancel }) => {
-    const { id, leaveType, fromDate, toDate, reason, status, updatedAt, adminNotes } = request;
+    const { id, leaveType, fromDate, toDate, reason, status, leaveApprovals } = request;
     const displayStatus = status || 'SUBMITTED';
     const StatusIcon = statusStyles[displayStatus]?.icon || FileClock;
 
@@ -115,7 +115,7 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start">
-                    <h4 className="font-semibold text-slate-800">{leaveType.leaveType.replace('_', ' ')}</h4>
+                    <h4 className="font-semibold text-slate-800">{(leaveType?.leaveType || leaveType || '').replace('_', ' ')}</h4>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
                         <StatusIcon className="h-3.5 w-3.5" />
                         {displayStatus.toLowerCase()}
@@ -131,10 +131,21 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
                     <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <span>{reason || 'No reason provided.'}</span>
                 </p>
-                {(status === 'APPROVED' || status === 'REJECTED') && updatedAt && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                        Reviewed on {formatDate(updatedAt)}
-                        {adminNotes && <p className="mt-1 italic">Note: {adminNotes}</p>}
+                {(status === 'APPROVED' || status === 'REJECTED') && leaveApprovals && leaveApprovals.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 space-y-2">
+                        {leaveApprovals.map((approval) => (
+                            <div key={approval.id}>
+                                <p>
+                                    <span className={`font-semibold ${approval.action === 'APPROVED' ? 'text-green-700' : 'text-red-700'}`}>
+                                        {approval.action}
+                                    </span>
+                                    {' by '}
+                                    <span className="font-semibold">{approval.approverName || 'Admin'}</span>
+                                    {' on '}{formatDate(approval.actionAt)}
+                                </p>
+                                {approval.comment && <p className="italic mt-0.5">Note: {approval.comment}</p>}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
@@ -171,11 +182,8 @@ const LeavesView = () => {
         setLoading(true);
         setError('');
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/leave-requests/employee/${employeeCode}`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            // Sort leaves by most recent first
+            const response = await leaveApi.getLeaveRequestsForEmployee(employeeCode);
+            // Sort leaves by most recent first.
             const sortedLeaves = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             setLeaves(sortedLeaves);
         } catch (err) {
@@ -189,11 +197,9 @@ const LeavesView = () => {
     useEffect(() => {
         const fetchLeaveTypes = async () => {
             try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get(`${API_URL}/leave-types`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                setLeaveTypes(response.data);
+                const response = await leaveApi.getAllLeaveTypes();
+                // It's good practice to only show leave types that can be requested (e.g., paid leaves)
+                setLeaveTypes(response.data.filter(lt => lt.isPaid));
             } catch (err) {
                 console.error("Failed to fetch leave types", err);
             }
@@ -206,8 +212,6 @@ const LeavesView = () => {
     const handleSubmitLeave = async (leaveData) => {
         setModalLoading(true);
         try {
-            const token = localStorage.getItem('token');
-
             const startDate = new Date(leaveData.fromDate);
             const endDate = new Date(leaveData.toDate);
             const daysRequested = (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
@@ -222,9 +226,7 @@ const LeavesView = () => {
                 partialDayInfo: null, // Or implement this field in the modal if needed
             };
 
-            await axios.post(`${API_URL}/leave-requests`, payload, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+            await leaveApi.createLeaveRequest(payload);
             setIsModalOpen(false);
             fetchLeaves(); // Refetch to show the new leave request
             alert('Leave request submitted successfully!');
@@ -243,10 +245,7 @@ const LeavesView = () => {
         setLoading(true);
         setError('');
         try {
-            const token = localStorage.getItem('token');
-            await axios.put(`${API_URL}/leave-requests/${leaveId}/cancel`, {}, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+            await leaveApi.cancelLeaveRequest(leaveId);
             fetchLeaves();
             alert('Leave request cancelled successfully.');
         } catch (err) {

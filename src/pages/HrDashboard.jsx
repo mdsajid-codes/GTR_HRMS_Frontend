@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CalendarClock, Briefcase, UserPlus, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, PartyPopper, Eye, Search, UploadCloud } from 'lucide-react';
+import { Users, CalendarClock, Briefcase, UserPlus, ArrowUpRight, ArrowDownRight, CheckCircle, XCircle, PartyPopper, Eye, Search, UploadCloud, MapPin } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import AddEmployeeModal from './AddEmployeeModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import BulkAddEmployeesModal from './BulkAddEmployeesModal';
+import axios from 'axios';
 
 // A reusable card component for displaying stats
 const StatCard = ({ icon: Icon, title, value, change, changeType }) => (
@@ -43,7 +44,25 @@ const HrDashboard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [locations, setLocations] = useState([]);
+    const [selectedLocation, setSelectedLocation] = useState('all');
     const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    useEffect(() => {
+        const fetchLocations = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.get(`${API_URL}/locations`, {
+                    headers: { "Authorization": `Bearer ${token}` },
+                });
+                setLocations(response.data);
+            } catch (error) {
+                console.error("Failed to fetch locations", error);
+            }
+        };
+        fetchLocations();
+    }, [API_URL]);
 
     const stats = [
         {
@@ -109,6 +128,21 @@ const HrDashboard = () => {
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">HR Dashboard</h1>
                     <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <select
+                                value={selectedLocation}
+                                onChange={(e) => setSelectedLocation(e.target.value)}
+                                className="input pl-10 appearance-none"
+                            >
+                                <option value="all">All Locations</option>
+                                {locations.map((loc) => (
+                                    <option key={loc.id} value={loc.id}>
+                                        {loc.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
                             className="btn-secondary flex items-center">
@@ -168,6 +202,7 @@ const HrDashboard = () => {
                 <ViewEmployeeModal
                     isOpen={isViewModalOpen}
                     onClose={() => setIsViewModalOpen(false)}
+                    selectedLocation={selectedLocation}
                 />
             )}
             {isBulkModalOpen && (

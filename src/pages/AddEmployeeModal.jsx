@@ -53,6 +53,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
             emailPersonal: '',
             phonePrimary: '',
             dob: '',
+            locationId: null,
             gender: '',
             martialStatus: '',
             status: 'ACTIVE',
@@ -117,6 +118,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         weeklyOffPolicies: [],
         timeTypes: []
     });
+    const [locations, setLocations] = useState([]);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -124,9 +126,13 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         const { name, value, type, checked } = e.target;
         const finalValue = type === 'checkbox' ? checked : value;
         setFormData(prev => {
-            const newData = JSON.parse(JSON.stringify(prev));
-            newData[section][name] = finalValue;
-            return newData;
+            return {
+                ...prev,
+                [section]: {
+                    ...prev[section],
+                    [name]: finalValue,
+                },
+            };
         });
     };
 
@@ -139,7 +145,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                 try {
                     const token = localStorage.getItem('token');
                     const headers = { "Authorization": `Bearer ${token}` };
-                    const [deptRes, desigRes, jobBandRes, natRes, workTypeRes, shiftTypeRes, leaveGroupRes, weekOffRes, timeTypeRes] = await Promise.all([
+                    const [deptRes, desigRes, jobBandRes, natRes, workTypeRes, shiftTypeRes, leaveGroupRes, weekOffRes, timeTypeRes, locRes] = await Promise.all([
                         axios.get(`${API_URL}/departments`, { headers }),
                         axios.get(`${API_URL}/designations`, { headers }),
                         axios.get(`${API_URL}/jobBands`, { headers }),
@@ -148,7 +154,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         axios.get(`${API_URL}/shift-types`, { headers }),
                         axios.get(`${API_URL}/leave-groups`, { headers }),
                         axios.get(`${API_URL}/weekly-off-policies`, { headers }),
-                        axios.get(`${API_URL}/time-types`, { headers })
+                        axios.get(`${API_URL}/time-types`, { headers }),
+                        axios.get(`${API_URL}/locations`, { headers }),
                     ]);
                     setSelectOptions({
                         departments: deptRes.data,
@@ -161,6 +168,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         weeklyOffPolicies: weekOffRes.data,
                         timeTypes: timeTypeRes.data
                     });
+                    setLocations(locRes.data);
                 } catch (err) {
                     console.error("Failed to fetch dropdown data", err);
                     setError("Could not load necessary data for the form. Please try again.");
@@ -186,10 +194,10 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
             const headers = { "Authorization": `Bearer ${token}` };
 
             // Step 1: Create User
-            await axios.post(`${API_URL}/users`, {
+            await axios.post(`${API_URL}/users/register`, {
                 name: formData.user.name, 
                 email: formData.user.email, 
-                passwordHash: formData.user.password, 
+                password: formData.user.password, 
                 roles: ['EMPLOYEE'], 
                 isActive: true, 
                 isLocked: false,
@@ -308,7 +316,13 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         <EditField label="Date of Joining" name="dateOfJoining" value={formData.jobDetails.dateOfJoining} onChange={handleNestedChange('jobDetails')} type="date" />
                         <EditField label="Probation End Date" name="probationEndDate" value={formData.jobDetails.probationEndDate} onChange={handleNestedChange('jobDetails')} type="date" />
                         <EditField label="Reports To" name="reportsTo" value={formData.jobDetails.reportsTo} onChange={handleNestedChange('jobDetails')} />
-                        <EditField label="Location" name="location" value={formData.jobDetails.location} onChange={handleNestedChange('jobDetails')} />
+                        <EditField
+                            label="Location"
+                            name="locationId"
+                            value={formData.employee.locationId}
+                            onChange={handleNestedChange('employee')}
+                            type="select"
+                            options={locations.map(l => ({ value: l.id, label: l.name }))} />
                         <EditField label="Actual Location" name="actualLocation" value={formData.jobDetails.actualLocation} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Legal Entity" name="legalEntity" value={formData.jobDetails.legalEntity} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Login ID" name="loginId" value={formData.jobDetails.loginId} onChange={handleNestedChange('jobDetails')} />

@@ -16,13 +16,13 @@ const employeeNavLinks = [
     // Add other tabs as needed
 ];
 
-const ViewEmployeeModal = ({ isOpen, onClose }) => {
+const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
     const [activeTab, setActiveTab] = useState('Profile');
-    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [selectedEmployee, setSelectedEmployee] = useState({});
     const [employees, setEmployees] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
-    const [photoUrl, setPhotoUrl] = useState(null);
+    const [photoUrl, setPhotoUrl] = useState('');
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [error, setError] = useState("");
 
@@ -30,15 +30,32 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (isOpen) {
-            const fetchEmployees = async () => {
+            const fetchEmployees = async (locationId) => {
                 setLoading(true);
                 setError('');
                 try {
                     const token = localStorage.getItem('token');
-                    const response = await axios.get(`${API_URL}/employees/all`, {
-                        headers: { "Authorization": `Bearer ${token}` }
-                    });
-                    setEmployees(response.data);
+                    const headers = { "Authorization": `Bearer ${token}` };
+
+                    let url = `${API_URL}/employees/all`;
+                    if (locationId && locationId !== 'all') {
+                        url = `${API_URL}/employees/by-location/${locationId}`;
+                    }
+                    const response = await axios.get(url, { headers });
+
+                    const employeesWithJobDetails = await Promise.all(
+                        response.data.map(async (emp) => {
+                            try {
+                                const jobDetailsRes = await axios.get(`${API_URL}/job-details/${emp.employeeCode}`, { headers });
+                                return { ...emp, jobDetails: jobDetailsRes.data };
+                            } catch (err) {
+                                console.warn(`Could not fetch job details for ${emp.employeeCode}:`, err);
+                                return { ...emp, jobDetails: null };
+                            }
+                        })
+                    );
+
+                    setEmployees(employeesWithJobDetails);
                 } catch (err) {
                     console.error("Error fetching employees:", err);
                     setError('Failed to fetch employees. Please try again later.');
@@ -46,16 +63,16 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
                     setLoading(false);
                 }
             };
-            fetchEmployees();
+            fetchEmployees(selectedLocation);
         } else {
             // Reset state on close
             setEmployees([]);
-            setSelectedEmployee(null);
+            setSelectedEmployee({});
             setSearchTerm('');
-            setPhotoUrl(null);
+            setPhotoUrl('');
             setError('');
         }
-    }, [isOpen, API_URL]);
+    }, [isOpen, selectedLocation, API_URL]);
 
     const filteredEmployees = useMemo(() => {
         if (!searchTerm) return employees;
@@ -91,8 +108,8 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
     };
     
     const handleBackToList = () => {
-        setSelectedEmployee(null);
-        setPhotoUrl(null);
+        setSelectedEmployee({});
+        setPhotoUrl('');
     };
 
     const handleEmployeeUpdate = (updatedEmployee) => {
@@ -113,12 +130,12 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
                     setPhotoUrl(objectURL);
                 } catch (error) {
                     console.error("Could not load employee photo", error);
-                    setPhotoUrl(null);
+                    setPhotoUrl('');
                 }
             };
             fetchPhoto();
         } else {
-            setPhotoUrl(null);
+            setPhotoUrl('');
         }
         return () => { if (photoUrl) URL.revokeObjectURL(photoUrl); };
     }, [selectedEmployee]);
@@ -141,7 +158,7 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
     };
 
     const renderContent = () => {
-        if (!selectedEmployee) return null;
+        if (!selectedEmployee.employeeCode) return null;
         switch (activeTab) {
             case 'Profile':
                 return <Profile employee={selectedEmployee} onUpdate={handleEmployeeUpdate} />;
@@ -210,7 +227,7 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
             <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                 <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
                     <h2 className="text-xl font-semibold text-slate-800">
-                        {selectedEmployee ? 'Employee Details' : 'Find Employee'}
+                        {selectedEmployee.employeeCode ? 'Employee Details' : 'Find Employee'}
                     </h2>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
                         <X className="h-5 w-5" />
@@ -218,7 +235,7 @@ const ViewEmployeeModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="flex-grow overflow-y-auto">
-                    {selectedEmployee ? (
+                    {selectedEmployee.employeeCode ? (
                         <>
                             {/* Header inside modal */}
                             <div className="bg-white shadow-sm sticky top-0 z-10">

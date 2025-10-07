@@ -13,7 +13,7 @@ const statusStyles = {
 const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'N/A';
 const formatDateForInput = (dateString) => dateString ? dateString.split('T')[0] : '';
 
-const formatCurrency = (amount, currency = 'INR') => {
+const formatCurrency = (amount, currency = 'AED') => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: currency,
@@ -128,8 +128,7 @@ const PayrollCard = ({ payroll, isEditing, onEdit, onSave, onCancel, onChange, o
 const Payroll = ({ employee }) => {
     const [payrolls, setPayrolls] = useState(employee?.payrolls || []);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [searchDate, setSearchDate] = useState('');
-    const [newPayrollData, setNewPayrollData] = useState({ payPeriodStart: '', payPeriodEnd: '', payFrequency: 'MONTHLY', grossSalary: 0, netSalary: 0, basicSalary: 0, allowances: 0, deductions: 0, taxAmount: 0, currency: 'INR', status: 'PENDING', remarks: '' });
+    const [searchDate, setSearchDate] = useState('');    const [newPayrollData, setNewPayrollData] = useState({ payPeriodStart: '', payPeriodEnd: '', payFrequency: 'MONTHLY', grossSalary: 0, netSalary: 0, basicSalary: 0, allowances: 0, deductions: 0, taxAmount: 0, currency: 'AED', status: 'PENDING', remarks: '' });
     const [editingPayrollId, setEditingPayrollId] = useState(null);
     const [formData, setFormData] = useState({});
     const [loading, setLoading] = useState(false);
@@ -232,7 +231,7 @@ const Payroll = ({ employee }) => {
 
             alert('Payroll generated successfully!');
             setIsGenerating(false);
-            setNewPayrollData({ payPeriodStart: '', payPeriodEnd: '', payFrequency: 'MONTHLY', grossSalary: 0, netSalary: 0, basicSalary: 0, allowances: 0, deductions: 0, taxAmount: 0, currency: 'INR', status: 'PENDING', remarks: '' });
+            setNewPayrollData({ payPeriodStart: '', payPeriodEnd: '', payFrequency: 'MONTHLY', grossSalary: 0, netSalary: 0, basicSalary: 0, allowances: 0, deductions: 0, taxAmount: 0, currency: 'AED', status: 'PENDING', remarks: '' });
         } catch (err) {
             const errorMessage = err.response?.data || 'Failed to generate payroll. Please try again.';
             setError(errorMessage);

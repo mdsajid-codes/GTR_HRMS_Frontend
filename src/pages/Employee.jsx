@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import {
     User,
@@ -6,6 +6,7 @@ import {
     Briefcase,
     Calendar,
     Clock,
+    MapPin,
     DollarSign,
     Percent,
     Landmark,
@@ -13,6 +14,7 @@ import {
     HandCoins,
     Search,
     Loader,
+    Users,
     Camera,
 } from 'lucide-react';
 import axios from 'axios';
@@ -36,15 +38,19 @@ const employeeNavLinks = [
 const Employee = () => {
     const [activeTab, setActiveTab] = useState('Summary');
     const [employee, setEmployee] = useState(null);
+    const [allEmployees, setAllEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [photoUrl, setPhotoUrl] = useState(null);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
+    const [locations, setLocations] = useState([]);
+    const [selectedLocation, setSelectedLocation] = useState('all');
+    const [selectedGender, setSelectedGender] = useState('all');
+    
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-    const handleSearch = async(e)=>{
+    const handleSearch = async (e, employeeCode) => {
         e.preventDefault();
         if (!employeeId) {
             setError("Please enter an Employee ID.");
@@ -100,6 +106,29 @@ const Employee = () => {
         }
     };
 
+    const fetchAllEmployeesAndLocations = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const headers = { "Authorization": `Bearer ${token}` };
+            const [employeesRes, locationsRes] = await Promise.all([
+                axios.get(`${API_URL}/employees/all`, { headers }),
+                axios.get(`${API_URL}/locations`, { headers }),
+            ]);
+            setAllEmployees(employeesRes.data);
+            setLocations(locationsRes.data);
+        } catch (err) {
+            console.error("Error fetching initial data:", err);
+            setError("Failed to load employee and location data.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAllEmployeesAndLocations();
+    }, []);
+
     useEffect(() => {
         if (employee?.employeeCode && employee.photoPath) {
             const fetchPhoto = async () => {
@@ -133,10 +162,48 @@ const Employee = () => {
         setEmployee(updatedEmployee);
     };
 
+    const handleSelectEmployee = (selectedEmp) => {
+        const name = selectedEmp.firstName + " " + selectedEmp.lastName;
+        const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+        // We assume jobDetails are already fetched in fetchAllEmployeesAndLocations
+        setEmployee({ ...selectedEmp, initials });
+    };
+
+    const filteredEmployees = useMemo(() => {
+        return allEmployees.filter(emp => {
+            const locationMatch = selectedLocation === 'all' || emp.location?.id === parseInt(selectedLocation);
+            const genderMatch = selectedGender === 'all' || emp.gender === selectedGender;
+            return locationMatch && genderMatch;
+        });
+    }, [allEmployees, selectedLocation, selectedGender]);
+
+    const EmployeeList = ({ employees }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {employees.map(emp => (
+                <div key={emp.employeeCode} className="bg-slate-50 p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleSelectEmployee(emp)}>
+                    <p className="font-semibold text-slate-800">{emp.firstName} {emp.lastName}</p>
+                    <p className="text-sm text-slate-500">{emp.employeeCode}</p>
+                </div>
+            ))}
+        </div>
+    );
+
     const renderContent = () => {
         if (!employee) {
-            return <div className="text-center text-slate-500">Please search for an employee to see their details.</div>;
+            return (
+                <div>
+                    <h3 className="text-lg font-semibold mb-4">
+                        Employees ({filteredEmployees.length})
+                    </h3>
+                    {loading ? (
+                        <div className="flex justify-center"><Loader className="animate-spin" /></div>
+                    ) : (
+                        <EmployeeList employees={filteredEmployees} />
+                    )}
+                </div>
+            );
         }
+
         switch (activeTab) {
             case 'Summary':
                 return <div>Summary Details for {employee.name}</div>;
@@ -192,6 +259,7 @@ const Employee = () => {
                 <div className="bg-white shadow-sm sticky top-0 z-10">
                     <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[104px]">
                         <div className="flex items-center gap-4 min-w-0">
+                            {employee && (
                             <div className="relative group">
                                 {photoUrl ? (
                                     <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md" />
@@ -200,7 +268,6 @@ const Employee = () => {
                                         {employee ? employee.initials : '?'}
                                     </div>
                                 )}
-                                {employee && (
                                     <label htmlFor="photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full cursor-pointer transition-opacity">
                                         {uploadingPhoto ? (
                                             <Loader className="animate-spin h-6 w-6 text-white" />
@@ -208,9 +275,9 @@ const Employee = () => {
                                             <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                         )}
                                     </label>
-                                )}
                                 <input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                             </div>
+                            )}
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl font-bold text-slate-800 truncate">
@@ -225,18 +292,36 @@ const Employee = () => {
                                 <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || 'Search by ID to begin'}</p>
                             </div>
                         </div>
-                        <form onSubmit={handleSearch} className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search by Employee Id"
-                                value={employeeId}
-                                onChange={(e)=>setEmployeeId(e.target.value)}
-                                className="w-full sm:w-72 pl-4 pr-12 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                            />
-                            <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-600 rounded-full" disabled={loading}>
-                                {loading ? <Loader className="animate-spin h-5 w-5" /> : <Search className="h-5 w-5" />}
-                            </button>
-                        </form>
+                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
+                                    <option value="all">All Locations</option>
+                                    {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="relative">
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                <select value={selectedGender} onChange={e => setSelectedGender(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
+                                    <option value="all">All Genders</option>
+                                    <option value="MALE">Male</option>
+                                    <option value="FEMALE">Female</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+                            <form onSubmit={(e) => handleSearch(e, employeeId)} className="relative w-full sm:w-auto">
+                                <input
+                                    type="text"
+                                    placeholder="Search by Employee ID"
+                                    value={employeeId}
+                                    onChange={(e) => setEmployeeId(e.target.value)}
+                                    className="w-full sm:w-56 pl-4 pr-12 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                />
+                                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-600 rounded-full" disabled={loading}>
+                                    {loading && !employee ? <Loader className="animate-spin h-5 w-5" /> : <Search className="h-5 w-5" />}
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     {employee && (
                         <nav className="flex overflow-x-auto">

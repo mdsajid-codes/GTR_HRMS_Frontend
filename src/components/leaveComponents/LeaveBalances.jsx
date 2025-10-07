@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { Search, Loader, AlertCircle, BookOpen, X, Plus, Trash2, RefreshCw } from 'lucide-react';
 
@@ -16,7 +16,7 @@ const BalanceManagementModal = ({ employee, onClose, leaveTypes }) => {
         asOfDate: new Date().toISOString().split('T')[0], // today's date
     });
 
-    const fetchBalances = async () => {
+    const fetchBalances = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -31,11 +31,11 @@ const BalanceManagementModal = ({ employee, onClose, leaveTypes }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [employee.employeeCode]);
 
     useEffect(() => {
         fetchBalances();
-    }, [employee.employeeCode]);
+    }, [fetchBalances]);
 
     const handleAddBalance = async (e) => {
         e.preventDefault();
@@ -165,7 +165,7 @@ const LeaveBalances = () => {
     const [syncProgress, setSyncProgress] = useState(0);
     const [totalSyncCount, setTotalSyncCount] = useState(0);
 
-    const fetchInitialData = async () => {
+    const fetchInitialData = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -202,11 +202,11 @@ const LeaveBalances = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchInitialData();
-    }, []);
+    }, [fetchInitialData]);
 
     const handleSyncAllBalances = async () => {
         if (!window.confirm(`This will create or update leave balances for all ${employees.length} employees based on the defined leave types for the current year. This may take a while and cannot be undone. Do you want to proceed?`)) {
@@ -255,6 +255,7 @@ const LeaveBalances = () => {
 
         setSyncing(false);
         alert(`Sync complete! \n- ${successCount} balances created/updated successfully. \n- ${errorCount} operations failed (check console for details).`);
+        fetchInitialData(); // Refresh all data
     };
 
     const calculateTotalAvailable = (employeeCode) => {
@@ -284,6 +285,7 @@ const LeaveBalances = () => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedEmployee(null);
+        fetchInitialData(); // Refresh data when modal closes
     };
 
     return (

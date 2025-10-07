@@ -10,6 +10,8 @@ import ShiftType from '../components/base/ShiftType';
 import LeaveGroup from '../components/base/LeaveGroup';
 import WeekOffPolicy from '../components/base/WeekOffPolicy';
 import LeaveType from '../components/base/LeaveType';
+import ShiftPolicy from '../components/base/ShiftPolicy';
+import WorkLocations from '../components/base/WorkLocations';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('departments');
@@ -21,6 +23,12 @@ const Settings = () => {
         const plan = localStorage.getItem('plan');
         const allowedPlans = ['STANDARD', 'PREMIUM', 'ENTERPRISE'];
         // Also allow master admin to see everything
+        return allowedPlans.includes(plan) || localStorage.getItem('tenantId') === 'master';
+    }, []);
+
+    const canSeeAdvancedAttendance = useMemo(() => {
+        const plan = localStorage.getItem('plan');
+        const allowedPlans = ['STANDARD', 'PREMIUM', 'ENTERPRISE'];
         return allowedPlans.includes(plan) || localStorage.getItem('tenantId') === 'master';
     }, []);
 
@@ -59,6 +67,12 @@ const Settings = () => {
                             Nationalities
                         </button>
                         <button
+                            onClick={() => setActiveTab('workLocations')}
+                            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'workLocations' ? activeTabClass : inactiveTabClass}`}
+                        >
+                            Work Locations
+                        </button>
+                        <button
                             onClick={() => setActiveTab('timeTypes')}
                             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'timeTypes' ? activeTabClass : inactiveTabClass}`}
                         >
@@ -88,6 +102,14 @@ const Settings = () => {
                         >
                             Weekly Off Policies
                         </button>
+                        {canSeeAdvancedAttendance && (
+                            <button
+                                onClick={() => setActiveTab('shiftPolicies')}
+                                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'shiftPolicies' ? activeTabClass : inactiveTabClass}`}
+                            >
+                                Shift Policies
+                            </button>
+                        )}
                         {canSeeLeaveTypes && (
                             <button
                                 onClick={() => setActiveTab('leaveTypes')}
@@ -112,6 +134,9 @@ const Settings = () => {
                     {activeTab === 'nationalities' && (
                         <Nationality embedded={true} />
                     )}
+                    {activeTab === 'workLocations' && (
+                        <WorkLocations />
+                    )}
                     {activeTab === 'timeTypes' && (
                         <TimeType embedded={true} />
                     )}
@@ -129,6 +154,9 @@ const Settings = () => {
                     )}
                     {canSeeLeaveTypes && activeTab === 'leaveTypes' && (
                         <LeaveType embedded={true} />
+                    )}
+                    {canSeeAdvancedAttendance && activeTab === 'shiftPolicies' && (
+                        <ShiftPolicy embedded={true} />
                     )}
                 </div>
             </div>

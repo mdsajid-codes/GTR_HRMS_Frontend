@@ -13,22 +13,22 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardView from '../components/EmpPages/DashboardView';
-import LeavesView from '../components/EmpPages/LeavesView';
 import PayrollView from '../components/EmpPages/PayrollView';
 import axios from 'axios';
 import RecruitmentView from '../components/EmpPages/RecruitmentView';
-import Leaves from '../components/EmpPages/Leaves';
+import LeavesView from '../components/EmpPages/LeavesView';
+import { useTenant } from '../context/TenantContext';
 
 // Placeholder components for different sections
 const AttendanceView = () => <div className="p-8"><h1 className="text-3xl font-bold text-slate-800">Attendance</h1><p className="mt-2 text-slate-600">Your attendance records, check-in/out times, and work hours will be displayed here.</p></div>;
 
 
 const navLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, Component: DashboardView }, // All plans
-    { name: 'Attendance', icon: Clock, Component: AttendanceView, requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
-    { name: 'Leaves', icon: Calendar, Component: Leaves, requiredPlans: ['STANDARD', 'PREMIUM', 'ENTERPRISE'] },
-    { name: 'Payroll', icon: DollarSign, Component: PayrollView, requiredPlans: ['PREMIUM', 'ENTERPRISE'] },
-    { name: 'Recruitment', icon: DollarSign, Component: RecruitmentView, requiredPlans: ['ENTERPRISE'] }
+    { name: 'Dashboard', icon: LayoutDashboard, Component: DashboardView, module: 'HRMS_CORE' },
+    { name: 'Attendance', icon: Clock, Component: AttendanceView, module: 'HRMS_ATTENDANCE' },
+    { name: 'Leaves', icon: Calendar, Component: LeavesView, module: 'HRMS_LEAVE' },
+    { name: 'Payroll', icon: DollarSign, Component: PayrollView, module: 'HRMS_PAYROLL' },
+    { name: 'Recruitment', icon: DollarSign, Component: RecruitmentView, module: 'HRMS_RECRUITMENT' }
 ];
 
 const NavItem = ({ item, isActive, onClick }) => (
@@ -102,19 +102,25 @@ const EmployeeDashboard = () => {
     const [error, setError] = useState('');
     const username = localStorage.getItem('username') || 'Employee';
     const API_URL = import.meta.env.VITE_API_BASE_URL;
+    const { hasModule } = useTenant();
+    const roles = useMemo(() => JSON.parse(localStorage.getItem('roles') || '[]'), []);
+    const isSuperAdmin = useMemo(() => roles.includes('SUPER_ADMIN'), [roles]);
 
     const accessibleNavLinks = useMemo(() => {
-        const plan = localStorage.getItem('plan');
-        if (!plan || plan === 'ENTERPRISE') {
-            return navLinks;
+        // A user has full access if their plan includes all core HRMS modules.
+        const hasAllAccessPlan =
+            hasModule('HRMS_CORE') &&
+            hasModule('HRMS_ATTENDANCE') &&
+            hasModule('HRMS_LEAVE') &&
+            hasModule('HRMS_PAYROLL') &&
+            hasModule('POS');
+
+        if (hasAllAccessPlan) {
+            return navLinks; // Return all links for the all-access plan.
         }
-        return navLinks.filter(link => {
-            if (!link.requiredPlans) {
-                return true;
-            }
-            return link.requiredPlans.includes(plan);
-        });
-    }, []);
+
+        return navLinks.filter(link => !link.module || hasModule(link.module));
+    }, [hasModule]);
 
     const [activeItem, setActiveItem] = useState('Dashboard');
 
@@ -174,7 +180,7 @@ const EmployeeDashboard = () => {
         const activeLink = accessibleNavLinks.find(link => link.name === activeItem) || accessibleNavLinks[0];
         const Component = activeLink.Component;
         // Pass employee data to the active component.
-        return <Component setActiveItem={setActiveItem} employee={employee} />;
+        return <Component setActiveItem={setActiveItem} employee={employee} key={activeItem} />;
     };
 
     return (

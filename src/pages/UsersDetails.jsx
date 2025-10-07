@@ -1,25 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { Plus, Edit, Loader, AlertCircle, X, UploadCloud } from 'lucide-react';
 import axios from 'axios';
 
-const ROLES = ['EMPLOYEE', 'MANAGER', 'HR', 'TENANT_ADMIN'];
+// Roles relevant to the HRMS module that can be assigned or viewed.
+const HRMS_ROLES = [
+    'HRMS_ADMIN', 
+    'HR', 
+    'MANAGER', 
+    'EMPLOYEE',
+    // // SUPER_ADMIN is a tenant-level role that might also be managed here.
+    // 'SUPER_ADMIN',
+];
 
 const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
     const [formData, setFormData] = useState({
-        name: '', email: '', passwordHash: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false,
+        name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, storeId: null, locationId: null,
     });
     const [modalError, setModalError] = useState('');
+    const [stores, setStores] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
         if (user) {
-            setFormData({
-                name: user.name, email: user.email, passwordHash: '', confirmPassword: '', roles: new Set(user.roles || ['EMPLOYEE']), isActive: user.isActive, isLocked: user.isLocked,
-            });
+            setFormData({ name: user.name, email: user.email, password: '', confirmPassword: '', roles: new Set(user.roles || ['EMPLOYEE']), isActive: user.isActive, isLocked: user.isLocked, storeId: user.storeId, locationId: user.locationId });
         } else {
-            setFormData({ name: '', email: '', passwordHash: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false });
+            setFormData({ name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, storeId: null, locationId: null });
         }
         setModalError('');
+
+        const fetchDropdowns = async () => {
+            if (isOpen) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const headers = { "Authorization": `Bearer ${token}` };
+                    const [storesRes, locationsRes] = await Promise.all([
+                        axios.get(`${API_URL}/pos/stores`, { headers }).catch(() => ({ data: [] })),
+                        axios.get(`${API_URL}/locations`, { headers }).catch(() => ({ data: [] }))
+                    ]);
+                    setStores(storesRes.data);
+                    setLocations(locationsRes.data);
+                } catch (err) {
+                    setModalError('Failed to load stores or locations.');
+                }
+            }
+        };
+
+        fetchDropdowns();
+
     }, [user, isOpen]);
 
     const handleChange = (e) => {
@@ -41,15 +70,19 @@ const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (formData.passwordHash !== formData.confirmPassword) {
+        if (formData.password !== formData.confirmPassword) {
             setModalError('Passwords do not match.');
             return;
         }
-        if (!user && !formData.passwordHash) {
+        if (!user && !formData.password) {
             setModalError('Password is required for new users.');
             return;
         }
-        onSave({ ...formData, roles: Array.from(formData.roles) });
+        const payload = { ...formData, roles: Array.from(formData.roles) };
+        // Ensure null is sent if no selection is made
+        if (payload.storeId === '') payload.storeId = null;
+        if (payload.locationId === '') payload.locationId = null;
+        onSave(payload);
     };
 
     if (!isOpen) return null;
@@ -65,11 +98,15 @@ const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
                         <div className="md:col-span-2"><label htmlFor="name" className="block text-sm font-medium text-slate-700">Name</label><input id="name" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input" /></div>
                         <div className="md:col-span-2"><label htmlFor="email" className="block text-sm font-medium text-slate-700">Email</label><input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full input" /></div>
-                        <div><label htmlFor="passwordHash" className="block text-sm font-medium text-slate-700">Password</label><input id="passwordHash" name="passwordHash" type="password" value={formData.passwordHash} onChange={handleChange} required={!user} className="mt-1 block w-full input" placeholder={user ? 'Leave blank to keep current' : ''} /></div>
-                        <div><label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">Confirm Password</label><input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required={!user || !!formData.passwordHash} className="mt-1 block w-full input" /></div>
-                        <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700">Roles</label><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">{ROLES.map(role => (<label key={role} className="inline-flex items-center"><input type="checkbox" checked={formData.roles.has(role)} onChange={() => handleRoleChange(role)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /> <span className="ml-2 text-sm text-slate-600">{role}</span></label>))}</div></div>
+                        <div><label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label><input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required={!user} className="mt-1 block w-full input" placeholder={user ? 'Leave blank to keep current' : ''} /></div>
+                        <div><label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">Confirm Password</label><input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required={!user || !!formData.password} className="mt-1 block w-full input" /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700">Roles</label><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">{HRMS_ROLES.map(role => (<label key={role} className="inline-flex items-center"><input type="checkbox" checked={formData.roles.has(role)} onChange={() => handleRoleChange(role)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /> <span className="ml-2 text-sm text-slate-600">{role}</span></label>))}</div></div>
                         <div className="flex items-center gap-4"><label className="inline-flex items-center"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded" /> <span className="ml-2 text-sm">Is Active</span></label><label className="inline-flex items-center"><input type="checkbox" name="isLocked" checked={formData.isLocked} onChange={handleChange} className="h-4 w-4 rounded" /> <span className="ml-2 text-sm">Is Locked</span></label></div>
                         {modalError && <p className="md:col-span-2 text-red-500 text-sm">{modalError}</p>}
+                        <div className="md:col-span-2 pt-2 border-t">
+                            <label htmlFor="locationId" className="block text-sm font-medium text-slate-700">Assign to Location (Optional)</label><select id="locationId" name="locationId" value={formData.locationId || ''} onChange={handleChange} className="mt-1 block w-full input"><option value="">No specific location</option>{locations.map(loc => (<option key={loc.id} value={loc.id}>{loc.name}</option>))}</select>
+                        </div>
+                        <div className="md:col-span-2"><label htmlFor="storeId" className="block text-sm font-medium text-slate-700">Assign to Store (Optional)</label><select id="storeId" name="storeId" value={formData.storeId || ''} onChange={handleChange} className="mt-1 block w-full input"><option value="">No specific store</option>{stores.map(store => (<option key={store.id} value={store.id}>{store.name}</option>))}</select></div>
                     </div>
                     <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
@@ -161,7 +198,7 @@ const UsersDetails = () => {
             if (editingUser) {
                 await axios.put(`${API_URL}/users/${editingUser.id}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
             } else {
-                await axios.post(`${API_URL}/users`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                await axios.post(`${API_URL}/users/register`, payload, { headers: { "Authorization": `Bearer ${token}` } });
             }
             setIsUserModalOpen(false);
             fetchUsers();
@@ -193,15 +230,19 @@ const UsersDetails = () => {
         }
     };
 
+    // Filter users to show only those with roles relevant to HRMS.
+    const filteredUsers = useMemo(() => {
+        const relevantRoles = new Set(['HRMS_ADMIN', 'HR', 'MANAGER', 'EMPLOYEE']);
+        return users.filter(user => 
+            user.roles.some(role => relevantRoles.has(role))
+        );
+    }, [users]);
+
     return (
         <DashboardLayout>
             <div className="p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-800">Users</h1>
-                    <div className="flex gap-2">
-                        <button onClick={() => setIsBulkModalOpen(true)} className="btn-secondary flex items-center"><UploadCloud className="h-5 w-5 mr-2" /> Bulk Add</button>
-                        <button onClick={handleAdd} className="btn-primary flex items-center"><Plus className="h-5 w-5 mr-2" /> Add User</button>
-                    </div>
                 </div>
 
                 {error && (<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline whitespace-pre-wrap">{error}</span></div>)}
@@ -222,8 +263,8 @@ const UsersDetails = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="text-slate-700">
-                                    {users.length > 0 ? (
-                                        users.map(user => (
+                                    {filteredUsers.length > 0 ? (
+                                        filteredUsers.map(user => (
                                             <tr key={user.id} className="border-b border-slate-200 hover:bg-slate-50">
                                                 <td className="td-cell font-medium">{user.name}</td>
                                                 <td className="td-cell text-sm text-slate-500">{user.email}</td>
