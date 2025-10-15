@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import * as leaveApi from '../../pages/leaveApi';
 import { Check, X, FileClock, Loader, AlertCircle, Search, BookOpen, Plus, Trash2, RefreshCw } from 'lucide-react';
+import axios from 'axios';
 
 // --- Leave Requests Section ---
 
 // A map for styling statuses
 const leaveStatusStyles = {
-    SUBMITTED: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock }, // Changed from PENDING to SUBMITTED to match backend
+    SUBMITTED: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock },
     APPROVED: { bg: 'bg-green-100', text: 'text-green-800', icon: Check },
     REJECTED: { bg: 'bg-red-100', text: 'text-red-800', icon: X },
     CANCELLED: { bg: 'bg-slate-100', text: 'text-slate-600', icon: X },
@@ -15,7 +16,7 @@ const leaveStatusStyles = {
 const LeaveRequestRow = ({ request, onUpdate }) => {
     // Use optional chaining for safety
     const { id, employeeName, employeeCode, leaveType, fromDate, toDate, reason, status } = request || {};
-    const displayStatus = status || 'SUBMITTED'; 
+    const displayStatus = status || 'SUBMITTED';
     const StatusIcon = leaveStatusStyles[displayStatus]?.icon || FileClock;
 
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
@@ -47,7 +48,7 @@ const LeaveRequestRow = ({ request, onUpdate }) => {
     );
 };
 
-const AllLeaveRequests = () => {
+export const AllLeaveRequests = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -159,7 +160,7 @@ const AllLeaveRequests = () => {
     );
 };
 
-// --- Leave Balances & Allocation Section (from LeaveBalances.jsx) ---
+// --- Leave Balances & Allocation Section ---
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -310,7 +311,7 @@ const BalanceManagementModal = ({ employee, onClose, leaveTypes }) => {
     );
 };
 
-const LeaveBalancesSection = () => {
+export const LeaveBalancesSection = () => {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -502,18 +503,4 @@ const LeaveBalancesSection = () => {
     );
 };
 
-// --- Main Leave Management Component ---
-
-const LeaveManagement = () => {
-    const [activeTab, setActiveTab] = useState('requests');
-
-
-    return (
-
-            <div className="mt-6">
-                {activeTab === 'requests' && <AllLeaveRequests />}               
-            </div>
-    );
-};
-
-export default LeaveManagement;
+export default AllLeaveRequests;

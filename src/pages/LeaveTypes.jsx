@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Loader, AlertCircle } from 'lucide-react';
-import * as leaveApi from '../../api/leaveApi';
+import { Plus, Edit, Trash2, Loader, AlertCircle, Settings } from 'lucide-react';
+import * as leaveApi from './leaveApi';
 import Modal from './Modal'; // A generic modal component
 
-const LeaveTypes = () => {
+const LeaveTypes = ({ onSetupClick }) => {
     const [leaveTypes, setLeaveTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -100,6 +100,9 @@ const LeaveTypes = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{type.maxDaysPerYear}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                                     <button onClick={() => handleOpenModal(type)} className="text-blue-600 hover:text-blue-800 mr-4"><Edit size={18} /></button>
+                                    {onSetupClick && (
+                                        <button onClick={() => onSetupClick(type)} className="text-gray-600 hover:text-gray-800 mr-4"><Settings size={18} /></button>
+                                    )}
                                     <button onClick={() => handleDelete(type.id)} className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
                                 </td>
                             </tr>
@@ -140,14 +143,31 @@ const LeaveTypeFormModal = ({ isOpen, onClose, onSave, leaveType }) => {
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={leaveType ? 'Edit Leave Type' : 'Add Leave Type'}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Form fields for leaveType, description, isPaid, maxDaysPerYear */}
-                {/* Example for one field: */}
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                     <label htmlFor="leaveType" className="block text-sm font-medium text-slate-700">Leave Type Name</label>
-                    <input type="text" name="leaveType" id="leaveType" value={formData.leaveType} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    <input type="text" name="leaveType" id="leaveType" value={formData.leaveType} onChange={handleChange} required className="input mt-1" />
                 </div>
-                {/* ... other fields ... */}
+                <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
+                    <textarea name="description" id="description" value={formData.description} onChange={handleChange} rows="3" className="input mt-1" />
+                </div>
+                <div>
+                    <label htmlFor="maxDaysPerYear" className="block text-sm font-medium text-slate-700">Max Days Per Year</label>
+                    <input type="number" name="maxDaysPerYear" id="maxDaysPerYear" value={formData.maxDaysPerYear} onChange={handleChange} className="input mt-1" placeholder="e.g., 12" />
+                </div>
+                <div>
+                    <label className="inline-flex items-center">
+                        <input
+                            type="checkbox"
+                            name="isPaid"
+                            checked={formData.isPaid}
+                            onChange={handleChange}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-slate-700">Is Paid Leave</span>
+                    </label>
+                </div>
                 <div className="flex justify-end gap-4 pt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>

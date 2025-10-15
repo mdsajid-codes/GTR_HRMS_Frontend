@@ -157,7 +157,7 @@ const ShiftPolicy = ({ embedded = false }) => {
 
     const handleEdit = (policy) => {
         setEditingPolicy(policy);
-        setIsModalOpen(true);
+        setIsModalOpen(true); // This was already correct, just confirming.
     };
 
     const handleDelete = async (policyId, policyName) => {

@@ -21,7 +21,7 @@ const LeaveRequestRow = ({ request, onUpdate }) => {
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
 
     return (
-        <tr className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+        <tr className="border-b border-slate-200 hover:bg-gray-50 transition-colors">
             <td className="td-cell">
                 <div className="font-medium">{employeeName || 'N/A'}</div>
                 <div className="text-sm text-slate-500">{employeeCode || 'N/A'}</div>

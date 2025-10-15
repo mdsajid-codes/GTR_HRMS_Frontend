@@ -130,7 +130,7 @@ const HrDashboard = () => {
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                            <select
+                            <select 
                                 value={selectedLocation}
                                 onChange={(e) => setSelectedLocation(e.target.value)}
                                 className="input pl-10 appearance-none"

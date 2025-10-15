@@ -1,22 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import {
-    User,
-    FileText,
-    Briefcase,
-    Calendar,
-    Clock,
-    MapPin,
-    DollarSign,
-    Percent,
-    Landmark,
-    Receipt,
-    HandCoins,
-    Search,
-    Loader,
-    Users,
-    Camera,
-} from 'lucide-react';
+import { User, FileText, Briefcase, MapPin, Search, Loader, Users, Camera, ArrowLeft, Mail, Phone } from 'lucide-react';
 import axios from 'axios';
 import Profile from '../components/Hrpages/Profile';
 import Leave from '../components/Hrpages/Leave';
@@ -27,16 +11,14 @@ import JobDetails from '../components/Hrpages/JobDetails';
 import TimeAttendence from '../components/Hrpages/TimeAttendence';
 
 const employeeNavLinks = [
-    { name: 'Summary', icon: User },
-    { name: 'Profile', icon: User },
-    { name: 'Job Details', icon: Briefcase },
-    { name: 'Address & Bank Details', icon: Briefcase },
-    { name: 'Documents', icon: FileText },
-    { name: 'Time & Attendance', icon: Clock }
+    { name: 'Profile', icon: User, color: 'text-blue-500' },
+    { name: 'Job Details', icon: Briefcase, color: 'text-amber-500' },
+    { name: 'Address & Bank Details', icon: MapPin, color: 'text-green-500' },
+    { name: 'Documents', icon: FileText, color: 'text-purple-500' }
 ];
 
 const Employee = () => {
-    const [activeTab, setActiveTab] = useState('Summary');
+    const [activeTab, setActiveTab] = useState('Profile');
     const [employee, setEmployee] = useState(null);
     const [allEmployees, setAllEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState("");
@@ -162,11 +144,28 @@ const Employee = () => {
         setEmployee(updatedEmployee);
     };
 
-    const handleSelectEmployee = (selectedEmp) => {
-        const name = selectedEmp.firstName + " " + selectedEmp.lastName;
-        const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
-        // We assume jobDetails are already fetched in fetchAllEmployeesAndLocations
-        setEmployee({ ...selectedEmp, initials });
+    const handleSelectEmployee = async (selectedEmp) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const headers = { "Authorization": `Bearer ${token}` };
+            // Fetch full details for the selected employee
+            const [employeeRes, jobDetailsRes] = await Promise.all([
+                axios.get(`${API_URL}/employees/${selectedEmp.employeeCode}`, { headers }),
+                axios.get(`${API_URL}/job-details/${selectedEmp.employeeCode}`, { headers }).catch(() => ({ data: null }))
+            ]);
+
+            const employeeData = employeeRes.data;
+            const name = employeeData.firstName + " " + employeeData.lastName;
+            const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+            
+            setEmployee({ ...employeeData, jobDetails: jobDetailsRes.data, initials });
+        } catch (err) {
+            setError("Could not fetch employee details.");
+            console.error("Error selecting employee:", err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredEmployees = useMemo(() => {
@@ -177,36 +176,90 @@ const Employee = () => {
         });
     }, [allEmployees, selectedLocation, selectedGender]);
 
-    const EmployeeList = ({ employees }) => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {employees.map(emp => (
-                <div key={emp.employeeCode} className="bg-slate-50 p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleSelectEmployee(emp)}>
-                    <p className="font-semibold text-slate-800">{emp.firstName} {emp.lastName}</p>
-                    <p className="text-sm text-slate-500">{emp.employeeCode}</p>
+    const EmployeeCard = ({ emp, onSelect }) => {
+        const [photoSrc, setPhotoSrc] = useState(null);
+        const initials = (emp.firstName?.[0] || '') + (emp.lastName?.[0] || '');
+
+        useEffect(() => {
+            let objectURL;
+            if (emp.photoPath) {
+                const fetchCardPhoto = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.get(`${API_URL}/employees/${emp.employeeCode}/photo`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                            responseType: 'blob'
+                        });
+                        objectURL = URL.createObjectURL(response.data);
+                        setPhotoSrc(objectURL);
+                    } catch (error) {
+                        // Silently fail, initials will be shown
+                    }
+                };
+                fetchCardPhoto();
+            }
+            return () => { if (objectURL) URL.revokeObjectURL(objectURL); };
+        }, [emp.employeeCode, emp.photoPath]);
+
+        return (
+            <div 
+                className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group" 
+                onClick={() => onSelect(emp)}
+            >
+                <div className="relative bg-slate-200" style={{ aspectRatio: '4 / 3' }}>
+                    {photoSrc ? (
+                        <img src={photoSrc} alt={`${emp.firstName} ${emp.lastName}`} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
+                            <span className="text-4xl font-bold text-blue-600 opacity-70">{initials}</span>
+                        </div>
+                    )}
+                    <div className={`absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${
+                        emp.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                        {emp.status?.toLowerCase()}
+                    </div>
                 </div>
-            ))}
+                <div className="p-4">
+                    <h4 className="font-bold text-slate-800 truncate">{emp.firstName} {emp.lastName}</h4>
+                    <p className="text-sm text-slate-500">{emp.jobDetails?.designation || 'No Designation'}</p>
+                    <p className="text-xs text-slate-400 mt-1">{emp.employeeCode}</p>
+                </div>
+                <div className="border-t border-slate-100 px-4 pt-3 pb-4 space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <Mail size={14} className="flex-shrink-0 text-red-500" />
+                        <span className="truncate text-xs">{emp.emailWork || 'No work email'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <Phone size={14} className="flex-shrink-0 text-green-500" />
+                        <span className="truncate text-xs">{emp.phonePrimary || 'No phone'}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const EmployeeList = useCallback(({ employees, onSelect }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-5">
+            {employees.map(emp => <EmployeeCard key={emp.employeeCode} emp={emp} onSelect={onSelect} />)}
         </div>
-    );
+    ), [API_URL]);
 
     const renderContent = () => {
         if (!employee) {
             return (
                 <div>
-                    <h3 className="text-lg font-semibold mb-4">
-                        Employees ({filteredEmployees.length})
-                    </h3>
+                    <h3 className="text-lg font-semibold mb-4">Employees ({filteredEmployees.length})</h3>
                     {loading ? (
                         <div className="flex justify-center"><Loader className="animate-spin" /></div>
                     ) : (
-                        <EmployeeList employees={filteredEmployees} />
+                        <EmployeeList employees={filteredEmployees} onSelect={handleSelectEmployee} />
                     )}
                 </div>
             );
         }
 
         switch (activeTab) {
-            case 'Summary':
-                return <div>Summary Details for {employee.name}</div>;
             case 'Profile':
                 return <Profile employee={employee} onUpdate={handleEmployeeUpdate} />
             case 'Job Details':
@@ -253,16 +306,22 @@ const Employee = () => {
     };
 
     return (
-        <DashboardLayout>
+            <DashboardLayout>
             <div className="flex flex-col h-full">
                 {/* Employee Header & Sub-Navigation */}
-                <div className="bg-white shadow-sm sticky top-0 z-10">
-                    <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[104px]">
+                <div className="bg-white shadow-sm sticky top-0 z-20">
+                    <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[100px]">
                         <div className="flex items-center gap-4 min-w-0">
                             {employee && (
+                            <button onClick={() => setEmployee(null)} className="p-2 rounded-full hover:bg-blue-100 text-blue-600 -ml-2 transition-colors">
+                                <ArrowLeft size={20} />
+                            </button>
+                            )}
+                            {employee && (
                             <div className="relative group">
-                                {photoUrl ? (
+                                {photoUrl ? ( 
                                     <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md" />
+
                                 ) : (
                                     <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
                                         {employee ? employee.initials : '?'}
@@ -280,7 +339,7 @@ const Employee = () => {
                             )}
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl font-bold text-slate-800 truncate">
+                                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">
                                         {employee ? `${employee.firstName} ${employee.lastName}` : 'Employee Details'}
                                     </h1>
                                     {employee && (
@@ -289,19 +348,19 @@ const Employee = () => {
                                         }`}>{employee.status.toLowerCase()}</span>
                                     )}
                                 </div>
-                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || 'Search by ID to begin'}</p>
+                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || 'Select an employee or search by ID'}</p>
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-2">
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500" />
                                 <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
                                     <option value="all">All Locations</option>
                                     {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                                 </select>
                             </div>
                             <div className="relative">
-                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500" />
                                 <select value={selectedGender} onChange={e => setSelectedGender(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
                                     <option value="all">All Genders</option>
                                     <option value="MALE">Male</option>
@@ -309,15 +368,15 @@ const Employee = () => {
                                     <option value="OTHER">Other</option>
                                 </select>
                             </div>
-                            <form onSubmit={(e) => handleSearch(e, employeeId)} className="relative w-full sm:w-auto">
+                            <form onSubmit={(e) => handleSearch(e, employeeId)} className="relative w-full sm:w-auto flex">
                                 <input
                                     type="text"
                                     placeholder="Search by Employee ID"
                                     value={employeeId}
                                     onChange={(e) => setEmployeeId(e.target.value)}
-                                    className="w-full sm:w-56 pl-4 pr-12 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                    className="w-full sm:w-56 pl-4 pr-12 py-2 border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                                 />
-                                <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-600 rounded-full" disabled={loading}>
+                                <button type="submit" className="absolute right-0 top-0 bottom-0 px-4 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 flex items-center justify-center" disabled={loading}>
                                     {loading && !employee ? <Loader className="animate-spin h-5 w-5" /> : <Search className="h-5 w-5" />}
                                 </button>
                             </form>
@@ -331,11 +390,11 @@ const Employee = () => {
                                     onClick={() => setActiveTab(link.name)}
                                     className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
                                         activeTab === link.name
-                                            ? 'border-blue-600 text-blue-600'
-                                            : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                            ? 'border-blue-600 text-blue-600' // Active tab
+                                            : 'border-transparent text-slate-500 hover:text-blue-600 hover:border-blue-300' // Inactive tab
                                     }`}
-                                >
-                                    <link.icon className="h-4 w-4" />
+                                > 
+                                    <link.icon className={`h-5 w-5 ${link.color} ${activeTab !== link.name && 'opacity-70'}`} />
                                     <span>{link.name}</span>
                                 </button>
                             ))}
@@ -345,12 +404,12 @@ const Employee = () => {
 
                 {/* Main Content Area */}
                 <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50">
-                    <div className="bg-white p-6 rounded-xl shadow-sm">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         {error ? (
                             <div className="text-center text-red-600">{error}</div>
                         ) : (
                             <>
-                                <h2 className="text-xl font-semibold text-slate-800 mb-4">{activeTab}</h2>
+                                {!employee && <h2 className="text-xl font-semibold text-slate-800 mb-4">All Employees</h2>}
                                 {renderContent()}
                             </>
                         )}

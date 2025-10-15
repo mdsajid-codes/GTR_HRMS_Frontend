@@ -39,6 +39,11 @@ export const createLeavePolicy = (data) => api.post('/leave-policies', data);
 export const updateLeavePolicy = (id, data) => api.put(`/leave-policies/${id}`, data);
 export const deleteLeavePolicy = (id) => api.delete(`/leave-policies/${id}`);
 
+// --- Leave Type Policy Endpoints ---
+export const addLeaveTypePolicyToPolicy = (policyId, data) => api.post(`/leave-type-policies/policy/${policyId}`, data);
+export const updateLeaveTypePolicy = (id, data) => api.put(`/leave-type-policies/${id}`, data);
+export const deleteLeaveTypePolicy = (id) => api.delete(`/leave-type-policies/${id}`);
+
 // --- Leave Allocation Endpoints ---
 export const createLeaveAllocation = (data) => api.post('/leave-allocations', data);
 export const getAllocationsForEmployee = (employeeCode) => api.get(`/leave-allocations/employee/${employeeCode}`);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Plus, Edit, Loader, AlertCircle, X, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Loader, AlertCircle, X, UploadCloud, MapPin } from 'lucide-react';
 import axios from 'axios';
 
 // Roles relevant to the HRMS module that can be assigned or viewed.
@@ -14,19 +14,16 @@ const HRMS_ROLES = [
 ];
 
 const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
-    const [formData, setFormData] = useState({
-        name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, storeId: null, locationId: null,
-    });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, locationId: null });
     const [modalError, setModalError] = useState('');
-    const [stores, setStores] = useState([]);
     const [locations, setLocations] = useState([]);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
         if (user) {
-            setFormData({ name: user.name, email: user.email, password: '', confirmPassword: '', roles: new Set(user.roles || ['EMPLOYEE']), isActive: user.isActive, isLocked: user.isLocked, storeId: user.storeId, locationId: user.locationId });
+            setFormData({ name: user.name, email: user.email, password: '', confirmPassword: '', roles: new Set(user.roles || ['EMPLOYEE']), isActive: user.isActive, isLocked: user.isLocked, locationId: user.locationId });
         } else {
-            setFormData({ name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, storeId: null, locationId: null });
+            setFormData({ name: '', email: '', password: '', confirmPassword: '', roles: new Set(['EMPLOYEE']), isActive: true, isLocked: false, locationId: null });
         }
         setModalError('');
 
@@ -35,14 +32,12 @@ const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
                 try {
                     const token = localStorage.getItem('token');
                     const headers = { "Authorization": `Bearer ${token}` };
-                    const [storesRes, locationsRes] = await Promise.all([
-                        axios.get(`${API_URL}/pos/stores`, { headers }).catch(() => ({ data: [] })),
+                    const [locationsRes] = await Promise.all([
                         axios.get(`${API_URL}/locations`, { headers }).catch(() => ({ data: [] }))
                     ]);
-                    setStores(storesRes.data);
                     setLocations(locationsRes.data);
                 } catch (err) {
-                    setModalError('Failed to load stores or locations.');
+                    setModalError('Failed to load locations.');
                 }
             }
         };
@@ -80,7 +75,6 @@ const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
         }
         const payload = { ...formData, roles: Array.from(formData.roles) };
         // Ensure null is sent if no selection is made
-        if (payload.storeId === '') payload.storeId = null;
         if (payload.locationId === '') payload.locationId = null;
         onSave(payload);
     };
@@ -104,9 +98,7 @@ const UserModal = ({ isOpen, onClose, onSave, user, loading }) => {
                         <div className="flex items-center gap-4"><label className="inline-flex items-center"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded" /> <span className="ml-2 text-sm">Is Active</span></label><label className="inline-flex items-center"><input type="checkbox" name="isLocked" checked={formData.isLocked} onChange={handleChange} className="h-4 w-4 rounded" /> <span className="ml-2 text-sm">Is Locked</span></label></div>
                         {modalError && <p className="md:col-span-2 text-red-500 text-sm">{modalError}</p>}
                         <div className="md:col-span-2 pt-2 border-t">
-                            <label htmlFor="locationId" className="block text-sm font-medium text-slate-700">Assign to Location (Optional)</label><select id="locationId" name="locationId" value={formData.locationId || ''} onChange={handleChange} className="mt-1 block w-full input"><option value="">No specific location</option>{locations.map(loc => (<option key={loc.id} value={loc.id}>{loc.name}</option>))}</select>
-                        </div>
-                        <div className="md:col-span-2"><label htmlFor="storeId" className="block text-sm font-medium text-slate-700">Assign to Store (Optional)</label><select id="storeId" name="storeId" value={formData.storeId || ''} onChange={handleChange} className="mt-1 block w-full input"><option value="">No specific store</option>{stores.map(store => (<option key={store.id} value={store.id}>{store.name}</option>))}</select></div>
+                            <label htmlFor="locationId" className="block text-sm font-medium text-slate-700">Assign to Location (Optional)</label><select id="locationId" name="locationId" value={formData.locationId || ''} onChange={handleChange} className="mt-1 block w-full input"><option value="">No specific location</option>{locations.map(loc => (<option key={loc.id} value={loc.id}>{loc.name}</option>))}</select></div>
                     </div>
                     <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
@@ -166,6 +158,9 @@ const UsersDetails = () => {
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [modalLoading, setModalLoading] = useState(false);
+    // State to hold location and store names for display
+    const [locations, setLocations] = useState([]);
+
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -175,7 +170,11 @@ const UsersDetails = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/users`, { headers: { "Authorization": `Bearer ${token}` } });
+            const [locationsRes] = await Promise.all([
+                axios.get(`${API_URL}/locations`, { headers: { "Authorization": `Bearer ${token}` } }).catch(() => ({ data: [] }))
+            ]);
             setUsers(response.data);
+            setLocations(locationsRes.data);
         } catch (err) {
             setError('Failed to fetch users. Please try again later.');
             console.error(err);
@@ -184,7 +183,7 @@ const UsersDetails = () => {
         }
     };
 
-    useEffect(() => { fetchUsers(); }, [API_URL]);
+    useEffect(() => { fetchUsers(); }, []);
 
     const handleAdd = () => { setEditingUser(null); setIsUserModalOpen(true); };
     const handleEdit = (user) => { setEditingUser(user); setIsUserModalOpen(true); };
@@ -238,6 +237,9 @@ const UsersDetails = () => {
         );
     }, [users]);
 
+    // Create maps for quick lookup of location and store names
+    const locationMap = useMemo(() => new Map(locations.map(loc => [loc.id, loc.name])), [locations]);
+
     return (
         <DashboardLayout>
             <div className="p-6 md:p-8">
@@ -258,6 +260,7 @@ const UsersDetails = () => {
                                         <th className="th-cell">Name</th>
                                         <th className="th-cell">Email</th>
                                         <th className="th-cell">Roles</th>
+                                        <th className="th-cell">Location</th>
                                         <th className="th-cell">Status</th>
                                         <th className="th-cell">Actions</th>
                                     </tr>
@@ -269,12 +272,15 @@ const UsersDetails = () => {
                                                 <td className="td-cell font-medium">{user.name}</td>
                                                 <td className="td-cell text-sm text-slate-500">{user.email}</td>
                                                 <td className="td-cell"><div className="flex flex-wrap gap-1">{user.roles.map(role => (<span key={role} className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{role}</span>))}</div></td>
+                                                <td className="td-cell text-sm text-slate-500">
+                                                    {user.locationId ? <div className="flex items-center gap-1.5"><MapPin size={14} /><span>{locationMap.get(user.locationId) || 'N/A'}</span></div> : '-'}
+                                                </td>
                                                 <td className="td-cell"><div className="flex items-center gap-2">{user.isActive ? (<span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>) : (<span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">Inactive</span>)}{user.isLocked && (<span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">Locked</span>)}</div></td>
                                                 <td className="td-cell"><button onClick={() => handleEdit(user)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Edit"><Edit className="h-4 w-4" /></button></td>
                                             </tr>
                                         ))
                                     ) : (
-                                        <tr><td colSpan="5" className="text-center py-10 text-slate-500"><AlertCircle className="mx-auto h-12 w-12 text-slate-400" /><h3 className="mt-2 text-sm font-medium text-slate-900">No users found</h3><p className="mt-1 text-sm text-slate-500">Get started by creating a new user.</p></td></tr>
+                                        <tr><td colSpan="6" className="text-center py-10 text-slate-500"><AlertCircle className="mx-auto h-12 w-12 text-slate-400" /><h3 className="mt-2 text-sm font-medium text-slate-900">No users found</h3><p className="mt-1 text-sm text-slate-500">Get started by creating a new user.</p></td></tr>
                                     )}
                                 </tbody>
                             </table>

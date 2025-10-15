@@ -203,12 +203,15 @@ const Designation = ({ embedded = false }) => {
 
     const content = (
         <>
-            <div className="p-6 md:p-8">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-slate-800">Designations</h1>
+            <div className={embedded ? "p-4 sm:p-6" : "p-6 md:p-8"}>
+                <div className="flex justify-between items-center mb-4">
+                    {!embedded && (
+                        <h1 className="text-3xl font-bold text-slate-800">Designations</h1>
+                    )}
                     <button 
                         onClick={handleAdd}
-                        className="btn-primary flex items-center">
+                        className={`btn-primary flex items-center ${embedded ? 'ml-auto' : ''}`}
+                    >
                         <Plus className="h-5 w-5 mr-2" />
                         Add Designation
                     </button>

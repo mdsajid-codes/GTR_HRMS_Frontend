@@ -12,8 +12,10 @@ import {
     LogOut,
     Sparkles,
     Menu,
+    Sun,
+    Moon,
     CalendarClock,
-    DollarSign,
+    DollarSign, Palette,
 } from 'lucide-react';
 import { AnimatePresence, motion } from "framer-motion";
 import { useTenant } from "../context/TenantContext.jsx";
@@ -21,7 +23,6 @@ import { useTenant } from "../context/TenantContext.jsx";
 const navLinks = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard', module: 'HRMS_CORE' },
     { name: 'Employees', icon: Users, href: '/employees', module: 'HRMS_CORE' },
-    { name: 'Settings', icon: FileText, href: '/settings', module: 'HRMS_CORE' }, // Or a specific settings module
     { name: 'Attendance', icon: CalendarClock, href: '/attendance', module: 'HRMS_ATTENDANCE' },
     { name: 'Leave', icon: CalendarClock, href: '/leave', module: 'HRMS_LEAVE' },
     { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', module: 'HRMS_PAYROLL' },
@@ -51,7 +52,6 @@ const SidebarContent = ({ onLinkClick }) => {
     const username = localStorage.getItem('username') || 'Admin';
     const roles = useMemo(() => JSON.parse(localStorage.getItem('roles') || '[]'), []);
     const isSuperAdmin = useMemo(() => roles.includes('SUPER_ADMIN'), [roles]);
-
     const { hasModule } = useTenant();
 
     const handleLogout = () => {
@@ -60,17 +60,6 @@ const SidebarContent = ({ onLinkClick }) => {
     };
 
     const accessibleNavLinks = useMemo(() => {
-        // A user has full access if their plan includes all core HRMS modules.
-        const hasAllAccessPlan =
-            hasModule('HRMS_CORE') &&
-            hasModule('HRMS_ATTENDANCE') &&
-            hasModule('HRMS_LEAVE') &&
-            hasModule('HRMS_PAYROLL');
-
-        if (hasAllAccessPlan) {
-            return navLinks; // Return all links for the all-access plan.
-        }
-
         // Otherwise, filter links based on individual module subscription.
         return navLinks.filter(link => !link.module || hasModule(link.module));
     }, [hasModule]);

@@ -19,14 +19,12 @@ import RecruitmentView from '../components/EmpPages/RecruitmentView';
 import LeavesView from '../components/EmpPages/LeavesView';
 import { useTenant } from '../context/TenantContext';
 
-// Placeholder components for different sections
-const AttendanceView = () => <div className="p-8"><h1 className="text-3xl font-bold text-slate-800">Attendance</h1><p className="mt-2 text-slate-600">Your attendance records, check-in/out times, and work hours will be displayed here.</p></div>;
-
-
+import AttendanceView from '../components/EmpPages/AttendanceView';
+import Leaves from '../components/EmpPages/Leaves';
 const navLinks = [
     { name: 'Dashboard', icon: LayoutDashboard, Component: DashboardView, module: 'HRMS_CORE' },
     { name: 'Attendance', icon: Clock, Component: AttendanceView, module: 'HRMS_ATTENDANCE' },
-    { name: 'Leaves', icon: Calendar, Component: LeavesView, module: 'HRMS_LEAVE' },
+    { name: 'Leaves', icon: Calendar, Component: Leaves, module: 'HRMS_LEAVE' },
     { name: 'Payroll', icon: DollarSign, Component: PayrollView, module: 'HRMS_PAYROLL' },
     { name: 'Recruitment', icon: DollarSign, Component: RecruitmentView, module: 'HRMS_RECRUITMENT' }
 ];
@@ -178,6 +176,11 @@ const EmployeeDashboard = () => {
 
     const renderContent = () => {
         const activeLink = accessibleNavLinks.find(link => link.name === activeItem) || accessibleNavLinks[0];
+        
+        if (!activeLink) {
+            return <div className="p-8 text-center text-slate-500">No modules are accessible for your account. Please contact support.</div>;
+        }
+
         const Component = activeLink.Component;
         // Pass employee data to the active component.
         return <Component setActiveItem={setActiveItem} employee={employee} key={activeItem} />;
