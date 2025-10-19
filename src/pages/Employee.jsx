@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { User, FileText, Briefcase, MapPin, Search, Loader, Users, Camera, ArrowLeft, Mail, Phone } from 'lucide-react';
+import { User, FileText, Briefcase, MapPin, Search, Loader, Users, Camera, ArrowLeft, Mail, Phone, Clock, Calendar, DollarSign } from 'lucide-react';
 import axios from 'axios';
 import Profile from '../components/Hrpages/Profile';
 import Leave from '../components/Hrpages/Leave';
@@ -11,10 +11,13 @@ import JobDetails from '../components/Hrpages/JobDetails';
 import TimeAttendence from '../components/Hrpages/TimeAttendence';
 
 const employeeNavLinks = [
-    { name: 'Profile', icon: User, color: 'text-blue-500' },
-    { name: 'Job Details', icon: Briefcase, color: 'text-amber-500' },
-    { name: 'Address & Bank Details', icon: MapPin, color: 'text-green-500' },
-    { name: 'Documents', icon: FileText, color: 'text-purple-500' }
+    { name: 'Profile', icon: User, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    { name: 'Job Details', icon: Briefcase, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+    { name: 'Time & Attendance', icon: Clock, color: 'text-cyan-600', bgColor: 'bg-cyan-100' },
+    { name: 'Leave', icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+    { name: 'Salary', icon: DollarSign, color: 'text-teal-600', bgColor: 'bg-teal-100' },
+    { name: 'Address & Bank Details', icon: MapPin, color: 'text-green-600', bgColor: 'bg-green-100' },
+    { name: 'Documents', icon: FileText, color: 'text-purple-600', bgColor: 'bg-purple-100' },
 ];
 
 const Employee = () => {
@@ -348,7 +351,7 @@ const Employee = () => {
                                         }`}>{employee.status.toLowerCase()}</span>
                                     )}
                                 </div>
-                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || 'Select an employee or search by ID'}</p>
+                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || (employee ? 'No Designation' : 'Select an employee or search by ID')}</p>
                             </div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -388,13 +391,15 @@ const Employee = () => {
                                 <button
                                     key={link.name}
                                     onClick={() => setActiveTab(link.name)}
-                                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                                    className={`flex-shrink-0 flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 group ${
                                         activeTab === link.name
                                             ? 'border-blue-600 text-blue-600' // Active tab
-                                            : 'border-transparent text-slate-500 hover:text-blue-600 hover:border-blue-300' // Inactive tab
+                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' // Inactive tab
                                     }`}
                                 > 
-                                    <link.icon className={`h-5 w-5 ${link.color} ${activeTab !== link.name && 'opacity-70'}`} />
+                                    <div className={`p-1.5 rounded-md ${link.bgColor} ${activeTab === link.name ? '' : 'opacity-80 group-hover:opacity-100'}`}>
+                                        <link.icon className={`h-4 w-4 ${link.color}`} />
+                                    </div>
                                     <span>{link.name}</span>
                                 </button>
                             ))}

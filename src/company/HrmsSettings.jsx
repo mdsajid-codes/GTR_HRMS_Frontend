@@ -5,6 +5,7 @@ import AttendencePolicy from '../hrmsSettings/AttendencePolicy';
 import LeavePolicy from '../hrmsSettings/LeavePolicy';
 import ManageCompany from '../hrmsSettings/ManageCompany';
 import { useTenant } from '../context/TenantContext';
+import EmployeePolicy from '../hrmsSettings/EmployeePolicy';
 
 // Placeholder components for each settings tab
 const PlaceholderComponent = ({ title }) => (
@@ -18,7 +19,7 @@ const allTabs = [
     { name: 'Department Creation', icon: Building2, color: 'text-cyan-500', component: <DepartmentCreation embedded={true} />, module: 'HRMS_CORE' },
     { name: 'Leave Policy', icon: CalendarCheck, color: 'text-purple-500', component: <LeavePolicy title="Leave Policy" />, module: 'HRMS_LEAVE' },
     { name: 'Attendance Policy', icon: Clock, color: 'text-orange-500', component: <AttendencePolicy title="Attendance Policy" />, module: 'HRMS_ATTENDANCE' },
-    { name: 'Employment Policy', icon: FileBadge, color: 'text-rose-500', component: <PlaceholderComponent title="Employment Policy" />, module: 'HRMS_CORE' },
+    { name: 'Employment Policy', icon: FileBadge, color: 'text-rose-500', component: <EmployeePolicy title="Employment Policy" />, module: 'HRMS_CORE' },
     { name: 'Payroll Policy', icon: DollarSign, color: 'text-green-500', component: <PlaceholderComponent title="Payroll Policy" />, module: 'HRMS_PAYROLL' },
     { name: 'Opening Leave Balance', icon: BookUser, color: 'text-indigo-500', component: <PlaceholderComponent title="Opening Leave Balance" />, module: 'HRMS_LEAVE' },
     { name: 'Announcement', icon: Megaphone, color: 'text-yellow-500', component: <PlaceholderComponent title="Announcement" />, module: 'HRMS_CORE' },

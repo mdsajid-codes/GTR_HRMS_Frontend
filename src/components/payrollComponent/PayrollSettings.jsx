@@ -332,7 +332,7 @@ const StatutoryRuleForm = ({ initialData, onSave, onCancel }) => {
 };
 
 const LoanProductForm = ({ initialData, onSave, onCancel }) => {
-    const [formData, setFormData] = useState(initialData || { productName: '', description: '', interestRate: 0, maxInstallments: 0, maxLoanAmount: 0, active: true });
+    const [formData, setFormData] = useState(initialData || { productName: '', description: '', interestRate: 0, maxInstallments: 0, maxLoanAmount: 0, active: true, availabilityStartDate: '', availabilityEndDate: '', deductFromSalary: true });
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
 
@@ -345,7 +345,14 @@ const LoanProductForm = ({ initialData, onSave, onCancel }) => {
                 <InputField label="Max Installments" name="maxInstallments" type="number" value={formData.maxInstallments} onChange={handleChange} />
             </div>
             <InputField label="Max Loan Amount" name="maxLoanAmount" type="number" value={formData.maxLoanAmount} onChange={handleChange} />
-            <CheckboxField label="Active" id="loanActive" name="active" checked={formData.active} onChange={handleChange} />
+            <div className="grid grid-cols-2 gap-4">
+                <InputField label="Availability Start Date" name="availabilityStartDate" type="date" value={formData.availabilityStartDate || ''} onChange={handleChange} />
+                <InputField label="Availability End Date" name="availabilityEndDate" type="date" value={formData.availabilityEndDate || ''} onChange={handleChange} />
+            </div>
+            <div className="flex gap-6">
+                <CheckboxField label="Active" id="loanActive" name="active" checked={formData.active} onChange={handleChange} />
+                <CheckboxField label="Deduct from Salary" id="deductFromSalary" name="deductFromSalary" checked={formData.deductFromSalary} onChange={handleChange} />
+            </div>
             <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary">Save Product</button>

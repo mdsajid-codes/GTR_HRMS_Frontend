@@ -92,15 +92,15 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         },
 
         timeAttendence: {
-            timeType: '',
-            workType: '',
-            shiftType: '',
-            weeklyOffPolicy: '',
-            leaveGroup: '',
+            timeTypeId: null,
+            workTypeId: null,
+            shiftTypeId: null,
+            weeklyOffPolicyId: null,
+            leaveGroupId: null,
             attendenceCaptureScheme: '',
+            attendancePolicyId: null,
             holidayList: '',
             expensePolicy: '',
-            attendenceTrackingPolicy: '',
             recruitmentPolicy: '',
             isRosterBasedEmployee: false
         }
@@ -116,7 +116,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         shiftTypes: [],
         leaveGroups: [],
         weeklyOffPolicies: [],
-        timeTypes: []
+        timeTypes: [],
+        attendanceTrackingPolicies: [],
     });
     const [locations, setLocations] = useState([]);
 
@@ -144,8 +145,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
             const fetchDropdownData = async () => {
                 try {
                     const token = localStorage.getItem('token');
-                    const headers = { "Authorization": `Bearer ${token}` };
-                    const [deptRes, desigRes, jobBandRes, natRes, workTypeRes, shiftTypeRes, leaveGroupRes, weekOffRes, timeTypeRes, locRes] = await Promise.all([
+                    const headers = { "Authorization": `Bearer ${token}` }; 
+                    const [deptRes, desigRes, jobBandRes, natRes, workTypeRes, shiftTypeRes, leaveGroupRes, weekOffRes, timeTypeRes, locRes, attendanceTrackingRes] = await Promise.all([
                         axios.get(`${API_URL}/departments`, { headers }),
                         axios.get(`${API_URL}/designations`, { headers }),
                         axios.get(`${API_URL}/jobBands`, { headers }),
@@ -156,6 +157,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         axios.get(`${API_URL}/weekly-off-policies`, { headers }),
                         axios.get(`${API_URL}/time-types`, { headers }),
                         axios.get(`${API_URL}/locations`, { headers }),
+                        axios.get(`${API_URL}/attendance-policies`, { headers }),
                     ]);
                     setSelectOptions({
                         departments: deptRes.data,
@@ -166,7 +168,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         shiftTypes: shiftTypeRes.data,
                         leaveGroups: leaveGroupRes.data,
                         weeklyOffPolicies: weekOffRes.data,
-                        timeTypes: timeTypeRes.data
+                        timeTypes: timeTypeRes.data,
+                        attendanceTrackingPolicies: attendanceTrackingRes.data,
                     });
                     setLocations(locRes.data);
                 } catch (err) {
@@ -332,43 +335,49 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Time & Attendance Policy</h3>
                         <EditField
                             label="Time Type"
-                            name="timeType"
-                            value={formData.timeAttendence.timeType}
+                            name="timeTypeId"
+                            value={formData.timeAttendence.timeTypeId}
                             onChange={handleNestedChange('timeAttendence')}
                             type="select"
-                            options={selectOptions.timeTypes.map(t => ({ value: t.name, label: t.name }))} />
+                            options={selectOptions.timeTypes.map(t => ({ value: t.id, label: t.name }))} />
                         <EditField 
                             label="Work Type" 
-                            name="workType" 
-                            value={formData.timeAttendence.workType} 
+                            name="workTypeId" 
+                            value={formData.timeAttendence.workTypeId} 
                             onChange={handleNestedChange('timeAttendence')} 
                             type="select"
-                            options={selectOptions.workTypes.map(w => ({ value: w.name, label: w.name }))} />
+                            options={selectOptions.workTypes.map(w => ({ value: w.id, label: w.name }))} />
                         <EditField 
                             label="Shift Type" 
-                            name="shiftType" 
-                            value={formData.timeAttendence.shiftType} 
+                            name="shiftTypeId" 
+                            value={formData.timeAttendence.shiftTypeId} 
                             onChange={handleNestedChange('timeAttendence')} 
                             type="select"
-                            options={selectOptions.shiftTypes.map(s => ({ value: s.name, label: `${s.name} (${s.startTime} - ${s.endTime})` }))} />
+                            options={selectOptions.shiftTypes.map(s => ({ value: s.id, label: `${s.name} (${s.startTime} - ${s.endTime})` }))} />
                         <EditField 
                             label="Weekly Off Policy" 
-                            name="weeklyOffPolicy" 
-                            value={formData.timeAttendence.weeklyOffPolicy} 
+                            name="weeklyOffPolicyId" 
+                            value={formData.timeAttendence.weeklyOffPolicyId} 
                             onChange={handleNestedChange('timeAttendence')} 
                             type="select"
-                            options={selectOptions.weeklyOffPolicies.map(p => ({ value: p.name, label: p.name }))} />
+                            options={selectOptions.weeklyOffPolicies.map(p => ({ value: p.id, label: p.name }))} />
                         <EditField 
                             label="Leave Group" 
-                            name="leaveGroup" 
-                            value={formData.timeAttendence.leaveGroup} 
+                            name="leaveGroupId" 
+                            value={formData.timeAttendence.leaveGroupId} 
                             onChange={handleNestedChange('timeAttendence')} 
                             type="select"
-                            options={selectOptions.leaveGroups.map(lg => ({ value: lg.name, label: lg.name }))} />
+                            options={selectOptions.leaveGroups.map(lg => ({ value: lg.id, label: lg.name }))} />
                         <EditField label="Attendance Capture Scheme" name="attendenceCaptureScheme" value={formData.timeAttendence.attendenceCaptureScheme} onChange={handleNestedChange('timeAttendence')} />
                         <EditField label="Holiday List" name="holidayList" value={formData.timeAttendence.holidayList} onChange={handleNestedChange('timeAttendence')} />
-                        <EditField label="Expense Policy" name="expensePolicy" value={formData.timeAttendence.expensePolicy} onChange={handleNestedChange('timeAttendence')} />
-                        <EditField label="Attendance Tracking Policy" name="attendenceTrackingPolicy" value={formData.timeAttendence.attendenceTrackingPolicy} onChange={handleNestedChange('timeAttendence')} />
+                        <EditField label="Expense Policy" name="expensePolicy" value={formData.timeAttendence.expensePolicy} onChange={handleNestedChange('timeAttendence')} /> 
+                        <EditField 
+                            label="Attendance Tracking Policy" 
+                            name="attendancePolicyId" 
+                            value={formData.timeAttendence.attendancePolicyId} 
+                            onChange={handleNestedChange('timeAttendence')} 
+                            type="select"
+                            options={selectOptions.attendanceTrackingPolicies.map(p => ({ value: p.id, label: p.policyName }))} />
                         <EditField label="Recruitment Policy" name="recruitmentPolicy" value={formData.timeAttendence.recruitmentPolicy} onChange={handleNestedChange('timeAttendence')} />
                         <div className="md:col-span-2">
                             <label className="inline-flex items-center">

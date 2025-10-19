@@ -21,29 +21,30 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useTenant } from "../context/TenantContext.jsx";
 
 const navLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard', module: 'HRMS_CORE' },
-    { name: 'Employees', icon: Users, href: '/employees', module: 'HRMS_CORE' },
-    { name: 'Attendance', icon: CalendarClock, href: '/attendance', module: 'HRMS_ATTENDANCE' },
-    { name: 'Leave', icon: CalendarClock, href: '/leave', module: 'HRMS_LEAVE' },
-    { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', module: 'HRMS_PAYROLL' },
-    { name: 'Users', icon: ShieldCheck, href: '/users-details' },
-    { name: 'Reports', icon: BarChart2, href: '/reports' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/hrdashboard', module: 'HRMS_CORE', color: 'text-sky-500' },
+    { name: 'Employees', icon: Users, href: '/employees', module: 'HRMS_CORE', color: 'text-blue-500' },
+    { name: 'Attendance', icon: CalendarClock, href: '/attendance', module: 'HRMS_ATTENDANCE', color: 'text-orange-500' },
+    { name: 'Leave', icon: CalendarClock, href: '/leave', module: 'HRMS_LEAVE', color: 'text-yellow-500' },
+    { name: 'Payroll Management', icon: DollarSign, href: '/payroll-management', module: 'HRMS_PAYROLL', color: 'text-green-500' },
+    { name: 'Users', icon: ShieldCheck, href: '/users-details', color: 'text-purple-500' },
+    { name: 'Reports', icon: BarChart2, href: '/reports', color: 'text-rose-500' },
 ];
 
 const NavItem = ({ item, onClick }) => (
     <NavLink
         to={item.href}
         onClick={onClick}
-        className={({ isActive }) =>
-            `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+    >
+        {({ isActive }) => (
+            <span className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${
                 isActive
                     ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
-            }`
-        }
-    >
-        <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-        <span>{item.name}</span>
+                    : 'text-slate-600 hover:bg-slate-100'
+            }`}>
+                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 transition-colors ${isActive ? 'text-white' : `${item.color} group-hover:text-blue-600`}`} />
+                <span>{item.name}</span>
+            </span>
+        )}
     </NavLink>
 );
 

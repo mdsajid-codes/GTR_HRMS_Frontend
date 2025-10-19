@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Banknote, HandCoins, Receipt, Search, Loader, Edit, Check, X, ArrowLeft } from 'lucide-react';
+import { Banknote, HandCoins, Receipt, Search, Loader, Edit, Check, X, ArrowLeft, Eye, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 // --- Helper Components ---
@@ -146,6 +146,7 @@ const BankAccountTab = ({ employee }) => {
 const LoansTab = ({ employee }) => {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [viewingReceipt, setViewingReceipt] = useState(null);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     const fetchLoans = useCallback(() => {
@@ -222,6 +223,7 @@ const LoansTab = ({ employee }) => {
 const ExpensesTab = ({ employee }) => {
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [viewingReceipt, setViewingReceipt] = useState(null);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     const fetchExpenses = useCallback(() => {
@@ -246,10 +248,39 @@ const ExpensesTab = ({ employee }) => {
         }
     };
 
+    const handleDelete = async (expenseId) => {
+        if (!window.confirm(`Are you sure you want to delete this expense claim? This action cannot be undone.`)) return;
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_URL}/expenses/${expenseId}`, { headers: { "Authorization": `Bearer ${token}` } });
+            fetchExpenses();
+            alert('Expense claim deleted successfully.');
+        } catch (err) {
+            alert(`Failed to delete expense: ${err.response?.data?.message || 'Please try again.'}`);
+        }
+    };
+
+    const handleViewReceipt = async (expense) => {
+        if (!expense.receiptPath) return;
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/expenses/${expense.id}/receipt`, {
+                headers: { "Authorization": `Bearer ${token}` },
+                responseType: 'blob'
+            });
+            const file = new Blob([response.data], { type: response.headers['content-type'] });
+            const fileURL = URL.createObjectURL(file);
+            setViewingReceipt(fileURL);
+        } catch (err) {
+            console.error("Error fetching receipt:", err);
+            alert("Could not load the receipt. It may have been deleted.");
+        }
+    };
+
     if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
 
     return (
-        <div>
+        <>
             <h3 className="text-lg font-semibold mb-4">Expense Claims</h3>
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
                 <table className="min-w-full divide-y divide-slate-200">
@@ -258,8 +289,10 @@ const ExpensesTab = ({ employee }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Receipt</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Review</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Review</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                         </tr>
                     </thead>
@@ -268,29 +301,50 @@ const ExpensesTab = ({ employee }) => {
                             <tr key={exp.id}>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{new Date(exp.expenseDate).toLocaleDateString()}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{exp.category}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">{exp.amount}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm truncate max-w-xs">{exp.description}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'AED' }).format(exp.amount)}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${statusStyles[exp.status]?.bg || 'bg-slate-100'} ${statusStyles[exp.status]?.text || 'text-slate-800'}`}>
                                         {exp.status.toLowerCase()}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {exp.receiptPath && (
+                                        <button onClick={() => handleViewReceipt(exp)} className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                                            <Eye size={14} /> View
+                                        </button>
+                                    )}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                                     {exp.status === 'SUBMITTED' && (
                                         <div className="flex gap-2">
-                                            <button onClick={() => handleAction(exp.id, 'approve')} className="text-green-600 hover:underline text-xs">Approve</button>
-                                            <button onClick={() => handleAction(exp.id, 'reject')} className="text-red-600 hover:underline text-xs">Reject</button>
+                                            <button onClick={() => handleAction(exp.id, 'approve')} className="p-1.5 text-green-600 hover:bg-green-100 rounded-full" title="Approve"><Check size={14}/></button>
+                                            <button onClick={() => handleAction(exp.id, 'reject')} className="p-1.5 text-red-600 hover:bg-red-100 rounded-full" title="Reject"><X size={14}/></button>
                                         </div>
                                     )}
                                 </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <button onClick={() => handleDelete(exp.id)} className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete"><Trash2 size={14} /></button>
+                                </td>
                             </tr>
                         )) : (
-                            <tr><td colSpan="6" className="text-center py-10 text-slate-500">No expense claims found.</td></tr>
+                            <tr><td colSpan="8" className="text-center py-10 text-slate-500">No expense claims found.</td></tr>
                         )}
                     </tbody>
                 </table>
             </div>
-        </div>
+            {viewingReceipt && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
+                    <div className="bg-white p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-end">
+                            <button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full hover:bg-slate-100 -mr-2 -mt-2 mb-2">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <img src={viewingReceipt} alt="Expense Receipt" className="max-w-full max-h-[80vh] object-contain" />
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

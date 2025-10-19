@@ -5,11 +5,13 @@ import axios from 'axios';
 
 // Modal for adding/editing shift types
 const ShiftTypeModal = ({ isOpen, onClose, onSave, shiftType, loading }) => {
+    const [shiftPolicies, setShiftPolicies] = useState([]);
     const [formData, setFormData] = useState({
         name: '',
         code: '',
         startTime: '',
-        endTime: ''
+        endTime: '',
+        shiftPolicyId: '' // To link to a shift policy
     });
     const [modalError, setModalError] = useState('');
 
@@ -19,17 +21,47 @@ const ShiftTypeModal = ({ isOpen, onClose, onSave, shiftType, loading }) => {
                 name: shiftType.name || '',
                 code: shiftType.code || '',
                 startTime: shiftType.startTime || '',
-                endTime: shiftType.endTime || ''
+                endTime: shiftType.endTime || '',
+                shiftPolicyId: '' // Editing doesn't change the core times from a policy
             });
         } else {
-            setFormData({ name: '', code: '', startTime: '', endTime: '' });
+            setFormData({ name: '', code: '', startTime: '', endTime: '', shiftPolicyId: '' });
         }
         setModalError('');
+
+        const fetchShiftPolicies = async () => {
+            if (isOpen) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const API_URL = import.meta.env.VITE_API_BASE_URL;
+                    const response = await axios.get(`${API_URL}/shift-policies`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    setShiftPolicies(response.data);
+                } catch (err) {
+                    console.error("Failed to fetch shift policies", err);
+                    setModalError("Could not load shift policies.");
+                }
+            }
+        };
+        fetchShiftPolicies();
     }, [shiftType, isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'shiftPolicyId') {
+            const selectedPolicy = shiftPolicies.find(p => p.id === parseInt(value));
+            if (selectedPolicy) {
+                setFormData(prev => ({
+                    ...prev,
+                    startTime: selectedPolicy.shiftStartTime,
+                    endTime: selectedPolicy.shiftEndTime,
+                    [name]: value
+                }));
+            }
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = (e) => {
@@ -62,14 +94,17 @@ const ShiftTypeModal = ({ isOpen, onClose, onSave, shiftType, loading }) => {
                             <label htmlFor="code" className="block text-sm font-medium text-slate-700">Code</label>
                             <input id="code" name="code" value={formData.code} onChange={handleChange} required className="input" />
                         </div>
-                        <div>
-                            <label htmlFor="startTime" className="block text-sm font-medium text-slate-700">Start Time</label>
-                            <input id="startTime" name="startTime" type="time" value={formData.startTime} onChange={handleChange} required className="input" />
-                        </div>
-                        <div>
-                            <label htmlFor="endTime" className="block text-sm font-medium text-slate-700">End Time</label>
-                            <input id="endTime" name="endTime" type="time" value={formData.endTime} onChange={handleChange} required className="input" />
-                        </div>
+                        {!shiftType && ( // Only show dropdown for new shift types
+                            <div className="md:col-span-2">
+                                <label htmlFor="shiftPolicyId" className="block text-sm font-medium text-slate-700">Select Timings from Shift Policy</label>
+                                <select id="shiftPolicyId" name="shiftPolicyId" value={formData.shiftPolicyId} onChange={handleChange} required className="input">
+                                    <option value="">Select a policy...</option>
+                                    {shiftPolicies.map(policy => (
+                                        <option key={policy.id} value={policy.id}>{policy.policyName} ({policy.shiftStartTime} - {policy.shiftEndTime})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         {modalError && <p className="md:col-span-2 text-red-500 text-sm">{modalError}</p>}
                     </div>
                     <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">

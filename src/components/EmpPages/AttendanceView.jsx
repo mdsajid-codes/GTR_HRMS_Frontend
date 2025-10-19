@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { LogIn, LogOut, UserCheck, UserX, AlertTriangle, ChevronsLeft, ChevronsRight, Loader, Clock } from 'lucide-react';
+import { LogIn, LogOut, UserCheck, UserX, AlertTriangle, ChevronsLeft, ChevronsRight, Loader, Clock, CalendarOff, UserMinus, Plane } from 'lucide-react';
 
 // Helper to format time from "HH:mm:ss" to "HH:mm AM/PM"
 const formatTime = (timeString) => {
@@ -48,6 +48,7 @@ const StatusBadge = ({ status }) => {
         ABSENT: { label: 'Absent', style: 'bg-red-100 text-red-700' },
         ON_LEAVE: { label: 'On Leave', style: 'bg-yellow-100 text-yellow-700' },
         HALF_DAY: { label: 'Half Day', style: 'bg-orange-100 text-orange-700' },
+        HOLIDAY: { label: 'Holiday', style: 'bg-blue-100 text-blue-700' },
     };
     const { label, style } = statusStyles[status] || { label: status, style: 'bg-slate-100 text-slate-600' };
     return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${style}`}>{label}</span>;
@@ -59,6 +60,7 @@ const AttendanceView = () => {
     const [todaysRecord, setTodaysRecord] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [employeeDetails, setEmployeeDetails] = useState(null);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
     const employeeCode = localStorage.getItem('employeeCode');
 
@@ -70,27 +72,55 @@ const AttendanceView = () => {
             return;
         }
 
+        const fetchInitialDetails = async () => {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { "Authorization": `Bearer ${token}` };
+                const [timeRes, jobRes] = await Promise.all([
+                    axios.get(`${API_URL}/time-attendence/${employeeCode}`, { headers }).catch(() => ({ data: null })),
+                    axios.get(`${API_URL}/job-details/${employeeCode}`, { headers }).catch(() => ({ data: null }))
+                ]);
+                setEmployeeDetails({
+                    ...timeRes.data,
+                    jobDetails: jobRes.data
+                });
+            } catch (err) {
+                console.error("Failed to fetch employee details", err);
+                setError('Could not load employee profile information.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInitialDetails();
+    }, [employeeCode, API_URL]);
+
+    useEffect(() => {
         const fetchAttendance = async () => {
             setLoading(true);
             setError('');
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const startDate = new Date(year, month, 1).toISOString().slice(0, 10);
-            const endDate = new Date(year, month + 1, 0).toISOString().slice(0, 10);
-
             try {
                 const token = localStorage.getItem('token');
+                const headers = { "Authorization": `Bearer ${token}` };
+                
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const startDate = new Date(year, month, 1).toISOString().slice(0, 10);
+                const endDate = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+
                 const response = await axios.get(`${API_URL}/attendance-records/employee/${employeeCode}`, {
                     params: { startDate, endDate },
-                    headers: { "Authorization": `Bearer ${token}` }
+                    headers
                 });
-                const sortedData = response.data.sort((a, b) => new Date(a.attendanceDate) - new Date(b.attendanceDate));
+                
+                const sortedData = response.data.sort((a, b) => new Date(b.attendanceDate) - new Date(a.attendanceDate));
                 setAttendanceData(sortedData);
 
                 // Find today's record to manage the check-in/out button state
                 const todayString = new Date().toISOString().slice(0, 10);
-                const today = sortedData.find(rec => rec.attendanceDate === todayString);
-                setTodaysRecord(today || null);
+                const todayRecord = sortedData.find(rec => rec.attendanceDate === todayString);
+                setTodaysRecord(todayRecord || null);
             } catch (err) {
                 console.error("Failed to fetch attendance data", err);
                 setError('Could not load your attendance data.');
@@ -99,17 +129,24 @@ const AttendanceView = () => {
             }
         };
 
-        fetchAttendance();
-    }, [currentDate, employeeCode, API_URL]);
+        // Only fetch attendance if we have the employee details (specifically the joining date)
+        if (employeeDetails?.jobDetails) {
+            fetchAttendance();
+        }
+    }, [currentDate, employeeDetails]);
 
     const stats = useMemo(() => {
         return {
-            present: attendanceData.filter(d => d.status === 'PRESENT' || d.status === 'HALF_DAY').length,
+            present: attendanceData.filter(d => d.status === 'PRESENT').length,
             absent: attendanceData.filter(d => d.status === 'ABSENT').length,
+            onLeave: attendanceData.filter(d => d.status === 'ON_LEAVE').length,
+            halfDay: attendanceData.filter(d => d.status === 'HALF_DAY').length,
             late: attendanceData.filter(d => d.isLate).length,
             overtime: attendanceData.reduce((acc, curr) => acc + (curr.overtimeMinutes || 0), 0),
         };
     }, [attendanceData]);
+
+    const overtimeFormatted = `${Math.floor(stats.overtime / 60)}h ${stats.overtime % 60}m`;
 
     const changeMonth = (offset) => {
         setCurrentDate(prev => {
@@ -129,14 +166,19 @@ const AttendanceView = () => {
 
         try {
             if (todaysRecord && todaysRecord.checkIn && !todaysRecord.checkOut) {
-                // This is a Check Out action
-                const payload = { ...todaysRecord, checkOut: currentTime };
+                // This is a Check Out action. We need to ensure we pass the policy ID.
+                const payload = {
+                    ...todaysRecord,
+                    checkOut: currentTime,
+                    attendancePolicyId: employeeDetails?.attendancePolicy?.id || null,
+                };
                 const response = await axios.put(`${API_URL}/attendance-records/${todaysRecord.id}`, payload, { headers });
                 setTodaysRecord(response.data);
             } else {
                 // This is a Check In action
                 const payload = {
                     employeeCode,
+                    attendancePolicyId: employeeDetails?.attendancePolicy?.id || null,
                     attendanceDate: currentDateString,
                     checkIn: currentTime,
                     status: 'PRESENT'
@@ -144,6 +186,7 @@ const AttendanceView = () => {
                 const response = await axios.post(`${API_URL}/attendance-records`, payload, { headers });
                 setTodaysRecord(response.data);
             }
+
             // Refresh the whole month's data
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -151,7 +194,7 @@ const AttendanceView = () => {
             const endDate = new Date(year, month + 1, 0).toISOString().slice(0, 10);
             const updatedResponse = await axios.get(`${API_URL}/attendance-records/employee/${employeeCode}`, { params: { startDate, endDate }, headers });
             setAttendanceData(updatedResponse.data.sort((a, b) => new Date(a.attendanceDate) - new Date(b.attendanceDate)));
-        } catch (err) {
+        } catch (err) { 
             console.error("Failed to mark attendance", err);
             setError(err.response?.data?.message || "An error occurred while marking attendance.");
         } finally {
@@ -169,6 +212,16 @@ const AttendanceView = () => {
         return <button className="btn-secondary cursor-not-allowed flex items-center gap-2" disabled>Checked Out</button>;
     };
 
+    if (!loading && !employeeDetails?.jobDetails) {
+        return (
+            <div className="p-8 text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
+                <h3 className="mt-2 text-lg font-medium text-slate-900">Configuration Missing</h3>
+                <p className="mt-1 text-sm text-slate-500">{error || "Your Time & Attendance settings have not been configured. Please contact HR."}</p>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 md:p-8 space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-4">
@@ -184,10 +237,12 @@ const AttendanceView = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard icon={UserCheck} title="Present Days" value={stats.present} color="bg-green-500" />
-                <StatCard icon={UserX} title="Absent Days" value={stats.absent} color="bg-red-500" />
+                <StatCard icon={UserCheck} title="Present" value={stats.present} color="bg-green-500" />
+                <StatCard icon={UserMinus} title="Half Days" value={stats.halfDay} color="bg-orange-500" />
+                <StatCard icon={Plane} title="On Leave" value={stats.onLeave} color="bg-yellow-500" />
+                <StatCard icon={UserX} title="Absent" value={stats.absent} color="bg-red-500" />
                 <StatCard icon={AlertTriangle} title="Late Comings" value={stats.late} color="bg-orange-500" />
-                <StatCard icon={Clock} title="Overtime" value={`${Math.floor(stats.overtime / 60)}h ${stats.overtime % 60}m`} color="bg-blue-500" />
+                <StatCard icon={Clock} title="Overtime" value={overtimeFormatted} color="bg-blue-500" />
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm">
@@ -206,6 +261,7 @@ const AttendanceView = () => {
                                     <th className="th-cell text-center">Check In</th>
                                     <th className="th-cell text-center">Check Out</th>
                                     <th className="th-cell text-center">Work Hours</th>
+                                    <th className="th-cell">Remarks</th>
                                 </tr>
                             </thead>
                             <tbody className="text-slate-700">
@@ -216,6 +272,7 @@ const AttendanceView = () => {
                                         <td className="td-cell text-center font-mono">{formatTime(record.checkIn)}</td>
                                         <td className="td-cell text-center font-mono">{formatTime(record.checkOut)}</td>
                                         <td className="td-cell text-center font-mono">{calculateDuration(record.checkIn, record.checkOut)}</td>
+                                        <td className="td-cell text-xs text-slate-500">{record.remarks}</td>
                                     </tr>
                                 ))}
                             </tbody>

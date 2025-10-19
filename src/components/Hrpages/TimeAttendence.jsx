@@ -45,15 +45,15 @@ const TimeAttendence = ({ employee }) => {
     const [saveLoading, setSaveLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectOptions, setSelectOptions] = useState({
-        timeTypes: [], workTypes: [], shiftTypes: [], weeklyOffPolicies: [], leaveGroups: [],
+        timeTypes: [], workTypes: [], shiftTypes: [], weeklyOffPolicies: [], leaveGroups: [], attendanceTrackingPolicies: [],
     });
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     const initialFormState = {
-        timeType: '', workType: '', shiftType: '', weeklyOffPolicy: '', leaveGroup: '',
+        timeTypeId: null, workTypeId: null, shiftTypeId: null, weeklyOffPolicyId: null, leaveGroupId: null,
         attendenceCaptureScheme: '', holidayList: '', expensePolicy: '',
-        attendenceTrackingPolicy: '', recruitmentPolicy: '', isRosterBasedEmployee: false
+        attendancePolicyId: null, recruitmentPolicy: '', isRosterBasedEmployee: false
     };
 
     useEffect(() => {
@@ -65,7 +65,7 @@ const TimeAttendence = ({ employee }) => {
                 const token = localStorage.getItem('token');
                 const headers = { "Authorization": `Bearer ${token}` };
 
-                const [detailsRes, timeTypeRes, workTypeRes, shiftTypeRes, weekOffRes, leaveGroupRes] = await Promise.all([
+                const [detailsRes, timeTypeRes, workTypeRes, shiftTypeRes, weekOffRes, leaveGroupRes, attendanceTrackingRes] = await Promise.all([
                     axios.get(`${API_URL}/time-attendence/${employee.employeeCode}`, { headers }).catch(err => {
                         if (err.response && err.response.status === 404) return { data: null };
                         throw err;
@@ -74,12 +74,26 @@ const TimeAttendence = ({ employee }) => {
                     axios.get(`${API_URL}/work-types`, { headers }),
                     axios.get(`${API_URL}/shift-types`, { headers }),
                     axios.get(`${API_URL}/weekly-off-policies`, { headers }),
-                    axios.get(`${API_URL}/leave-groups`, { headers })
+                    axios.get(`${API_URL}/leave-groups`, { headers }),
+                    axios.get(`${API_URL}/attendance-policies`, { headers }),
                 ]);
 
                 const detailsData = detailsRes.data;
                 setTimeAttendence(detailsData);
-                setFormData(detailsData || initialFormState);
+                // Map backend entity to frontend form state with IDs
+                if (detailsData) {
+                    setFormData({
+                        ...initialFormState, // Start with a clean slate
+                        ...detailsData, // Spread existing data
+                        timeTypeId: detailsData.timeType?.id || null,
+                        workTypeId: detailsData.workType?.id || null,
+                        weeklyOffPolicyId: detailsData.weeklyOffPolicy?.id || null,
+                        leaveGroupId: detailsData.leaveGroup?.id || null,
+                        attendancePolicyId: detailsData.attendancePolicy?.id || null,
+                    });
+                } else {
+                    setFormData(initialFormState);
+                }
 
                 setSelectOptions({
                     timeTypes: timeTypeRes.data,
@@ -87,6 +101,7 @@ const TimeAttendence = ({ employee }) => {
                     shiftTypes: shiftTypeRes.data,
                     weeklyOffPolicies: weekOffRes.data,
                     leaveGroups: leaveGroupRes.data,
+                    attendanceTrackingPolicies: attendanceTrackingRes.data,
                 });
 
             } catch (err) {
@@ -112,7 +127,19 @@ const TimeAttendence = ({ employee }) => {
 
     const handleCancel = () => {
         setIsEditing(false);
-        setFormData(timeAttendence || initialFormState);
+        if (timeAttendence) {
+            setFormData({
+                ...initialFormState,
+                ...timeAttendence,
+                timeTypeId: timeAttendence.timeType?.id || null,
+                workTypeId: timeAttendence.workType?.id || null,
+                weeklyOffPolicyId: timeAttendence.weeklyOffPolicy?.id || null,
+                leaveGroupId: timeAttendence.leaveGroup?.id || null,
+                attendancePolicyId: timeAttendence.attendancePolicy?.id || null,
+            });
+        } else {
+            setFormData(initialFormState);
+        }
         setError('');
     };
 
@@ -124,8 +151,18 @@ const TimeAttendence = ({ employee }) => {
             const response = await axios.put(`${API_URL}/time-attendence/${employee.employeeCode}`, formData, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            setTimeAttendence(response.data);
-            setFormData(response.data);
+            const updatedDetails = response.data;
+            setTimeAttendence(updatedDetails);
+            setFormData({
+                ...initialFormState,
+                ...updatedDetails,
+                shiftTypeId: updatedDetails.shiftType?.id || null, // Assuming shiftType might be part of the response
+                timeTypeId: updatedDetails.timeType?.id || null,
+                workTypeId: updatedDetails.workType?.id || null,
+                weeklyOffPolicyId: updatedDetails.weeklyOffPolicy?.id || null,
+                leaveGroupId: updatedDetails.leaveGroup?.id || null,
+                attendancePolicyId: updatedDetails.attendancePolicy?.id || null,
+            });
             setIsEditing(false);
             alert('Time & Attendance details updated successfully!');
         } catch (err) {
@@ -144,16 +181,19 @@ const TimeAttendence = ({ employee }) => {
 
     const currentData = isEditing ? formData : timeAttendence || {};
 
+    // Helper to find the name from the ID for display purposes
+    const findName = (id, list, key = 'id', nameKey = 'name') => list.find(item => item[key] === id)?.[nameKey] || 'N/A';
+
     const fields = [
-        { name: 'timeType', label: 'Time Type', type: 'select', options: selectOptions.timeTypes.map(o => ({ value: o.name, label: o.name })) },
-        { name: 'workType', label: 'Work Type', type: 'select', options: selectOptions.workTypes.map(o => ({ value: o.name, label: o.name })) },
-        { name: 'shiftType', label: 'Shift Type', type: 'select', options: selectOptions.shiftTypes.map(o => ({ value: o.name, label: `${o.name} (${o.startTime} - ${o.endTime})` })) },
-        { name: 'weeklyOffPolicy', label: 'Weekly Off Policy', type: 'select', options: selectOptions.weeklyOffPolicies.map(o => ({ value: o.name, label: o.name })) },
-        { name: 'leaveGroup', label: 'Leave Group', type: 'select', options: selectOptions.leaveGroups.map(o => ({ value: o.name, label: o.name })) },
+        { name: 'timeTypeId', label: 'Time Type', type: 'select', options: selectOptions.timeTypes.map(o => ({ value: o.id, label: o.name })), viewValue: findName(currentData.timeType?.id, selectOptions.timeTypes) },
+        { name: 'workTypeId', label: 'Work Type', type: 'select', options: selectOptions.workTypes.map(o => ({ value: o.id, label: o.name })), viewValue: findName(currentData.workType?.id, selectOptions.workTypes) },
+        { name: 'shiftTypeId', label: 'Shift Type', type: 'select', options: selectOptions.shiftTypes.map(o => ({ value: o.id, label: `${o.name} (${o.startTime} - ${o.endTime})` })), viewValue: findName(currentData.shiftType?.id, selectOptions.shiftTypes) },
+        { name: 'weeklyOffPolicyId', label: 'Weekly Off Policy', type: 'select', options: selectOptions.weeklyOffPolicies.map(o => ({ value: o.id, label: o.name })), viewValue: findName(currentData.weeklyOffPolicy?.id, selectOptions.weeklyOffPolicies) },
+        { name: 'leaveGroupId', label: 'Leave Group', type: 'select', options: selectOptions.leaveGroups.map(o => ({ value: o.id, label: o.name })), viewValue: findName(currentData.leaveGroup?.id, selectOptions.leaveGroups) },
+        { name: 'attendancePolicyId', label: 'Attendance Tracking Policy', type: 'select', options: selectOptions.attendanceTrackingPolicies.map(p => ({ value: p.id, label: p.policyName })), viewValue: findName(currentData.attendancePolicy?.id, selectOptions.attendanceTrackingPolicies, 'id', 'policyName') },
         { name: 'attendenceCaptureScheme', label: 'Attendance Capture Scheme' },
         { name: 'holidayList', label: 'Holiday List' },
         { name: 'expensePolicy', label: 'Expense Policy' },
-        { name: 'attendenceTrackingPolicy', label: 'Attendance Tracking Policy' },
         { name: 'recruitmentPolicy', label: 'Recruitment Policy' },
     ];
 
@@ -181,9 +221,11 @@ const TimeAttendence = ({ employee }) => {
                     {fields.map(field => (
                         isEditing ? (
                             <EditField key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />
-                        ) : (
+                        ) : field.viewValue ? (
+                            <InfoField key={field.name} label={field.label} value={field.viewValue} />
+                        ) : ( 
                             <InfoField key={field.name} label={field.label} value={currentData[field.name]} />
-                        )
+                        ) 
                     ))}
                     {isEditing ? (
                         <div className="md:col-span-3">
@@ -199,6 +241,6 @@ const TimeAttendence = ({ employee }) => {
             </div>
         </div>
     );
-}
+};
 
 export default TimeAttendence;

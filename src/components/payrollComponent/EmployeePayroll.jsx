@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Loader, Edit, FileText, DollarSign, PlusCircle, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Search, Loader, Edit, FileText, DollarSign, PlusCircle, Trash2, Save, ArrowLeft, Share2 } from 'lucide-react';
 import axios from 'axios';
 
 // --- Helper Components & Functions ---
@@ -27,6 +27,7 @@ const SalaryStructureTab = ({ employee }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [allComponents, setAllComponents] = useState([]);
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
     const [formData, setFormData] = useState({ structureName: '', effectiveDate: '', components: [] });
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -124,8 +125,14 @@ const SalaryStructureTab = ({ employee }) => {
         return (
             <div>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">{structure.structureName}</h3>
-                    <button onClick={() => setIsEditing(true)} className="btn-secondary flex items-center gap-2"><Edit size={16} /> Edit</button>
+                    <div>
+                        <h3 className="text-lg font-semibold">{structure.structureName}</h3>
+                        <p className="text-sm text-slate-500">Effective from: {new Date(structure.effectiveDate).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => setIsSyncModalOpen(true)} className="btn-secondary flex items-center gap-2"><Share2 size={16} /> Sync Structure</button>
+                        <button onClick={() => setIsEditing(true)} className="btn-secondary flex items-center gap-2"><Edit size={16} /> Edit</button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     {structure.components?.map(c => (
@@ -135,6 +142,12 @@ const SalaryStructureTab = ({ employee }) => {
                         </div>
                     ))}
                 </div>
+                <SyncStructureModal
+                    isOpen={isSyncModalOpen}
+                    onClose={() => setIsSyncModalOpen(false)}
+                    structureId={structure.id}
+                    currentEmployeeCode={employee.employeeCode}
+                />
             </div>
         );
     }
@@ -164,6 +177,128 @@ const SalaryStructureTab = ({ employee }) => {
             <div className="flex justify-end gap-2">
                 {structure && <button onClick={() => setIsEditing(false)} className="btn-secondary">Cancel</button>}
                 <button onClick={handleSave} className="btn-primary flex items-center gap-2"><Save size={16} /> Save Structure</button>
+            </div>
+        </div>
+    );
+};
+
+const SyncStructureModal = ({ isOpen, onClose, structureId, currentEmployeeCode }) => {
+    const [employees, setEmployees] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedEmployees, setSelectedEmployees] = useState(new Set());
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSyncing, setIsSyncing] = useState(false);
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchEmployees = async () => {
+                setSearchTerm('');
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await axios.get(`${API_URL}/employees/all`, { headers: { "Authorization": `Bearer ${token}` } });
+                    // Exclude the current employee from the list
+                    setEmployees(res.data.filter(e => e.employeeCode !== currentEmployeeCode));
+                } catch (err) {
+                    console.error("Failed to fetch employees for sync:", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchEmployees();
+        }
+    }, [isOpen, API_URL, currentEmployeeCode]);
+
+    const filteredEmployees = useMemo(() => {
+        if (!searchTerm) return employees;
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return employees.filter(emp =>
+            `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(lowercasedFilter) ||
+            emp.employeeCode.toLowerCase().includes(lowercasedFilter));
+    }, [employees, searchTerm]);
+
+    const handleSelect = (employeeCode) => {
+        setSelectedEmployees(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(employeeCode)) {
+                newSet.delete(employeeCode);
+            } else {
+                newSet.add(employeeCode);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAll = (e) => {
+        const isChecked = e.target.checked;
+        if (isChecked) {
+            const allVisibleCodes = new Set(filteredEmployees.map(emp => emp.employeeCode));
+            setSelectedEmployees(allVisibleCodes);
+        } else {
+            setSelectedEmployees(new Set());
+        }
+    };
+
+    const areAllSelected = useMemo(() => {
+        return filteredEmployees.length > 0 && filteredEmployees.every(emp => selectedEmployees.has(emp.employeeCode));
+    }, [filteredEmployees, selectedEmployees]);
+
+    const handleSync = async () => {
+        if (selectedEmployees.size === 0) {
+            alert("Please select at least one employee to sync.");
+            return;
+        }
+        setIsSyncing(true);
+        try {
+            const token = localStorage.getItem('token');
+            const payload = {
+                structureId,
+                employeeCodes: Array.from(selectedEmployees),
+            };
+            await axios.post(`${API_URL}/salary-structures/sync`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+            alert(`Successfully synced structure to ${selectedEmployees.size} employee(s).`);
+            onClose();
+        } catch (err) {
+            alert(err.response?.data?.message || "Failed to sync structure.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+                <h3 className="text-lg font-semibold p-4 border-b">Sync Salary Structure</h3>
+                <div className="p-4 border-b">
+                    <InputField
+                        type="text"
+                        placeholder="Search employees..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="p-4 overflow-y-auto space-y-2">
+                    {loading ? <Loader className="animate-spin mx-auto" /> : <>
+                        <label className="flex items-center gap-3 p-2 rounded bg-slate-50 cursor-pointer font-medium">
+                            <input type="checkbox" checked={areAllSelected} onChange={handleSelectAll} className="h-4 w-4 rounded" />
+                            <span>Select All Visible</span>
+                        </label>
+                        {filteredEmployees.map(emp => (
+                        <label key={emp.employeeCode} className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" checked={selectedEmployees.has(emp.employeeCode)} onChange={() => handleSelect(emp.employeeCode)} className="h-4 w-4 rounded" />
+                            <span>{emp.firstName} {emp.lastName} ({emp.employeeCode})</span>
+                        </label>
+                    ))}</>}
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                    <button onClick={onClose} className="btn-secondary" disabled={isSyncing}>Cancel</button>
+                    <button onClick={handleSync} className="btn-primary flex items-center gap-2" disabled={isSyncing}>
+                        {isSyncing && <Loader className="animate-spin h-4 w-4" />} Sync to Selected ({selectedEmployees.size})
+                    </button>
+                </div>
             </div>
         </div>
     );

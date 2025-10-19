@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, FileText, Search, Loader, Landmark, HandCoins, Receipt, Edit, PlusCircle } from 'lucide-react';
+import { Download, FileText, Search, Loader, Landmark, HandCoins, Receipt, Edit, PlusCircle, Eye, X } from 'lucide-react';
 
 // --- Helper Functions & Components ---
 
@@ -442,8 +442,10 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
         category: '',
         amount: '',
         description: '',
-        receiptPath: '',
+        billNumber: '',
+        merchentName: '',
     });
+    const [receiptFile, setReceiptFile] = useState(null);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [error, setError] = useState('');
     const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -453,18 +455,32 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleFileChange = (e) => {
+        setReceiptFile(e.target.files[0]);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitLoading(true);
         setError('');
         try {
             const token = localStorage.getItem('token');
-            const payload = {
+            const expenseData = {
                 ...formData,
                 employeeCode,
                 amount: parseFloat(formData.amount),
             };
-            await axios.post(`${API_URL}/expenses`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+
+            const submissionForm = new FormData();
+            submissionForm.append('expense', new Blob([JSON.stringify(expenseData)], { type: 'application/json' }));
+            if (receiptFile) {
+                submissionForm.append('file', receiptFile);
+            }
+
+            await axios.post(`${API_URL}/expenses`, submissionForm, {
+                headers: { "Authorization": `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+            });
+
             alert('Expense submitted successfully!');
             onExpenseSubmitted();
             onClose();
@@ -481,10 +497,15 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
                 <div className="grid grid-cols-2 gap-4">
                     <InputField label="Expense Date" id="expenseDate" name="expenseDate" type="date" value={formData.expenseDate} onChange={handleChange} required />
                     <InputField label="Category" id="category" name="category" type="text" value={formData.category} onChange={handleChange} required placeholder="e.g., Travel, Food" />
+                    <InputField label="Bill Number" id="billNumber" name="billNumber" type="text" value={formData.billNumber} onChange={handleChange} placeholder="e.g., INV-123" />
+                    <InputField label="Merchant Name" id="merchentName" name="merchentName" type="text" value={formData.merchentName} onChange={handleChange} placeholder="e.g., Starbucks" />
                 </div>
                 <InputField label="Amount" id="amount" name="amount" type="number" value={formData.amount} onChange={handleChange} required placeholder="e.g., 1500.50" />
                 <InputField label="Description" id="description" name="description" type="text" value={formData.description} onChange={handleChange} required />
-                <InputField label="Receipt Path/URL (Optional)" id="receiptPath" name="receiptPath" type="text" value={formData.receiptPath} onChange={handleChange} placeholder="e.g., https://example.com/receipt.pdf" />
+                <div>
+                    <label htmlFor="receiptFile" className="block text-sm font-medium text-slate-700">Receipt (Optional)</label>
+                    <input id="receiptFile" name="receiptFile" type="file" onChange={handleFileChange} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                </div>
                 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -504,6 +525,7 @@ const ExpensesTab = ({ employee }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [viewingReceipt, setViewingReceipt] = useState(null);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     const fetchExpenses = useCallback(() => {
@@ -518,6 +540,23 @@ const ExpensesTab = ({ employee }) => {
     }, [API_URL, employee?.employeeCode]);
 
     useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+
+    const handleViewReceipt = async (expense) => {
+        if (!expense.receiptPath) return;
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/expenses/${expense.id}/receipt`, {
+                headers: { "Authorization": `Bearer ${token}` },
+                responseType: 'blob'
+            });
+            const file = new Blob([response.data], { type: response.headers['content-type'] });
+            const fileURL = URL.createObjectURL(file);
+            setViewingReceipt(fileURL);
+        } catch (err) {
+            console.error("Error fetching receipt:", err);
+            alert("Could not load the receipt. It may have been deleted.");
+        }
+    };
 
     if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
     if (error) return <div className="text-center text-red-600 p-4 bg-red-50 rounded-md">{error}</div>;
@@ -539,6 +578,7 @@ const ExpensesTab = ({ employee }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Receipt</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
@@ -553,19 +593,39 @@ const ExpensesTab = ({ employee }) => {
                                         {exp.status.toLowerCase()}
                                     </span>
                                 </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    {exp.receiptPath && (
+                                        <button onClick={() => handleViewReceipt(exp)} className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                                            <Eye size={14} /> View
+                                        </button>
+                                    )}
+                                </td>
                             </tr>
                         )) : (
-                            <tr><td colSpan="5" className="text-center py-10 text-slate-500">No expense claims found.</td></tr>
+                            <tr><td colSpan="6" className="text-center py-10 text-slate-500">No expense claims found.</td></tr>
                         )}
                     </tbody>
                 </table>
             </div>
+            
             <ExpenseRequestModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 
                 employeeCode={employee.employeeCode}
                 onExpenseSubmitted={fetchExpenses}
             />
+            {viewingReceipt && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
+                    <div className="bg-white p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-end">
+                            <button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full hover:bg-slate-100 -mr-2 -mt-2 mb-2">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <img src={viewingReceipt} alt="Expense Receipt" className="max-w-full max-h-[80vh] object-contain" />
+                    </div>
+                </div>
+            )}
         </>
     );
 };

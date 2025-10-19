@@ -8,10 +8,10 @@ import EmployeeDetails from '../components/payrollComponent/EmployeeDetails';
 
 
 const tabs = [
-    { name: 'Manage Employee Payroll', icon: Users, component: EmployeePayroll },
-    { name: 'Employee Details', icon: Users, component: EmployeeDetails },
-    { name: 'Company Info', icon: Building, component: CompanyInfo },
-    { name: 'Settings', icon: SlidersHorizontal, component: PayrollSettings },
+    { name: 'Manage Employee Payroll', icon: HandCoins, component: EmployeePayroll, color: 'text-green-600', bgColor: 'bg-green-100' },
+    { name: 'Employee Details', icon: Users, component: EmployeeDetails, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    { name: 'Company Info', icon: Building, component: CompanyInfo, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+    { name: 'Settings', icon: SlidersHorizontal, component: PayrollSettings, color: 'text-purple-600', bgColor: 'bg-purple-100' },
 ];
 
 const PayrollManagement = () => {
@@ -33,13 +33,15 @@ const PayrollManagement = () => {
                                 <button
                                     key={tab.name}
                                     onClick={() => setActiveTab(tab.name)}
-                                    className={`whitespace-nowrap flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    className={`whitespace-nowrap flex items-center gap-3 py-3 px-4 border-b-2 font-medium text-sm transition-colors group rounded-t-lg ${
                                         activeTab === tab.name
-                                            ? 'border-blue-600 text-blue-600'
-                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                            ? 'border-blue-600 text-blue-600 bg-blue-50'
+                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                                     }`}
                                 >
-                                    <tab.icon className="mr-2 h-5 w-5" />
+                                    <div className={`p-1.5 rounded-md ${tab.bgColor} ${activeTab === tab.name ? '' : 'opacity-80 group-hover:opacity-100'}`}>
+                                        <tab.icon className={`h-4 w-4 ${tab.color}`} />
+                                    </div>
                                     {tab.name}
                                 </button>
                             ))}

@@ -9,8 +9,6 @@ const ShiftPolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
         policyName: '',
         shiftStartTime: '09:30',
         shiftEndTime: '18:30',
-        gracePeriodMinutes: 15,
-        graceHalfDayMinutes: 120,
         isDefault: false,
         description: ''
     });
@@ -22,8 +20,6 @@ const ShiftPolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
                 policyName: policy.policyName || '',
                 shiftStartTime: policy.shiftStartTime || '09:30',
                 shiftEndTime: policy.shiftEndTime || '18:30',
-                gracePeriodMinutes: policy.gracePeriodMinutes ?? 15,
-                graceHalfDayMinutes: policy.graceHalfDayMinutes ?? 120,
                 isDefault: policy.isDefault || false,
                 description: policy.description || ''
             });
@@ -32,8 +28,6 @@ const ShiftPolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
                 policyName: '',
                 shiftStartTime: '09:30',
                 shiftEndTime: '18:30',
-                gracePeriodMinutes: 15,
-                graceHalfDayMinutes: 120,
                 isDefault: false,
                 description: ''
             });
@@ -79,14 +73,6 @@ const ShiftPolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
                         <div>
                             <label htmlFor="shiftEndTime" className="block text-sm font-medium text-slate-700">Shift End Time</label>
                             <input id="shiftEndTime" name="shiftEndTime" type="time" value={formData.shiftEndTime} onChange={handleChange} required className="input" />
-                        </div>
-                        <div>
-                            <label htmlFor="gracePeriodMinutes" className="block text-sm font-medium text-slate-700">Grace Period (minutes)</label>
-                            <input id="gracePeriodMinutes" name="gracePeriodMinutes" type="number" value={formData.gracePeriodMinutes} onChange={handleChange} className="input" />
-                        </div>
-                        <div>
-                            <label htmlFor="graceHalfDayMinutes" className="block text-sm font-medium text-slate-700">Half-day Grace (minutes)</label>
-                            <input id="graceHalfDayMinutes" name="graceHalfDayMinutes" type="number" value={formData.graceHalfDayMinutes} onChange={handleChange} className="input" />
                         </div>
                         <div className="md:col-span-2">
                             <label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label>
@@ -229,8 +215,6 @@ const ShiftPolicy = ({ embedded = false }) => {
                                     <tr>
                                         <th className="th-cell">Policy Name</th>
                                         <th className="th-cell">Shift Time</th>
-                                        <th className="th-cell">Grace Period (min)</th>
-                                        <th className="th-cell">Half-day Grace (min)</th>
                                         <th className="th-cell">Default</th>
                                         <th className="th-cell">Actions</th>
                                     </tr>
@@ -241,8 +225,6 @@ const ShiftPolicy = ({ embedded = false }) => {
                                             <tr key={p.id} className="border-b border-slate-200 hover:bg-slate-50">
                                                 <td className="td-cell font-medium">{p.policyName}</td>
                                                 <td className="td-cell text-sm text-slate-500">{p.shiftStartTime} - {p.shiftEndTime}</td>
-                                                <td className="td-cell text-sm text-slate-500">{p.gracePeriodMinutes}</td>
-                                                <td className="td-cell text-sm text-slate-500">{p.graceHalfDayMinutes}</td>
                                                 <td className="td-cell text-sm text-slate-500">{p.isDefault ? 'Yes' : 'No'}</td>
                                                 <td className="td-cell">
                                                     <div className="flex items-center gap-2">
@@ -258,7 +240,7 @@ const ShiftPolicy = ({ embedded = false }) => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="6" className="text-center py-10 text-slate-500">
+                                            <td colSpan="4" className="text-center py-10 text-slate-500">
                                                 <AlertCircle className="mx-auto h-12 w-12 text-slate-400" />
                                                 <h3 className="mt-2 text-sm font-medium text-slate-900">No policies found</h3>
                                                 <p className="mt-1 text-sm text-slate-500">Get started by creating a new shift policy.</p>

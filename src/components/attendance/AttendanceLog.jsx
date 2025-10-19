@@ -1,6 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Search, ChevronDown, UserCheck, UserX, Plane, Briefcase, Loader } from 'lucide-react';
+import { Calendar, Search, ChevronDown, UserCheck, UserX, Plane, Briefcase, Loader, Trash2 } from 'lucide-react';
 import axios from 'axios';
+
+// Helper to format time from "HH:mm:ss" to "HH:mm AM/PM"
+const formatTime = (timeString) => {
+    if (!timeString) return '-';
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const getEmployeeName = (employee) => {
+    if (!employee) return 'Unknown';
+    return `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+};
 
 const StatCard = ({ icon: Icon, title, value, color }) => (
     <div className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4">
@@ -34,22 +48,44 @@ const AttendanceLog = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
     const [attendanceData, setAttendanceData] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
-        const fetchAttendance = async () => {
+        const fetchData = async () => {
             if (!date) return;
             setLoading(true);
             setError('');
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`${API_URL}/attendance-records`, {
-                    params: { date },
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                setAttendanceData(response.data);
+                const headers = { "Authorization": `Bearer ${token}` };
+
+                // Fetch both attendance records and all employees concurrently
+                const [attendanceRes, employeesRes] = await Promise.all([
+                    axios.get(`${API_URL}/attendance-records`, { params: { date }, headers }),
+                    axios.get(`${API_URL}/employees/all`, { headers })
+                ]);
+
+                const employeesMap = new Map(employeesRes.data.map(emp => [emp.employeeCode, emp]));
+
+                // Fetch job details for each employee in the attendance list
+                const enrichedData = await Promise.all(attendanceRes.data.map(async (record) => {
+                    const employee = employeesMap.get(record.employeeCode) || { employeeCode: record.employeeCode };
+                    try {
+                        const jobDetailsRes = await axios.get(`${API_URL}/job-details/${record.employeeCode}`, { headers });
+                        employee.jobDetails = jobDetailsRes.data;
+                    } catch (err) {
+                        // Gracefully handle if job details are not found for an employee
+                        employee.jobDetails = null;
+                    }
+                    return { ...record, employee };
+                }));
+
+
+                setAttendanceData(enrichedData);
+                setEmployees(employeesRes.data); // Keep the original list for filtering if needed
             } catch (err) {
                 console.error("Failed to fetch attendance data", err);
                 setError('Failed to load attendance data. Please try again.');
@@ -58,12 +94,12 @@ const AttendanceLog = () => {
             }
         };
 
-        fetchAttendance();
+        fetchData();
     }, [date, API_URL]);
 
     const filteredData = useMemo(() => {
         return attendanceData.filter(item => {
-            const employeeName = item.employee?.name || '';
+            const employeeName = getEmployeeName(item.employee);
             const employeeCode = item.employee?.employeeCode || '';
             const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase()) || employeeCode.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
@@ -72,11 +108,27 @@ const AttendanceLog = () => {
     }, [searchTerm, statusFilter, attendanceData]);
 
     const stats = useMemo(() => ({
-        present: attendanceData.filter(e => e.status === 'PRESENT').length,
+        present: attendanceData.filter(e => e.status === 'PRESENT' || e.status === 'HALF_DAY').length,
         absent: attendanceData.filter(e => e.status === 'ABSENT').length,
         onLeave: attendanceData.filter(e => e.status === 'ON_LEAVE').length,
         halfDay: attendanceData.filter(e => e.status === 'HALF_DAY').length,
     }), [attendanceData]);
+
+    const handleDelete = async (recordId, employeeName) => {
+        if (window.confirm(`Are you sure you want to delete the attendance record for ${employeeName}?`)) {
+            try {
+                const token = localStorage.getItem('token');
+                await axios.delete(`${API_URL}/attendance-records/${recordId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                // Remove the record from the local state to update the UI
+                setAttendanceData(prevData => prevData.filter(record => record.id !== recordId));
+            } catch (err) {
+                console.error("Failed to delete attendance record", err);
+                setError(err.response?.data?.message || 'Failed to delete the record.');
+            }
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -90,7 +142,7 @@ const AttendanceLog = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={UserCheck} title="Present" value={stats.present} color="bg-green-500" />
-                <StatCard icon={UserX} title="Absent" value={stats.absent} color="bg-red-500" />
+                <StatCard icon={UserX} title="Absent" value={stats.absent} color="bg-red-500" /> 
                 <StatCard icon={Plane} title="On Leave / Half Day" value={stats.onLeave + stats.halfDay} color="bg-yellow-500" />
                 <StatCard icon={Briefcase} title="Total Records" value={attendanceData.length} color="bg-blue-500" />
             </div>
@@ -127,19 +179,25 @@ const AttendanceLog = () => {
                                     <th scope="col" className="px-6 py-3">Status</th>
                                     <th scope="col" className="px-6 py-3 text-center">Check In</th>
                                     <th scope="col" className="px-6 py-3 text-center">Check Out</th>
+                                    <th scope="col" className="px-6 py-3 text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredData.map((item) => (
                                     <tr key={item.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                            <div className="font-bold">{item.employee?.firstName || 'Unknown'}</div>
+                                            <div className="font-bold">{getEmployeeName(item.employee)}</div>
                                             <div className="text-xs text-slate-500">{item.employee?.employeeCode || 'N/A'}</div>
                                         </td>
-                                        <td className="px-6 py-4">{item.employee?.department?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4">{item.employee?.jobDetails?.department || 'N/A'}</td>
                                         <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
-                                        <td className="px-6 py-4 text-center">{item.checkIn || '-'}</td>
-                                        <td className="px-6 py-4 text-center">{item.checkOut || '-'}</td>
+                                        <td className="px-6 py-4 text-center font-mono">{formatTime(item.checkIn)}</td>
+                                        <td className="px-6 py-4 text-center font-mono">{formatTime(item.checkOut)}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button onClick={() => handleDelete(item.id, getEmployeeName(item.employee))} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete Record">
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
