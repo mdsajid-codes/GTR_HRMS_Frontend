@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Search, ChevronDown, UserCheck, UserX, Plane, Briefcase, Loader, Trash2 } from 'lucide-react';
+import { Calendar, Search, ChevronDown, UserCheck, UserX, Plane, Briefcase, Loader, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
 // Helper to format time from "HH:mm:ss" to "HH:mm AM/PM"
@@ -11,6 +11,13 @@ const formatTime = (timeString) => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 };
 
+// Helper to format a Date object to 'YYYY-MM-DD' string in local timezone
+const toYYYYMMDD = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 const getEmployeeName = (employee) => {
     if (!employee) return 'Unknown';
     return `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
@@ -97,6 +104,23 @@ const AttendanceLog = () => {
         fetchData();
     }, [date, API_URL]);
 
+    const currentDate = new Date(date + 'T00:00:00');
+
+    const weekDays = useMemo(() => {
+        // The date string from input is 'YYYY-MM-DD'. Appending 'T00:00:00' ensures it's parsed in the local timezone.
+        const baseDate = new Date(date + 'T00:00:00');
+        const startOfWeek = new Date(baseDate);
+        startOfWeek.setDate(baseDate.getDate() - baseDate.getDay()); // Set to Sunday
+        
+        const week = [];
+        for (let i = 0; i < 7; i++) {
+            const dayInWeek = new Date(startOfWeek);
+            dayInWeek.setDate(startOfWeek.getDate() + i);
+            week.push(dayInWeek);
+        }
+        return week;
+    }, [date]);
+
     const filteredData = useMemo(() => {
         return attendanceData.filter(item => {
             const employeeName = getEmployeeName(item.employee);
@@ -133,10 +157,37 @@ const AttendanceLog = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-4">
-                <h2 className="text-2xl font-bold text-slate-800">Daily Attendance Log</h2>
-                <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input pl-10" />
+                <h2 className="text-2xl font-bold text-slate-800">Daily Attendance Log for {currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h2>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input pl-10" />
+                    </div>
+                    <button onClick={() => { 
+                        const newDate = new Date(currentDate);
+                        newDate.setDate(newDate.getDate() - 7);
+                        setDate(toYYYYMMDD(newDate));
+                    }} className="p-2 rounded-md hover:bg-slate-100 border bg-white shadow-sm"><ChevronLeft className="h-5 w-5" /></button>
+                    <button onClick={() => { 
+                        const newDate = new Date(currentDate);
+                        newDate.setDate(newDate.getDate() + 7);
+                        setDate(toYYYYMMDD(newDate));
+                    }} className="p-2 rounded-md hover:bg-slate-100 border bg-white shadow-sm"><ChevronRight className="h-5 w-5" /></button>
+                </div>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl shadow-sm">
+                <div className="grid grid-cols-7 gap-2">
+                    {weekDays.map(day => {
+                        const dayString = toYYYYMMDD(day);
+                        const isSelected = dayString === date;
+                        return (
+                            <button key={dayString} onClick={() => setDate(dayString)} className={`text-center p-2 rounded-lg transition-colors ${isSelected ? 'bg-blue-600 text-white font-bold shadow' : 'hover:bg-blue-50'}`}>
+                                <p className="text-xs opacity-80">{day.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                                <p className="font-semibold text-lg">{day.getDate()}</p>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

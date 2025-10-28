@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../DashboardLayout';
-import { Plus, Edit, Trash2, Loader, AlertCircle, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader, AlertCircle, X, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import SyncPolicyModal from '../attendance/SyncPolicyModal';
 
 // Modal for adding/editing time types
 const TimeTypeModal = ({ isOpen, onClose, onSave, timeType, loading }) => {
@@ -80,6 +81,7 @@ const TimeType = ({ embedded = false }) => {
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTimeType, setEditingTimeType] = useState(null);
+    const [syncingTimeType, setSyncingTimeType] = useState(null);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -153,6 +155,43 @@ const TimeType = ({ embedded = false }) => {
         }
     };
 
+    const handleOpenSyncModal = (timeType) => {
+        setSyncingTimeType(timeType);
+    };
+
+    const handleConfirmSync = async (timeType, selectedEmployeeCodes) => {
+        if (selectedEmployeeCodes.length === 0) {
+            alert("No employees selected.");
+            return;
+        }
+
+        setError('');
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+            for (const employeeCode of selectedEmployeeCodes) {
+                try {
+                    const payload = { timeTypeId: timeType.id };
+                    await axios.put(`${BASE_URL}/time-attendence/${employeeCode}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                    successCount++;
+                } catch (updateErr) {
+                    console.error(`Failed to update time type for ${employeeCode}:`, updateErr);
+                    errorCount++;
+                }
+            }
+
+            alert(`Sync complete!\n- ${successCount} employees updated successfully.\n- ${errorCount} updates failed.`);
+
+        } catch (err) {
+            setError('An unexpected error occurred during the sync process.');
+            console.error(err);
+        }
+    };
+
     const content = (
         <>
             <div className="p-6 md:p-8">
@@ -193,11 +232,16 @@ const TimeType = ({ embedded = false }) => {
                                                 <td className="td-cell font-medium">{tt.name}</td>
                                                 <td className="td-cell text-sm text-slate-500">{tt.code}</td>
                                                 <td className="td-cell">
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => handleEdit(tt)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit">
+                                                    <div className="flex items-center gap-2"> 
+                                                        <button onClick={() => handleOpenSyncModal(tt)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title="Sync to employees" disabled={!!syncingTimeType}>
+                                                            {syncingTimeType?.id === tt.id
+                                                                ? <Loader className="h-4 w-4 animate-spin" />
+                                                                : <RefreshCw className="h-4 w-4" />}
+                                                        </button>
+                                                        <button onClick={() => handleEdit(tt)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit" disabled={!!syncingTimeType}>
                                                             <Edit className="h-4 w-4" />
                                                         </button>
-                                                        <button onClick={() => handleDelete(tt.id, tt.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete">
+                                                        <button onClick={() => handleDelete(tt.id, tt.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete" disabled={!!syncingTimeType}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     </div>
@@ -225,6 +269,12 @@ const TimeType = ({ embedded = false }) => {
                 onSave={handleSave}
                 timeType={editingTimeType}
                 loading={modalLoading}
+            />
+            <SyncPolicyModal 
+                isOpen={!!syncingTimeType} 
+                onClose={() => setSyncingTimeType(null)} 
+                policy={syncingTimeType}
+                onSync={handleConfirmSync}
             />
         </>
     );

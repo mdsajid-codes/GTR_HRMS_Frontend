@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Building, Users, SlidersHorizontal, HandCoins } from 'lucide-react';
+import { Building, Users, SlidersHorizontal, HandCoins, Receipt, Hand } from 'lucide-react';
 import CompanyInfo from '../components/payrollComponent/CompanyInfo';
 import PayrollSettings from '../components/payrollComponent/PayrollSettings';
 import EmployeePayroll from '../components/payrollComponent/EmployeePayroll';
 import EmployeeDetails from '../components/payrollComponent/EmployeeDetails';
+import { useTenant } from '../context/TenantContext';
+import AllLoanRequests from '../components/payrollComponent/AllLoanRequests';
+import AllExpenseRequests from '../components/payrollComponent/AllExpenseRequests';
 
 
-const tabs = [
-    { name: 'Manage Employee Payroll', icon: HandCoins, component: EmployeePayroll, color: 'text-green-600', bgColor: 'bg-green-100' },
-    { name: 'Employee Details', icon: Users, component: EmployeeDetails, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+const allTabs = [
+    { name: 'Manage Employee Payroll', icon: HandCoins, component: EmployeePayroll, color: 'text-green-600', bgColor: 'bg-green-100', module: 'HRMS_PAYROLL' },
+    { name: 'Employee Details', icon: Users, component: EmployeeDetails, color: 'text-blue-600', bgColor: 'bg-blue-100', module: 'HRMS_CORE' },
+    { name: 'Loan Requests', icon: Hand, component: AllLoanRequests, color: 'text-indigo-600', bgColor: 'bg-indigo-100', module: 'HRMS_PAYROLL' },
+    { name: 'Expense Requests', icon: Receipt, component: AllExpenseRequests, color: 'text-rose-600', bgColor: 'bg-rose-100', module: 'HRMS_PAYROLL' },
     { name: 'Company Info', icon: Building, component: CompanyInfo, color: 'text-orange-600', bgColor: 'bg-orange-100' },
     { name: 'Settings', icon: SlidersHorizontal, component: PayrollSettings, color: 'text-purple-600', bgColor: 'bg-purple-100' },
 ];
 
 const PayrollManagement = () => {
-    const [activeTab, setActiveTab] = useState(tabs[0].name);
+    const { hasModule } = useTenant();
+
+    const tabs = useMemo(() => {
+        return allTabs.filter(tab => !tab.module || hasModule(tab.module));
+    }, [hasModule]);
+
+    const [activeTab, setActiveTab] = useState(tabs[0]?.name);
 
     const ActiveComponent = tabs.find(tab => tab.name === activeTab)?.component;
 

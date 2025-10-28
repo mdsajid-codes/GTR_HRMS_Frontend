@@ -5,8 +5,8 @@ import axios from 'axios';
 // Reusable component for a field in view mode
 const InfoField = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-base font-medium text-slate-800">{value || 'N/A'}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="text-base font-medium text-foreground">{value || 'N/A'}</p>
     </div>
 );
 
@@ -17,12 +17,12 @@ const EditField = ({ label, name, value, onChange, type = 'text', options = [] }
         name: name,
         value: value ?? '',
         onChange: onChange,
-        className: "input" // Using the global .input style from index.css
+        className: "input bg-background-muted border-border text-foreground"
     };
 
     return (
         <div>
-            <label htmlFor={name} className="block text-sm font-medium text-slate-700">{label}</label>
+            <label htmlFor={name} className="block text-sm font-medium text-foreground-muted">{label}</label>
             {type === 'select' ? (
                 <select {...commonProps}>
                     <option value="">Select...</option>
@@ -159,8 +159,8 @@ const JobDetails = ({ employee }) => {
                     </button>
                 )}
             </div>
-            {error && <div className="text-center text-red-600 p-3 bg-red-50 rounded-md mb-4">{error}</div>}
-            <div className="bg-slate-50 rounded-lg p-6">
+            {error && <div className="text-center text-red-600 p-3 bg-red-500/10 rounded-md mb-4">{error}</div>}
+            <div className="bg-background-muted rounded-lg p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
                     {isEditing ? (
                         <>

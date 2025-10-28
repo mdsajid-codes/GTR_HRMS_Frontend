@@ -4,8 +4,8 @@ import * as leaveApi from '../../pages/leaveApi';
 
 const PolicyDetail = ({ label, value, isBool = false }) => (
     <div className="flex justify-between items-center py-2 text-sm">
-        <dt className="text-slate-500">{label}</dt>
-        <dd className="font-medium text-slate-700 text-right">
+        <dt className="text-foreground-muted">{label}</dt>
+        <dd className="font-medium text-foreground text-right">
             {isBool ? (
                 value ? <CheckCircle className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />
             ) : (
@@ -26,22 +26,22 @@ const LeaveTypePolicyDetails = ({ ltp }) => {
     };
 
     return (
-        <div className="bg-slate-50 rounded-lg border border-slate-200/50">
+        <div className="bg-background-muted rounded-lg border border-border/50">
             <button
                 className="w-full flex justify-between items-center p-4 text-left"
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <h4 className="font-semibold text-blue-600">{ltp.leaveType?.leaveType.replace('_', ' ')}</h4>
+                <h4 className="font-semibold text-primary">{ltp.leaveType?.leaveType.replace('_', ' ')}</h4>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm font-bold text-slate-700">
+                    <span className="text-sm font-bold text-foreground">
                         {ltp.quotaLimitType === 'UNLIMITED' ? 'Unlimited' : `${ltp.quotaDays || 0} days / year`}
                     </span>
-                    {isOpen ? <ChevronUp className="h-5 w-5 text-slate-500" /> : <ChevronDown className="h-5 w-5 text-slate-500" />}
+                    {isOpen ? <ChevronUp className="h-5 w-5 text-foreground-muted" /> : <ChevronDown className="h-5 w-5 text-foreground-muted" />}
                 </div>
             </button>
             {isOpen && (
-                <div className="px-4 pb-4 border-t border-slate-200">
-                    <dl className="divide-y divide-slate-100">
+                <div className="px-4 pb-4 border-t border-border">
+                    <dl className="divide-y divide-border/50">
                         <PolicyDetail label="Annual Quota" value={ltp.quotaLimitType === 'UNLIMITED' ? 'Unlimited' : `${ltp.quotaDays} days`} />
                         <PolicyDetail label="Accrual Type" value={formatValue(ltp.accrualType)} />
                         {ltp.accrualType === 'PERIODIC' && (
@@ -107,20 +107,20 @@ const LeavePolicyView = () => {
 
     return (
         <div className="p-6 md:p-8 space-y-6">
-            <h1 className="text-3xl font-bold text-slate-800">Leave Policies</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Leave Policies</h1>
             {policies.length === 0 ? (
-                <div className="text-center py-10 text-slate-500">
-                    <BookOpen className="mx-auto h-12 w-12" />
-                    <h3 className="mt-2 text-sm font-medium text-slate-900">No Policies Found</h3>
+                <div className="text-center py-10 text-slate-500 dark:text-slate-400">
+                    <BookOpen className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500" />
+                    <h3 className="mt-2 text-sm font-medium text-slate-900 dark:text-slate-300">No Policies Found</h3>
                     <p className="mt-1 text-sm">No leave policies have been configured by HR.</p>
                 </div>
             ) : (
                 <div className="space-y-8">
                     {policies.map(policy => (
-                        <div key={policy.id} className="bg-white border border-slate-200 rounded-xl shadow-sm">
-                            <div className="p-4 border-b border-slate-200">
-                                <h2 className="text-xl font-semibold text-slate-800">{policy.name}</h2>
-                                {policy.defaultPolicy && <span className="text-xs bg-blue-100 text-blue-600 font-medium px-2 py-0.5 rounded-full ml-2">Default Policy</span>}
+                        <div key={policy.id} className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                            <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                                <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{policy.name}</h2>
+                                {policy.defaultPolicy && <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 font-medium px-2 py-0.5 rounded-full ml-2">Default Policy</span>}
                             </div>
                             <div className="p-4">
                                 {policy.leaveTypePolicies && policy.leaveTypePolicies.length > 0 ? (
@@ -130,7 +130,7 @@ const LeavePolicyView = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-slate-500 text-sm">No specific leave type rules are defined for this policy.</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm">No specific leave type rules are defined for this policy.</p>
                                 )}
                             </div>
                         </div>

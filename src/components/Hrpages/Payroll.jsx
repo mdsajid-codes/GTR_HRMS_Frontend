@@ -23,8 +23,8 @@ const formatCurrency = (amount, currency = 'AED') => {
 
 const InfoField = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-base font-medium text-slate-800">{value || 'N/A'}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="text-base font-medium text-foreground">{value || 'N/A'}</p>
     </div>
 );
 
@@ -34,12 +34,12 @@ const EditField = ({ label, name, value, onChange, type = 'text', options = [] }
         name: name,
         value: value ?? '',
         onChange: onChange,
-        className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+        className: "input bg-background-muted border-border text-foreground"
     };
 
     return (
         <div>
-            <label htmlFor={name} className="block text-sm font-medium text-slate-700">{label}</label>
+            <label htmlFor={name} className="block text-sm font-medium text-foreground-muted">{label}</label>
             {type === 'select' ? (
                 <select {...commonProps}>
                     {options.map(option => (
@@ -63,9 +63,9 @@ const PayrollCard = ({ payroll, isEditing, onEdit, onSave, onCancel, onChange, o
     const statusOptions = [ { value: 'PENDING', label: 'Pending' }, { value: 'PROCESSED', label: 'Processed' }, { value: 'FAILED', label: 'Failed' } ];
 
     return (
-        <div className="bg-slate-50 rounded-lg p-6">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">
+        <div className="bg-background-muted rounded-lg p-6">
+            <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
+                <h3 className="text-lg font-semibold text-foreground">
                     {formatDate(payPeriodStart)} - {formatDate(payPeriodEnd)}
                 </h3>
                 <div className="flex items-center gap-2">
@@ -76,8 +76,8 @@ const PayrollCard = ({ payroll, isEditing, onEdit, onSave, onCancel, onChange, o
                         </>
                     ) : (
                         <>
-                            <button onClick={() => onDownload(id)} className="p-1.5 rounded-md hover:bg-slate-200 text-slate-500"><Download className="h-4 w-4" /></button>
-                            <button onClick={() => onEdit(payroll)} className="p-1.5 rounded-md hover:bg-slate-200 text-slate-500"><Pencil className="h-4 w-4" /></button>
+                            <button onClick={() => onDownload(id)} className="p-1.5 rounded-md hover:bg-background-muted text-foreground-muted"><Download className="h-4 w-4" /></button>
+                            <button onClick={() => onEdit(payroll)} className="p-1.5 rounded-md hover:bg-background-muted text-foreground-muted"><Pencil className="h-4 w-4" /></button>
                         </>
                     )}
                 </div>
@@ -108,8 +108,8 @@ const PayrollCard = ({ payroll, isEditing, onEdit, onSave, onCancel, onChange, o
                         <InfoField label="Deductions" value={formatCurrency(deductions, currency)} />
                         <InfoField label="Tax" value={formatCurrency(taxAmount, currency)} />
                         <div>
-                            <p className="text-sm text-slate-500">Status</p>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
+                            <p className="text-sm text-foreground-muted">Status</p>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text} bg-opacity-20`}>
                                 {displayStatus.toLowerCase()}
                             </span>
                         </div>
@@ -257,21 +257,21 @@ const Payroll = ({ employee }) => {
                         type="date"
                         value={searchDate}
                         onChange={(e) => setSearchDate(e.target.value)}
-                        className="w-full sm:w-56 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm text-slate-600"
+                        className="input w-full sm:w-56 text-sm bg-background-muted border-border text-foreground"
                     />
                 </div>
-                <button onClick={() => setIsGenerating(true)} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                <button onClick={() => setIsGenerating(true)} className="btn-primary flex items-center gap-2">
                     <PlusCircle className="h-5 w-5 mr-2" />
                     Generate Payroll
                 </button>
             </div>
 
-            {loading && <div className="text-center"><Loader className="animate-spin h-6 w-6 mx-auto text-blue-600" /></div>}
-            {error && <div className="text-center text-red-600 p-3 bg-red-50 rounded-md">{error}</div>}
+            {loading && <div className="text-center p-8"><Loader className="animate-spin h-6 w-6 mx-auto text-primary" /></div>}
+            {error && <div className="text-center text-red-600 p-3 bg-red-500/10 rounded-md">{error}</div>}
 
             {isGenerating && (
-                <div className="bg-slate-50 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-3 mb-4">New Payroll Record</h3>
+                <div className="bg-background-muted rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground border-b border-border pb-3 mb-4">New Payroll Record</h3>
                     <form onSubmit={handleGenerateSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
                         <EditField label="Pay Period Start" name="payPeriodStart" value={newPayrollData.payPeriodStart} onChange={handleGenerateChange} type="date" required />
                         <EditField label="Pay Period End" name="payPeriodEnd" value={newPayrollData.payPeriodEnd} onChange={handleGenerateChange} type="date" required />
@@ -287,8 +287,8 @@ const Payroll = ({ employee }) => {
                             <EditField label="Remarks" name="remarks" value={newPayrollData.remarks} onChange={handleGenerateChange} />
                         </div>
                         <div className="sm:col-span-2 md:col-span-3 flex justify-end gap-2">
-                            <button type="button" onClick={() => setIsGenerating(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">Cancel</button>
-                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+                            <button type="button" onClick={() => setIsGenerating(false)} className="btn-secondary">Cancel</button>
+                            <button type="submit" className="btn-primary">Save</button>
                         </div>
                     </form>
                 </div>
@@ -309,16 +309,16 @@ const Payroll = ({ employee }) => {
                 ))
             ) : (
                 payrolls.length > 0 ? (
-                    <div className="text-center text-slate-500 py-10">
-                        <Search className="mx-auto h-12 w-12 text-slate-400" />
-                        <h3 className="mt-2 text-sm font-semibold text-slate-900">No Payroll Found</h3>
-                        <p className="mt-1 text-sm text-slate-500">No records match your search criteria.</p>
+                    <div className="text-center text-foreground-muted py-10">
+                        <Search className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                        <h3 className="mt-2 text-sm font-semibold text-foreground">No Payroll Found</h3>
+                        <p className="mt-1 text-sm text-foreground-muted">No records match your search criteria.</p>
                     </div>
                 ) : (
-                    <div className="text-center text-slate-500 py-10">
-                        <FileText className="mx-auto h-12 w-12 text-slate-400" />
-                        <h3 className="mt-2 text-sm font-semibold text-slate-900">No Payroll Data</h3>
-                        <p className="mt-1 text-sm text-slate-500">There is no payroll history available for this employee.</p>
+                    <div className="text-center text-foreground-muted py-10">
+                        <FileText className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                        <h3 className="mt-2 text-sm font-semibold text-foreground">No Payroll Data</h3>
+                        <p className="mt-1 text-sm text-foreground-muted">There is no payroll history available for this employee.</p>
                     </div>
                 )
             )}

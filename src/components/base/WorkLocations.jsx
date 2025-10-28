@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Loader, AlertCircle, X, ShieldAlert } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader, AlertCircle, X, ShieldAlert, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import SyncPolicyModal from '../attendance/SyncPolicyModal';
 
 const LocationModal = ({ isOpen, onClose, onSave, location, loading }) => {
     const [formData, setFormData] = useState({
@@ -99,6 +100,7 @@ const WorkLocations = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [syncingLocation, setSyncingLocation] = useState(null);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -162,6 +164,44 @@ const WorkLocations = () => {
         }
     };
 
+    const handleOpenSyncModal = (location) => {
+        setSyncingLocation(location);
+    };
+
+    const handleConfirmSync = async (location, selectedEmployeeCodes) => {
+        if (selectedEmployeeCodes.length === 0) {
+            alert("No employees selected.");
+            return;
+        }
+
+        setError('');
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+            for (const employeeCode of selectedEmployeeCodes) {
+                try {
+                    // The location is part of the TimeAttendence entity, not the employee directly.
+                    const payload = { workLocationId: location.id };
+                    await axios.put(`${BASE_URL}/time-attendence/${employeeCode}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                    successCount++;
+                } catch (updateErr) {
+                    console.error(`Failed to update location for ${employeeCode}:`, updateErr);
+                    errorCount++;
+                }
+            }
+
+            alert(`Sync complete!\n- ${successCount} employees updated successfully.\n- ${errorCount} updates failed.`);
+
+        } catch (err) {
+            setError('An unexpected error occurred during the sync process.');
+            console.error(err);
+        }
+    };
+
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
@@ -193,9 +233,14 @@ const WorkLocations = () => {
                                         <td className="td-cell">{loc.city}</td>
                                         <td className="td-cell">{loc.state}</td>
                                         <td className="td-cell">{loc.primary ? 'Yes' : 'No'}</td>
-                                        <td className="td-cell">
-                                            <button onClick={() => handleEdit(loc)} className="p-2 text-slate-500 hover:text-blue-600"><Edit size={16} /></button>
-                                            <button onClick={() => handleDelete(loc.id)} className="p-2 text-slate-500 hover:text-red-600"><Trash2 size={16} /></button>
+                                        <td className="td-cell flex items-center gap-1">
+                                            <button onClick={() => handleOpenSyncModal(loc)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title="Sync to employees" disabled={!!syncingLocation}>
+                                                {syncingLocation?.id === loc.id
+                                                    ? <Loader className="h-4 w-4 animate-spin" />
+                                                    : <RefreshCw className="h-4 w-4" />}
+                                            </button>
+                                            <button onClick={() => handleEdit(loc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit" disabled={!!syncingLocation}><Edit size={16} /></button>
+                                            <button onClick={() => handleDelete(loc.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete" disabled={!!syncingLocation}><Trash2 size={16} /></button>
                                         </td>
                                     </tr>
                                 ))
@@ -208,6 +253,12 @@ const WorkLocations = () => {
             )}
             <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} message={error} />
             <LocationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} location={editingLocation} loading={modalLoading} />
+            <SyncPolicyModal
+                isOpen={!!syncingLocation}
+                onClose={() => setSyncingLocation(null)}
+                policy={syncingLocation}
+                onSync={handleConfirmSync}
+            />
         </div>
     );
 };

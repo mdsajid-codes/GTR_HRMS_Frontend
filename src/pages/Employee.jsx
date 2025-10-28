@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { User, FileText, Briefcase, MapPin, Search, Loader, Users, Camera, ArrowLeft, Mail, Phone, Clock, Calendar, DollarSign } from 'lucide-react';
+import { User, FileText, Briefcase, MapPin, Search, Loader, Users, Camera, ArrowLeft, Mail, Phone, Clock, Calendar, DollarSign, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import Profile from '../components/Hrpages/Profile';
 import Leave from '../components/Hrpages/Leave';
@@ -24,70 +24,31 @@ const Employee = () => {
     const [activeTab, setActiveTab] = useState('Profile');
     const [employee, setEmployee] = useState(null);
     const [allEmployees, setAllEmployees] = useState([]);
-    const [employeeId, setEmployeeId] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [photoUrl, setPhotoUrl] = useState(null);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [locations, setLocations] = useState([]);
     const [selectedLocation, setSelectedLocation] = useState('all');
+    const [departments, setDepartments] = useState([]);
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
     const [selectedGender, setSelectedGender] = useState('all');
     
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-    const handleSearch = async (e, employeeCode) => {
-        e.preventDefault();
-        if (!employeeId) {
-            setError("Please enter an Employee ID.");
-            return;
-        }
-        setLoading(true);
-        setError("");
-        setEmployee(null);
-
-        if (!API_URL) {
-            setError("API URL is not configured. Please check your .env file.");
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem('token');
-            const headers = { "Authorization": `Bearer ${token}` };
-
-            // Use Promise.all to fetch employee and job details concurrently
-            const [employeeRes, jobDetailsRes] = await Promise.all([
-                axios.get(`${API_URL}/employees/${employeeId}`, { headers }),
-                axios.get(`${API_URL}/job-details/${employeeId}`, { headers }).catch(err => {
-                    // Don't fail the whole search if job details are not found (404)
-                    if (err.response && err.response.status === 404) {
-                        return { data: null };
-                    }
-                    // For other errors, re-throw to be caught by the main catch block
-                    throw err;
-                })
-            ]);
-
-            const employeeData = employeeRes.data;
-            const name = employeeData.firstName + " " + employeeData.lastName;
-            const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
-            
-            setEmployee({ ...employeeData, jobDetails: jobDetailsRes.data, initials });
-        } catch (err) {
-            console.error("Error searching for employee:", err);
-            if (err.response){
-                if (err.response.status === 404) {
-                    setError(`Employee with ID "${employeeId}" not found.`);
-                } else {
-                    setError(err.response.data.message || "An error occurred while searching.");
-                }
-            } else if (err.request) {
-                setError("No response from server. Please check your network connection.");
-            } else {
-                setError("Failed to search for employee. Please try again.");
-            }
-        } finally {
-            setLoading(false);
+    const handleSearch = async (e) => {
+        e.preventDefault(); // Prevent form submission from reloading the page
+        // The list is already filtered by the `filteredEmployees` useMemo hook.
+        // If the user hits enter, we can select the first result if it exists.
+        if (filteredEmployees.length > 0) {
+            await handleSelectEmployee(filteredEmployees[0]);
+        } else {
+            setError(`No employee found matching "${searchTerm}".`);
+            // Clear the error after a few seconds
+            setTimeout(() => {
+                setError("");
+            }, 3000);
         }
     };
 
@@ -96,12 +57,26 @@ const Employee = () => {
         try {
             const token = localStorage.getItem('token');
             const headers = { "Authorization": `Bearer ${token}` };
-            const [employeesRes, locationsRes] = await Promise.all([
+            const [employeesRes, locationsRes, departmentsRes] = await Promise.all([
                 axios.get(`${API_URL}/employees/all`, { headers }),
                 axios.get(`${API_URL}/locations`, { headers }),
+                axios.get(`${API_URL}/departments`, { headers }),
             ]);
-            setAllEmployees(employeesRes.data);
+
+            const employeesWithJobDetails = await Promise.all(
+                employeesRes.data.map(async (emp) => {
+                    try {
+                        const jobDetailsRes = await axios.get(`${API_URL}/job-details/${emp.employeeCode}`, { headers });
+                        return { ...emp, jobDetails: jobDetailsRes.data };
+                    } catch (err) {
+                        return { ...emp, jobDetails: null }; // Handle cases where job details might not exist
+                    }
+                })
+            );
+
+            setAllEmployees(employeesWithJobDetails);
             setLocations(locationsRes.data);
+            setDepartments(departmentsRes.data);
         } catch (err) {
             console.error("Error fetching initial data:", err);
             setError("Failed to load employee and location data.");
@@ -172,12 +147,23 @@ const Employee = () => {
     };
 
     const filteredEmployees = useMemo(() => {
+        const lowercasedFilter = searchTerm.toLowerCase();
         return allEmployees.filter(emp => {
             const locationMatch = selectedLocation === 'all' || emp.location?.id === parseInt(selectedLocation);
+            const departmentMatch = selectedDepartment === 'all' || emp.jobDetails?.department === selectedDepartment;
             const genderMatch = selectedGender === 'all' || emp.gender === selectedGender;
-            return locationMatch && genderMatch;
+
+            if (!searchTerm.trim()) {
+                return locationMatch && genderMatch && departmentMatch;
+            }
+
+            const searchMatch = 
+                (emp.firstName && `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(lowercasedFilter)) ||
+                (emp.employeeCode && emp.employeeCode.toLowerCase().includes(lowercasedFilter));
+
+            return locationMatch && genderMatch && departmentMatch && searchMatch;
         });
-    }, [allEmployees, selectedLocation, selectedGender]);
+    }, [allEmployees, selectedLocation, selectedGender, searchTerm, selectedDepartment]);
 
     const EmployeeCard = ({ emp, onSelect }) => {
         const [photoSrc, setPhotoSrc] = useState(null);
@@ -206,34 +192,35 @@ const Employee = () => {
 
         return (
             <div 
-                className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group" 
+                className="bg-card text-card-foreground rounded-xl shadow-sm border border-border hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden group" 
                 onClick={() => onSelect(emp)}
             >
-                <div className="relative bg-slate-200" style={{ aspectRatio: '4 / 3' }}>
+                <div className="relative bg-background-muted" style={{ aspectRatio: '4 / 3' }}>
                     {photoSrc ? (
                         <img src={photoSrc} alt={`${emp.firstName} ${emp.lastName}`} className="w-full h-full object-cover" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
-                            <span className="text-4xl font-bold text-blue-600 opacity-70">{initials}</span>
+                        <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                            <span className="text-4xl font-bold text-primary opacity-70">{initials}</span>
                         </div>
                     )}
                     <div className={`absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${
-                        emp.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        emp.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
                     }`}>
                         {emp.status?.toLowerCase()}
                     </div>
                 </div>
                 <div className="p-4">
-                    <h4 className="font-bold text-slate-800 truncate">{emp.firstName} {emp.lastName}</h4>
-                    <p className="text-sm text-slate-500">{emp.jobDetails?.designation || 'No Designation'}</p>
-                    <p className="text-xs text-slate-400 mt-1">{emp.employeeCode}</p>
+                    <h4 className="font-bold text-foreground truncate">{emp.firstName} {emp.lastName}</h4>
+                    <p className="text-sm text-foreground-muted truncate">{emp.jobDetails?.designation || 'No Designation'}</p>
+                    <p className="text-xs text-foreground-muted/80 truncate">{emp.jobDetails?.department || 'No Department'}</p>
+                    <p className="text-xs text-foreground-muted/80 mt-1">{emp.employeeCode}</p>
                 </div>
-                <div className="border-t border-slate-100 px-4 pt-3 pb-4 space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
+                <div className="border-t border-border/50 px-4 pt-3 pb-4 space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-foreground-muted">
                         <Mail size={14} className="flex-shrink-0 text-red-500" />
                         <span className="truncate text-xs">{emp.emailWork || 'No work email'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-foreground-muted">
                         <Phone size={14} className="flex-shrink-0 text-green-500" />
                         <span className="truncate text-xs">{emp.phonePrimary || 'No phone'}</span>
                     </div>
@@ -254,9 +241,14 @@ const Employee = () => {
                 <div>
                     <h3 className="text-lg font-semibold mb-4">Employees ({filteredEmployees.length})</h3>
                     {loading ? (
-                        <div className="flex justify-center"><Loader className="animate-spin" /></div>
+                <div className="flex justify-center items-center h-64"><Loader className="animate-spin h-8 w-8 text-primary" /></div>
+            ) : filteredEmployees.length > 0 ? (
+                <EmployeeList employees={filteredEmployees} onSelect={handleSelectEmployee} />
                     ) : (
-                        <EmployeeList employees={filteredEmployees} onSelect={handleSelectEmployee} />
+                <div className="text-center py-10 text-foreground-muted">
+                    <h3 className="text-lg font-semibold text-foreground">No Employees Found</h3>
+                    <p>No employees match the current filters.</p>
+                </div>
                     )}
                 </div>
             );
@@ -312,25 +304,25 @@ const Employee = () => {
             <DashboardLayout>
             <div className="flex flex-col h-full">
                 {/* Employee Header & Sub-Navigation */}
-                <div className="bg-white shadow-sm sticky top-0 z-20">
-                    <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[100px]">
+                <div className="bg-card/80 backdrop-blur-sm shadow-sm sticky top-0 z-20">
+                    <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-h-[100px]">
                         <div className="flex items-center gap-4 min-w-0">
                             {employee && (
-                            <button onClick={() => setEmployee(null)} className="p-2 rounded-full hover:bg-blue-100 text-blue-600 -ml-2 transition-colors">
+                            <button onClick={() => setEmployee(null)} className="p-2 rounded-full hover:bg-primary/10 text-primary -ml-2 transition-colors">
                                 <ArrowLeft size={20} />
                             </button>
                             )}
                             {employee && (
                             <div className="relative group">
                                 {photoUrl ? ( 
-                                    <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md" />
+                                    <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-card shadow-md" />
 
                                 ) : (
-                                    <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
+                                    <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold ring-4 ring-card shadow-md">
                                         {employee ? employee.initials : '?'}
                                     </div>
                                 )}
-                                    <label htmlFor="photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full cursor-pointer transition-opacity">
+                                    <label htmlFor="photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-60 rounded-full cursor-pointer transition-opacity">
                                         {uploadingPhoto ? (
                                             <Loader className="animate-spin h-6 w-6 text-white" />
                                         ) : (
@@ -342,62 +334,72 @@ const Employee = () => {
                             )}
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">
+                                    <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
                                         {employee ? `${employee.firstName} ${employee.lastName}` : 'Employee Details'}
                                     </h1>
                                     {employee && (
                                         <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
-                                            employee.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            employee.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
                                         }`}>{employee.status.toLowerCase()}</span>
                                     )}
                                 </div>
-                                <p className="text-sm text-slate-500">{employee?.jobDetails?.designation || (employee ? 'No Designation' : 'Select an employee or search by ID')}</p>
+                                <p className="text-sm text-foreground-muted">{employee?.jobDetails?.designation || (employee ? 'No Designation' : 'Select an employee or search by ID')}</p>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500" />
-                                <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-muted" />
+                                <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="input pl-10 pr-8 appearance-none w-full sm:w-auto bg-background-muted border-border text-foreground-muted hover:border-primary">
                                     <option value="all">All Locations</option>
                                     {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                                 </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted pointer-events-none" />
                             </div>
                             <div className="relative">
-                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500" />
-                                <select value={selectedGender} onChange={e => setSelectedGender(e.target.value)} className="input pl-10 appearance-none w-full sm:w-auto">
+                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-muted" />
+                                <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)} className="input pl-10 pr-8 appearance-none w-full sm:w-auto bg-background-muted border-border text-foreground-muted hover:border-primary">
+                                    <option value="all">All Departments</option>
+                                    {departments.map(dept => <option key={dept.id} value={dept.name}>{dept.name}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted pointer-events-none" />
+                            </div>
+                            <div className="relative">
+                                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-muted" />
+                                <select value={selectedGender} onChange={e => setSelectedGender(e.target.value)} className="input pl-10 pr-8 appearance-none w-full sm:w-auto bg-background-muted border-border text-foreground-muted hover:border-primary">
                                     <option value="all">All Genders</option>
                                     <option value="MALE">Male</option>
                                     <option value="FEMALE">Female</option>
                                     <option value="OTHER">Other</option>
                                 </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted pointer-events-none" />
                             </div>
-                            <form onSubmit={(e) => handleSearch(e, employeeId)} className="relative w-full sm:w-auto flex">
+                            <form onSubmit={handleSearch} className="relative w-full sm:w-auto flex">
                                 <input
                                     type="text"
-                                    placeholder="Search by Employee ID"
-                                    value={employeeId}
-                                    onChange={(e) => setEmployeeId(e.target.value)}
-                                    className="w-full sm:w-56 pl-4 pr-12 py-2 border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                    placeholder="Search by Name or ID"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full sm:w-56 pl-4 pr-12 py-2 border border-border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary transition bg-card text-foreground"
                                 />
-                                <button type="submit" className="absolute right-0 top-0 bottom-0 px-4 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 flex items-center justify-center" disabled={loading}>
+                                <button type="submit" className="absolute right-0 top-0 bottom-0 px-4 bg-primary text-primary-foreground rounded-r-lg hover:bg-primary/90 flex items-center justify-center" disabled={loading}>
                                     {loading && !employee ? <Loader className="animate-spin h-5 w-5" /> : <Search className="h-5 w-5" />}
                                 </button>
                             </form>
                         </div>
                     </div>
                     {employee && (
-                        <nav className="flex overflow-x-auto">
+                        <nav className="flex overflow-x-auto border-b border-border">
                             {employeeNavLinks.map((link) => (
                                 <button
                                     key={link.name}
                                     onClick={() => setActiveTab(link.name)}
-                                    className={`flex-shrink-0 flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 group ${
+                                    className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 border-b-2 group ${
                                         activeTab === link.name
-                                            ? 'border-blue-600 text-blue-600' // Active tab
-                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' // Inactive tab
+                                            ? `border-primary text-primary` // Active tab
+                                            : `border-transparent text-foreground-muted hover:text-foreground hover:border-border` // Inactive tab
                                     }`}
                                 > 
-                                    <div className={`p-1.5 rounded-md ${link.bgColor} ${activeTab === link.name ? '' : 'opacity-80 group-hover:opacity-100'}`}>
+                                    <div className={`p-1.5 rounded-lg ${link.bgColor} ${activeTab === link.name ? 'shadow-sm' : 'opacity-70 group-hover:opacity-100'}`}>
                                         <link.icon className={`h-4 w-4 ${link.color}`} />
                                     </div>
                                     <span>{link.name}</span>
@@ -408,13 +410,13 @@ const Employee = () => {
                 </div>
 
                 {/* Main Content Area */}
-                <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-slate-50">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-background-muted">
+                    <div className="bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-border">
                         {error ? (
                             <div className="text-center text-red-600">{error}</div>
                         ) : (
                             <>
-                                {!employee && <h2 className="text-xl font-semibold text-slate-800 mb-4">All Employees</h2>}
+                                {!employee && <h2 className="text-xl font-semibold text-foreground mb-4">All Employees</h2>}
                                 {renderContent()}
                             </>
                         )}

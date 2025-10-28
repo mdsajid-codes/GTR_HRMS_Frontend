@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Loader, AlertCircle, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader, AlertCircle, X, RefreshCw, Search } from 'lucide-react';
+import SyncPolicyModal from './SyncPolicyModal';
 
 const PolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
     const initialFormState = {
@@ -123,6 +124,7 @@ const AttendanceTracking = () => {
     const [modalLoading, setModalLoading] = useState(false);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [syncingPolicy, setSyncingPolicy] = useState(null);
     const [editingPolicy, setEditingPolicy] = useState(null);
 
     const API_URL = `${import.meta.env.VITE_API_BASE_URL}/attendance-policies`;
@@ -142,7 +144,7 @@ const AttendanceTracking = () => {
         }
     };
 
-    useEffect(() => { fetchPolicies(); }, []);
+    useEffect(() => { fetchPolicies(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAdd = () => { setEditingPolicy(null); setIsModalOpen(true); };
     const handleEdit = (policy) => { setEditingPolicy(policy); setIsModalOpen(true); };
@@ -182,6 +184,42 @@ const AttendanceTracking = () => {
         }
     };
 
+    const handleOpenSyncModal = (policy) => {
+        setSyncingPolicy(policy);
+    };
+
+    const handleConfirmSync = async (policy, selectedEmployeeCodes) => {
+        if (selectedEmployeeCodes.length === 0) {
+            alert("No employees selected.");
+            return;
+        }
+
+        setError('');
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+            for (const employeeCode of selectedEmployeeCodes) {
+                try {
+                    const payload = { attendancePolicyId: policy.id };
+                    await axios.put(`${BASE_URL}/time-attendence/${employeeCode}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                    successCount++;
+                } catch (updateErr) {
+                    console.error(`Failed to update policy for ${employeeCode}:`, updateErr);
+                    errorCount++;
+                }
+            }
+
+            alert(`Sync complete!\n- ${successCount} employees updated successfully.\n- ${errorCount} updates failed.`);
+
+        } catch (fetchErr) {
+            setError('An unexpected error occurred during the sync process.');
+        } 
+    };
+
     return (
         <>
             <div className="p-4 sm:p-6">
@@ -213,9 +251,14 @@ const AttendanceTracking = () => {
                                                 <td className="td-cell">{p.capturingPolicy?.policyName || 'N/A'}</td>
                                                 <td className="td-cell">{p.isDefault ? 'Yes' : 'No'}</td>
                                                 <td className="td-cell">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2"> 
+                                                        <button onClick={() => handleOpenSyncModal(p)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title="Sync to employees" disabled={!!syncingPolicy}>
+                                                            {syncingPolicy?.id === p.id
+                                                                ? <Loader className="h-4 w-4 animate-spin" />
+                                                                : <RefreshCw className="h-4 w-4" />}
+                                                        </button>
                                                         <button onClick={() => handleEdit(p)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit"><Edit className="h-4 w-4" /></button>
-                                                        <button onClick={() => handleDelete(p.id, p.policyName)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                                                        <button onClick={() => handleDelete(p.id, p.policyName)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete" disabled={!!syncingPolicy}><Trash2 className="h-4 w-4" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -230,6 +273,12 @@ const AttendanceTracking = () => {
                 </div>
             </div>
             <PolicyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} policy={editingPolicy} loading={modalLoading} />
+            <SyncPolicyModal 
+                isOpen={!!syncingPolicy} 
+                onClose={() => setSyncingPolicy(null)} 
+                policy={syncingPolicy}
+                onSync={handleConfirmSync}
+            />
         </>
     );
 }

@@ -17,6 +17,8 @@ import PayrollManagement from './pages/PayrollManagement'
 import PosDashboard from './pos/page/PosDashboard'
 import CompanyDashboard from './pages/CompanyDashboard'
 import LeaveManagement from './pages/LeaveManagement.jsx'
+import ProductionSettings from './production/settings/ProductionSettings.jsx'
+import CrmSettings from './crm/settings/CrmSettings.jsx'
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
           <Route path='/company-dashboard' element={<CompanyDashboard />} />
           <Route path='/company-settings' element={<Settings />}>
             <Route path="hrms" element={<HrmsSettings />} />
+            <Route path='production' element={<ProductionSettings /> } />
+            <Route path='crm' element={<CrmSettings /> } />
           </Route>
         </Routes>
       </Router>

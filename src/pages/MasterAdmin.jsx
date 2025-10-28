@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building, Users, Server, Activity, ArrowUpRight, ArrowDownRight, Loader, LogOut, Sparkles, Trash2, Check, X, PlusCircle, Edit, LayoutDashboard, Menu, AlertCircle, Calendar, Hash, MapPin, Store, Eye } from 'lucide-react';
+import { Building, Users, Server, Activity, ArrowUpRight, ArrowDownRight, Loader, LogOut, Sparkles, Trash2, Check, X, PlusCircle, Edit, LayoutDashboard, Menu, AlertCircle, Calendar, Hash, MapPin, Store, Eye, Palette, Search } from 'lucide-react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import DashboardLayout from '../components/DashboardLayout';
+import ProvisionTenant from './ProvisionTenant';
 
 const serviceModulesOptions = [
     { value: 'HRMS_CORE', label: 'HRMS Core' },
@@ -12,6 +12,8 @@ const serviceModulesOptions = [
     { value: 'HRMS_PAYROLL', label: 'HRMS Payroll' },
     { value: 'HRMS_RECRUITMENT', label: 'HRMS Recruitment' },
     { value: 'POS', label: 'Point of Sale (POS)' },
+    { value: 'CRM', label: 'CRM' },
+    { value: 'PRODUCTION', label: 'Production' },
 ];
 
 const adminRoleOptions = [
@@ -30,159 +32,15 @@ const masterRoleOptions = [
 ];
 
 const masterNavLinks = [
-    { name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard },
-    { name: 'Tenants', view: 'tenants', icon: Building },
-    { name: 'Requests', view: 'requests', icon: Activity },
+    { name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard, color: 'text-sky-500' },
+    { name: 'Tenants', view: 'tenants', icon: Building, color: 'text-orange-500' },
+    { name: 'Requests', view: 'requests', icon: Activity, color: 'text-yellow-500' },
 ];
-
-const ProvisionTenantModal = ({ isOpen, onClose, onProvision }) => {
-    const [formData, setFormData] = useState({
-        tenantId: '',
-        companyName: '',
-        adminEmail: '',
-        adminPassword: '',
-        numberOfLocations: 1,
-        numberOfUsers: 5,
-        numberOfStore: 1,
-        hrmsAccessCount: 5,
-        subscriptionStartDate: new Date().toISOString().split('T')[0],
-        subscriptionEndDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-    });
-    const [selectedModules, setSelectedModules] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedRoles, setSelectedRoles] = useState([]);
-    const [error, setError] = useState('');
-
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleModuleChange = (e) => {
-        const { value, checked } = e.target;
-        if (checked) {
-            setSelectedModules(prev => [...prev, value]);
-        } else {
-            setSelectedModules(prev => prev.filter(m => m !== value));
-        }
-    };
-
-    const handleRoleChange = (e) => {
-        setSelectedRoles(Array.from(e.target.selectedOptions, option => option.value));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        // Basic validation
-        if (selectedRoles.length === 0) {
-            setError('You must select at least one admin role.');
-            return;
-        }
-
-        setIsLoading(true);
-        setError('');
-
-        const payload = {
-            ...formData,
-            serviceModules: selectedModules,
-            adminRoles: selectedRoles
-        };
-
-        try {
-            await onProvision(payload);
-            // Reset form on success before closing
-            setFormData({ tenantId: '', companyName: '', adminEmail: '', adminPassword: '' });
-            setSelectedModules([]);
-            setSelectedRoles([]);
-            setError('');
-            onClose();
-        } catch (err) {
-            setError(err.message || 'An error occurred during provisioning.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">Provision New Tenant & Subscription</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={20} /></button>
-                </div>
-                <form onSubmit={handleSubmit}>
-                <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                    <h4 className="text-md font-semibold text-slate-600 border-b pb-2">Tenant & Admin Details</h4>
-                    <InputField label="Tenant ID" name="tenantId" value={formData.tenantId} onChange={handleChange} placeholder="e.g., my-company" required />
-                    <InputField label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} placeholder="e.g., My Awesome Company" required />
-                    <InputField label="Admin Email" name="adminEmail" type="email" value={formData.adminEmail} onChange={handleChange} placeholder="e.g., admin@mycompany.com" required />
-                    <InputField label="Admin Password" name="adminPassword" type="password" value={formData.adminPassword} onChange={handleChange} placeholder="A secure password for the tenant admin" required />
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">Service Modules</label>
-                        <div className="mt-2 space-y-2">
-                            {serviceModulesOptions.map(module => (
-                                <label key={module.value} className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        value={module.value}
-                                        onChange={handleModuleChange}
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span>{module.label}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="adminRoles" className="block text-sm font-medium text-slate-700">Admin Roles</label>
-                        <select
-                            id="adminRoles"
-                            multiple
-                            value={selectedRoles}
-                            onChange={handleRoleChange}
-                            className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm"
-                            size={5} // Show 5 roles at a time
-                        >
-                            {adminRoleOptions.map(role => (
-                                <option key={role.value} value={role.value}>{role.label}</option>
-                            ))}
-                        </select>
-                        <p className="mt-1 text-xs text-slate-500">Hold Ctrl (or Cmd on Mac) to select multiple roles.</p>
-                    </div>
-
-                    <h4 className="text-md font-semibold text-slate-600 border-b pb-2 pt-4">Subscription Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <InputField label="Number of Locations" name="numberOfLocations" type="number" value={formData.numberOfLocations} onChange={handleChange} required min="1" />
-                        <InputField label="Number of Users" name="numberOfUsers" type="number" value={formData.numberOfUsers} onChange={handleChange} required min="1" />
-                        <InputField label="Number of Stores" name="numberOfStore" type="number" value={formData.numberOfStore} onChange={handleChange} required min="1" />
-                        <InputField label="HRMS Access Count" name="hrmsAccessCount" type="number" value={formData.hrmsAccessCount} onChange={handleChange} required min="1" />
-                        <InputField label="Subscription Start Date" name="subscriptionStartDate" type="date" value={formData.subscriptionStartDate} onChange={handleChange} required />
-                        <InputField label="Subscription End Date" name="subscriptionEndDate" type="date" value={formData.subscriptionEndDate} onChange={handleChange} required />
-                    </div>
-
-                    {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-                </div>
-                    <div className="flex justify-end gap-2 pt-4">
-                        <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>Cancel</button>
-                        <button type="submit" className="btn-primary flex items-center" disabled={isLoading}>
-                            {isLoading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                            Provision Tenant
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
 
 const InputField = ({ label, ...props }) => (
     <div>
-        <label htmlFor={props.name} className="block text-sm font-medium text-slate-700">{label}</label>
-        <input id={props.name} {...props} className="mt-1 appearance-none block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+        <label htmlFor={props.name} className="block text-sm font-medium text-foreground-muted">{label}</label>
+        <input id={props.name} {...props} className="input bg-background-muted border-border text-foreground" />
     </div>
 );
 
@@ -235,18 +93,18 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
     if (!isOpen || !tenant) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">Update Tenant: {tenant.tenantId}</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-lg">
+                <div className="p-4 border-b border-border flex justify-between items-center">
+                    <h3 className="text-xl font-semibold text-foreground">Update Tenant: {tenant.tenantId}</h3>
+                    <button onClick={onClose} className="p-1 rounded-full text-foreground-muted hover:bg-background-muted"><X size={20} /></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                        <h4 className="text-md font-semibold text-slate-600 border-b pb-2">Tenant Details</h4>
+                        <h4 className="text-md font-semibold text-foreground-muted border-b border-border pb-2">Tenant Details</h4>
                         <InputField label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} required />
 
-                        <h4 className="text-md font-semibold text-slate-600 border-b pb-2 pt-4">Subscription Details</h4>
+                        <h4 className="text-md font-semibold text-foreground-muted border-b border-border pb-2 pt-4">Subscription Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputField label="Number of Locations" name="numberOfLocations" type="number" value={formData.numberOfLocations} onChange={handleChange} required min="1" />
                             <InputField label="Number of Users" name="numberOfUsers" type="number" value={formData.numberOfUsers} onChange={handleChange} required min="1" />
@@ -256,8 +114,8 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
                             <InputField label="Subscription End Date" name="subscriptionEndDate" type="date" value={formData.subscriptionEndDate} onChange={handleChange} required />
                         </div>
 
-                        <h4 className="text-md font-semibold text-slate-600 border-b pb-2 pt-4">Service Modules</h4>
-                        <label className="block text-sm font-medium text-slate-700">Service Modules</label>
+                        <h4 className="text-md font-semibold text-foreground-muted border-b border-border pb-2 pt-4">Service Modules</h4>
+                        <label className="block text-sm font-medium text-foreground-muted">Service Modules</label>
                         <div className="mt-2 space-y-2">
                             {serviceModulesOptions.map(module => (
                                 <label key={module.value} className="flex items-center gap-2">
@@ -266,17 +124,17 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
                                         value={module.value}
                                         checked={selectedModules.includes(module.value)}
                                         onChange={handleModuleChange}
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                                     />
                                     <span>{module.label}</span>
                                 </label>
                             ))}
                         </div>
 
-                        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+                        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                     </div>
 
-                    <div className="p-4 bg-slate-50 border-t flex justify-end gap-2">
+                    <div className="p-4 bg-background-muted border-t border-border flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>Cancel</button>
                         <button type="submit" className="btn-primary flex items-center" disabled={isLoading}>
                             {isLoading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Check className="h-4 w-4 mr-2" />} Update Tenant
@@ -293,10 +151,10 @@ const TenantDetailsModal = ({ isOpen, onClose, tenant, onEditClick }) => {
 
     const DetailItem = ({ icon: Icon, label, value, isDate = false }) => (
         <div className="flex items-start gap-3">
-            <Icon className="h-5 w-5 text-slate-500 mt-0.5" />
+            <Icon className="h-5 w-5 text-foreground-muted mt-0.5" />
             <div>
-                <p className="text-sm text-slate-500">{label}</p>
-                <p className="font-medium text-slate-800">
+                <p className="text-sm text-foreground-muted">{label}</p>
+                <p className="font-medium text-foreground">
                     {isDate && value ? new Date(value).toLocaleDateString() : (value ?? 'N/A')}
                 </p>
             </div>
@@ -304,14 +162,14 @@ const TenantDetailsModal = ({ isOpen, onClose, tenant, onEditClick }) => {
     );
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-                <div className="p-4 border-b flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-2xl">
+                <div className="p-4 border-b border-border flex justify-between items-center">
                     <div>
                         <h3 className="text-xl font-semibold">{tenant.companyName}</h3>
-                        <p className="text-sm text-slate-500">{tenant.tenantId}</p>
+                        <p className="text-sm text-foreground-muted">{tenant.tenantId}</p>
                     </div>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={20} /></button>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-background-muted"><X size={20} /></button>
                 </div>
                 <div className="p-6 max-h-[75vh] overflow-y-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -331,7 +189,7 @@ const TenantDetailsModal = ({ isOpen, onClose, tenant, onEditClick }) => {
                         </div>
                     </div>
                 </div>
-                <div className="p-4 border-t bg-slate-50 flex justify-end">
+                <div className="p-4 border-t border-border bg-background-muted flex justify-end">
                     <button onClick={() => onEditClick(tenant)} className="btn-secondary flex items-center gap-2">
                         <Edit size={16} />
                         Edit Tenant
@@ -385,11 +243,11 @@ const MasterUserModal = ({ isOpen, onClose, onSave, user, loading }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                <div className="p-4 border-b flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-lg">
+                <div className="p-4 border-b border-border flex justify-between items-center">
                     <h2 className="text-xl font-semibold">{user ? 'Edit' : 'Add'} Master User</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100"><X className="h-5 w-5" /></button>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-background-muted"><X className="h-5 w-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -397,19 +255,19 @@ const MasterUserModal = ({ isOpen, onClose, onSave, user, loading }) => {
                         <div><InputField label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required={!user} placeholder={user ? 'Leave blank to keep current' : ''} /></div>
                         <div><InputField label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required={!user || !!formData.password} /></div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-700">Roles</label>
+                            <label className="block text-sm font-medium text-foreground-muted">Roles</label>
                             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
                                 {masterRoleOptions.map(role => (
                                     <label key={role.value} className="inline-flex items-center">
-                                        <input type="checkbox" checked={formData.roles.has(role.value)} onChange={() => handleRoleChange(role.value)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                                        <span className="ml-2 text-sm text-slate-600">{role.label}</span>
+                                        <input type="checkbox" checked={formData.roles.has(role.value)} onChange={() => handleRoleChange(role.value)} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
+                                        <span className="ml-2 text-sm text-foreground-muted">{role.label}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
-                        {modalError && <p className="md:col-span-2 text-red-500 text-sm">{modalError}</p>}
+                        {modalError && <p className="md:col-span-2 text-red-500">{modalError}</p>}
                     </div>
-                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
+                    <div className="p-4 border-t border-border bg-background-muted flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
                         <button type="submit" className="btn-primary flex items-center" disabled={loading}>{loading && <Loader className="animate-spin h-4 w-4 mr-2" />} Save</button>
                     </div>
@@ -484,39 +342,39 @@ const MasterUsers = () => {
     return (
         <div className="p-6 md:p-8">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-slate-800">Master Users</h1>
+                <h1 className="text-3xl font-bold text-foreground">Master Users</h1>
                 <button onClick={handleAdd} className="btn-primary flex items-center"><PlusCircle className="h-5 w-5 mr-2" /> Add Master User</button>
             </div>
 
-            {error && (<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>)}
+            {error && (<div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded relative mb-4" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>)}
 
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm overflow-hidden">
                 {loading ? (
-                    <div className="flex justify-center items-center h-80"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div>
+                    <div className="flex justify-center items-center h-80"><Loader className="h-8 w-8 animate-spin text-primary" /></div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full bg-white">
-                            <thead className="bg-slate-50">
+                        <table className="min-w-full">
+                            <thead className="bg-background-muted">
                                 <tr>
                                     <th className="th-cell">Username</th>
                                     <th className="th-cell">Roles</th>
                                     <th className="th-cell">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="text-slate-700">
+                            <tbody className="text-foreground-muted">
                                 {users.length > 0 ? (
                                     users.map(user => (
-                                        <tr key={user.id} className="border-b border-slate-200 hover:bg-slate-50">
-                                            <td className="td-cell font-medium">{user.username}</td>
-                                            <td className="td-cell"><div className="flex flex-wrap gap-1">{user.roles.map(role => (<span key={role} className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{role}</span>))}</div></td>
+                                        <tr key={user.id} className="border-b border-border hover:bg-background-muted">
+                                            <td className="td-cell font-medium text-foreground">{user.username}</td>
+                                            <td className="td-cell"><div className="flex flex-wrap gap-1">{user.roles.map(role => (<span key={role} className="px-2 py-0.5 text-xs font-semibold rounded-full bg-background-muted text-foreground-muted">{role}</span>))}</div></td>
                                             <td className="td-cell">
-                                                <button onClick={() => handleEdit(user)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Edit"><Edit className="h-4 w-4" /></button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                                                <button onClick={() => handleEdit(user)} className="p-2 hover:text-primary hover:bg-background-muted rounded-full transition-colors" title="Edit"><Edit className="h-4 w-4" /></button>
+                                                <button onClick={() => handleDelete(user.id)} className="p-2 hover:text-red-600 hover:bg-background-muted rounded-full transition-colors" title="Delete"><Trash2 className="h-4 w-4" /></button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="3" className="text-center py-10 text-slate-500"><AlertCircle className="mx-auto h-12 w-12 text-slate-400" /><h3 className="mt-2 text-sm font-medium text-slate-900">No master users found</h3><p className="mt-1 text-sm text-slate-500">Get started by creating a new master user.</p></td></tr>
+                                    <tr><td colSpan="3" className="text-center py-10 text-foreground-muted"><AlertCircle className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-medium text-foreground">No master users found</h3><p className="mt-1 text-sm">Get started by creating a new master user.</p></td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -528,7 +386,7 @@ const MasterUsers = () => {
     );
 };
 
-const MasterSidebar = ({ activeView, setActiveView, onLinkClick }) => {
+const MasterSidebar = ({ activeView, setActiveView, onLinkClick, theme, cycleTheme }) => {
     const navigate = useNavigate();
     const username = localStorage.getItem('username') || 'Master Admin';
 
@@ -545,44 +403,54 @@ const MasterSidebar = ({ activeView, setActiveView, onLinkClick }) => {
             }}
             className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors w-full text-left ${
                 activeView === item.view
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-foreground-muted hover:bg-background-muted'
             }`}
         >
-            <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+            <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 transition-colors ${activeView === item.view ? 'text-primary-foreground' : item.color}`} />
             <span>{item.name}</span>
         </button>
     );
 
     return (
-        <div className="flex flex-col h-full bg-white">
-            <div className="p-4 border-b border-slate-200 flex-shrink-0">
+        <div className="flex flex-col h-full bg-card text-card-foreground">
+            <div className="p-4 border-b border-border flex-shrink-0">
                 <Link to="/master-admin" className="flex items-center gap-3">
-                    <Sparkles className="h-7 w-7 text-blue-600" />
-                    <span className="font-bold text-xl text-slate-800">Master Panel</span>
+                    <Sparkles className="h-7 w-7 text-primary" />
+                    <span className="font-bold text-xl text-foreground">Master Panel</span>
                 </Link>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
                 {masterNavLinks.map((item) => (
                     <NavItem key={item.name} item={item} />
                 ))}
-                 <div className="pt-4 mt-4 border-t border-slate-200">
-                     <NavItem item={{ name: 'Users', view: 'users', icon: Users }} />
+                 <div className="pt-4 mt-4 border-t border-border">
+                     <NavItem item={{ name: 'Users', view: 'users', icon: Users, color: 'text-blue-500' }} />
                  </div>
             </nav>
-            <div className="p-4 border-t border-slate-200 flex-shrink-0">
+            <div className="p-4 border-t border-border flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary flex-shrink-0">
                             {username.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-3 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{username}</p>
-                            <p className="text-xs text-slate-500">Master Admin</p>
+                            <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+                            <p className="text-xs text-foreground-muted">Master Admin</p>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="text-slate-500 hover:text-red-600 ml-2 flex-shrink-0" title="Logout">
+                    <button onClick={handleLogout} className="text-foreground-muted hover:text-red-600 ml-2 flex-shrink-0" title="Logout">
                         <LogOut className="h-5 w-5" />
+                    </button>
+                </div>
+                <div className="mt-4 flex items-center justify-between capitalize">
+                    <span className="text-sm text-foreground-muted">{theme} Mode</span>
+                    <button
+                        onClick={cycleTheme}
+                        className="p-2 rounded-full hover:bg-background-muted text-foreground-muted"
+                        title="Cycle Theme"
+                    >
+                        <Palette className="h-5 w-5" />
                     </button>
                 </div>
             </div>
@@ -592,7 +460,7 @@ const MasterSidebar = ({ activeView, setActiveView, onLinkClick }) => {
 
 const DashboardView = ({ stats, loading, error }) => (
     <>
-        <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             {stats.map((stat, index) => (
                 <StatCard key={index} {...stat} />
@@ -601,25 +469,42 @@ const DashboardView = ({ stats, loading, error }) => (
     </>
 );
 
-const TenantsView = ({ tenants, loading, error, onDelete, onEdit, onProvisionClick, onViewDetails }) => (
-    <>
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-            <h1 className="text-3xl font-bold text-slate-800">Registered Tenants</h1>
-            <button onClick={onProvisionClick} className="btn-primary flex items-center gap-2">
-                <PlusCircle size={18} /> New Tenant
-            </button>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-            {loading ? <div className="flex justify-center items-center h-40"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div> : error ? <p className="text-red-500 text-center">{error}</p> : <TenantList tenants={tenants} onDelete={onDelete} onEdit={onEdit} onViewDetails={onViewDetails} />}
-        </div>
-    </>
-);
+const TenantsView = ({ tenants, loading, error, onDelete, onEdit, onProvisionClick, onViewDetails }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredTenants = useMemo(() => {
+        if (!searchTerm) return tenants;
+        const lowercasedFilter = searchTerm.toLowerCase();
+        return tenants.filter(tenant =>
+            tenant.companyName.toLowerCase().includes(lowercasedFilter) ||
+            tenant.tenantId.toLowerCase().includes(lowercasedFilter)
+        );
+    }, [tenants, searchTerm]);
+
+    return (
+        <>
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+                <h1 className="text-3xl font-bold text-foreground">Registered Tenants</h1>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <input type="text" placeholder="Search by name or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input w-full sm:w-64 pr-10 bg-background-muted border-border" />
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-muted" />
+                    </div>
+                    <button onClick={onProvisionClick} className="btn-primary flex items-center gap-2"><PlusCircle size={18} /> New Tenant</button>
+                </div>
+            </div>
+            <div className="bg-card text-card-foreground p-6 rounded-xl shadow-sm">
+                {loading ? <div className="flex justify-center items-center h-40"><Loader className="h-8 w-8 animate-spin text-primary" /></div> : error ? <p className="text-red-500 text-center">{error}</p> : <TenantList tenants={filteredTenants} onDelete={onDelete} onEdit={onEdit} onViewDetails={onViewDetails} />}
+            </div>
+        </>
+    );
+};
 
 const RequestsView = ({ requests, loading, error, onApprove, onReject }) => (
     <>
-        <h1 className="text-3xl font-bold text-slate-800">Pending Tenant Requests</h1>
-        <div className="mt-6 bg-white p-6 rounded-xl shadow-sm">
-            {loading ? <div className="flex justify-center items-center h-40"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div> : error ? <p className="text-red-500 text-center">{error}</p> : <TenantRequestList requests={requests} onApprove={onApprove} onReject={onReject} />}
+        <h1 className="text-3xl font-bold text-foreground">Pending Tenant Requests</h1>
+        <div className="mt-6 bg-card text-card-foreground p-6 rounded-xl shadow-sm">
+            {loading ? <div className="flex justify-center items-center h-40"><Loader className="h-8 w-8 animate-spin text-primary" /></div> : error ? <p className="text-red-500 text-center">{error}</p> : <TenantRequestList requests={requests} onApprove={onApprove} onReject={onReject} />}
         </div>
     </>
 );
@@ -634,26 +519,26 @@ export const MasterAdminHeader = () => {
     };
 
     return (
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+        <header className="bg-card text-card-foreground shadow-sm p-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-3">
-                    <Sparkles className="h-7 w-7 text-blue-600" />
-                    <span className="font-bold text-xl text-slate-800">Master Panel</span>
+                    <Sparkles className="h-7 w-7 text-primary" />
+                    <span className="font-bold text-xl text-foreground">Master Panel</span>
                 </div>
             </div>
             <div className="flex items-center gap-4">
-                <p className="text-sm text-slate-600">Welcome, <span className="font-semibold">{username}</span></p>
-                <button onClick={handleLogout} className="text-slate-500 hover:text-red-600" title="Logout"><LogOut className="h-5 w-5" /></button>
+                <p className="text-sm text-foreground-muted">Welcome, <span className="font-semibold">{username}</span></p>
+                <button onClick={handleLogout} className="text-foreground-muted hover:text-red-600" title="Logout"><LogOut className="h-5 w-5" /></button>
             </div>
         </header>
     );
 };
 
 const StatCard = ({ icon: Icon, title, value, change, changeType }) => (
-    <div className="bg-white p-6 rounded-xl shadow-sm flex items-start justify-between">
+    <div className="bg-card text-card-foreground p-6 rounded-xl shadow-sm flex items-start justify-between">
         <div>
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="text-3xl font-bold text-slate-800 mt-1">{value}</p>
+            <p className="text-sm font-medium text-foreground-muted">{title}</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
             {change && (
                 <div className={`mt-2 flex items-center text-sm ${changeType === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
                     {changeType === 'increase' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
@@ -661,97 +546,87 @@ const StatCard = ({ icon: Icon, title, value, change, changeType }) => (
                 </div>
             )}
         </div>
-        <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
+        <div className="bg-primary/10 text-primary p-3 rounded-lg">
             <Icon className="h-6 w-6" />
         </div>
     </div>
 );
 
-const TenantList = ({ tenants, onDelete, onEdit, onViewDetails }) => (
-    <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-            <thead className="bg-slate-50">
-                <tr>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Tenant ID</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Status</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Company Name</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">JdbC Url</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Username</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Actions</th>
-                </tr>
-            </thead>
-            <tbody className="text-slate-700">
-                {tenants.map(tenant => (
-                    <tr key={tenant.id} className="border-b border-slate-200 hover:bg-slate-50" >
-                        <td className="py-3 px-4 font-medium">{tenant.tenantId}</td>
-                        <td className="py-3 px-4">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                tenant.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>{tenant.status}</span>
-                        </td>
-                        <td className="py-3 px-4">{tenant.companyName}</td>
-                        <td className="py-3 px-4">{tenant.jdbcUrl}</td>
-                        <td className="py-3 px-4 text-sm text-slate-500">{tenant.username}</td>
-                        <td className="py-3 px-4 flex items-center gap-1">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onViewDetails(tenant); }}
-                                className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full transition-colors"
-                                title={`View ${tenant.tenantId}`}
-                            >
-                                <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(tenant);
-                                }}
-                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
-                                title={`Edit ${tenant.tenantId}`}
-                            >
-                                <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete(tenant.tenantId);
-                                }}
-                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors"
-                                title={`Delete ${tenant.tenantId}`}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    </div>
-);
+const TenantCard = ({ tenant, onDelete, onEdit, onViewDetails }) => {
+    const statusColor = tenant.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500';
+    return (
+        <div className="bg-background-muted rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+                <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-foreground">{tenant.companyName}</h3>
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full capitalize ${tenant.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {tenant.status.toLowerCase()}
+                    </span>
+                </div>
+                <p className="text-sm text-foreground-muted font-mono">{tenant.tenantId}</p>
+                <div className="mt-3 text-xs space-y-1 text-foreground-muted">
+                    <p><span className="font-semibold">DB User:</span> {tenant.username}</p>
+                    <p className="truncate"><span className="font-semibold">DB URL:</span> {tenant.jdbcUrl}</p>
+                </div>
+            </div>
+            <div className="flex items-center justify-end gap-1 mt-4 pt-3 border-t border-border">
+                <button onClick={() => onViewDetails(tenant)} className="p-2 text-foreground-muted hover:text-green-500 hover:bg-background rounded-full transition-colors" title={`View ${tenant.tenantId}`}>
+                    <Eye className="h-4 w-4" />
+                </button>
+                <button onClick={() => onEdit(tenant)} className="p-2 text-foreground-muted hover:text-blue-500 hover:bg-background rounded-full transition-colors" title={`Edit ${tenant.tenantId}`}>
+                    <Edit className="h-4 w-4" />
+                </button>
+                <button onClick={() => onDelete(tenant.tenantId)} className="p-2 text-foreground-muted hover:text-red-500 hover:bg-background rounded-full transition-colors" title={`Delete ${tenant.tenantId}`}>
+                    <Trash2 className="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const TenantList = ({ tenants, onDelete, onEdit, onViewDetails }) => {
+    if (tenants.length === 0) {
+        return (
+            <div className="text-center py-16 text-foreground-muted">
+                <Search className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                <h3 className="mt-2 text-sm font-medium text-foreground">No Tenants Found</h3>
+                <p className="mt-1 text-sm">No tenants match your search criteria.</p>
+            </div>
+        );
+    }
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {tenants.map(tenant => (
+                <TenantCard key={tenant.id} tenant={tenant} onDelete={onDelete} onEdit={onEdit} onViewDetails={onViewDetails} />
+            ))}
+        </div>
+    );
+};
 
 const TenantRequestList = ({ requests, onApprove, onReject }) => (
     <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-            <thead className="bg-slate-50">
+        <table className="min-w-full">
+            <thead className="bg-background-muted">
                 <tr>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Requested ID</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Company Name</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Admin Email</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Admin Password</th>
-                    <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Actions</th>
+                    <th className="th-cell">Requested ID</th>
+                    <th className="th-cell">Company Name</th>
+                    <th className="th-cell">Admin Email</th>
+                    <th className="th-cell">Admin Password</th>
+                    <th className="th-cell">Actions</th>
                 </tr>
             </thead>
-            <tbody className="text-slate-700">
+            <tbody className="text-foreground-muted">
                 {requests.length === 0 ? (
                     <tr>
-                        <td colSpan="4" className="text-center py-10 text-slate-500">No pending tenant requests.</td>
+                        <td colSpan="4" className="text-center py-10">No pending tenant requests.</td>
                     </tr>
                 ) : (
                     requests.map(request => (
-                        <tr key={request.id} className="border-b border-slate-200 hover:bg-slate-50">
-                            <td className="py-3 px-4 font-medium">{request.tenantId}</td>
-                            <td className="py-3 px-4">{request.companyName}</td>
-                            <td className="py-3 px-4 text-sm text-slate-500">{request.adminEmail}</td>
-                            <td className="py-3 px-4 text-sm text-slate-500">{request.adminPassword}</td>
+                        <tr key={request.id} className="border-b border-border hover:bg-background-muted">
+                            <td className="td-cell font-medium text-foreground">{request.tenantId}</td>
+                            <td className="td-cell">{request.companyName}</td>
+                            <td className="td-cell">{request.adminEmail}</td>
+                            <td className="td-cell">{request.adminPassword}</td>
                             <td className="py-3 px-4 flex items-center gap-2">
                                 <button 
                                     onClick={() => onApprove(request)}
@@ -790,6 +665,24 @@ const MasterAdmin = () => {
     const [editingTenant, setEditingTenant] = useState(null);
     const [error, setError] = useState('');
     const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+    const themes = ['light', 'dark', 'greenish', 'blueish'];
+    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+    useEffect(() => {
+        const root = document.documentElement;
+        themes.forEach(t => root.classList.remove(t));
+        if (theme !== 'light') {
+            root.classList.add(theme);
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const cycleTheme = () => {
+        const currentIndex = themes.indexOf(theme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        setTheme(themes[nextIndex]);
+    };
 
     // Stats data
     const stats = useMemo(() => [
@@ -939,36 +832,38 @@ const MasterAdmin = () => {
             case 'dashboard':
                 return <DashboardView stats={stats} loading={loading} error={error} />;
             case 'tenants':
-                return <TenantsView tenants={tenants} loading={loading} error={error} onDelete={handleDelete} onEdit={handleOpenUpdateModal} onProvisionClick={() => setIsModalOpen(true)} onViewDetails={handleViewDetails} />;
+                return <TenantsView tenants={tenants} loading={loading} error={error} onDelete={handleDelete} onEdit={handleOpenUpdateModal} onProvisionClick={() => setActiveView('provision')} onViewDetails={handleViewDetails} />;
             case 'requests':
                 return <RequestsView requests={tenantRequests} loading={loading} error={error} onApprove={handleApprove} onReject={handleReject} />;
             case 'users':
                 return <MasterUsers />;
+            case 'provision':
+                return <ProvisionTenant onProvision={handleProvision} onCancel={() => setActiveView('tenants')} />;
             default:
                 return <DashboardView stats={stats} loading={loading} error={error} />;
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <div className="flex h-screen bg-slate-100">
+        <div className="min-h-screen bg-background text-foreground">
+            <div className="flex h-screen bg-background">
                 {/* Static sidebar for desktop */}
                 <div className="hidden lg:flex lg:flex-shrink-0">
-                    <div className="flex flex-col w-64 border-r border-slate-200">
-                        <MasterSidebar activeView={activeView} setActiveView={setActiveView} />
+                    <div className="flex flex-col w-64 border-r border-border">
+                        <MasterSidebar activeView={activeView} setActiveView={setActiveView} theme={theme} cycleTheme={cycleTheme} />
                     </div>
                 </div>
 
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Top bar for mobile */}
-                    <header className="lg:hidden sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow-sm">
-                        <button type="button" className="px-4 border-r border-slate-200 text-slate-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" onClick={() => setSidebarOpen(true)}>
+                    <header className="lg:hidden sticky top-0 z-10 flex-shrink-0 flex h-16 bg-card shadow-sm">
+                        <button type="button" className="px-4 border-r border-border text-foreground-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary" onClick={() => setSidebarOpen(true)}>
                             <Menu className="h-6 w-6" />
                         </button>
                         <div className="flex-1 px-4 flex justify-between items-center">
                             <Link to="/master-admin" className="flex items-center gap-2">
-                                <Sparkles className="h-6 w-6 text-blue-600" />
-                                <span className="font-bold text-lg">Master Panel</span>
+                                <Sparkles className="h-6 w-6 text-primary" />
+                                <span className="font-bold text-lg text-foreground">Master Panel</span>
                             </Link>
                         </div>
                     </header>
@@ -985,15 +880,14 @@ const MasterAdmin = () => {
                 <AnimatePresence>
                     {sidebarOpen && (
                         <>
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
-                            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="fixed top-0 left-0 h-full w-64 z-30">
-                                <MasterSidebar activeView={activeView} setActiveView={setActiveView} onLinkClick={() => setSidebarOpen(false)} />
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed top-0 left-0 h-full w-64 z-30"
+                        >
+                            <MasterSidebar activeView={activeView} setActiveView={setActiveView} onLinkClick={() => setSidebarOpen(false)} theme={theme} cycleTheme={cycleTheme} />
                             </motion.div>
                         </>
                     )}
                 </AnimatePresence>
 
-                <ProvisionTenantModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onProvision={handleProvision} />
                 <UpdateTenantModal isOpen={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} onUpdate={handleUpdate} tenant={editingTenant} isLoading={modalLoading} />
                 <TenantDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} tenant={viewingTenant} onEditClick={handleEditFromDetails} />
             </div>

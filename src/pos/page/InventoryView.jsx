@@ -26,11 +26,11 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleStr
 const Modal = ({ isOpen, onClose, title, children, size = 'max-w-2xl' }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className={`bg-white rounded-lg shadow-xl w-full ${size} flex flex-col max-h-[90vh]`} onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                    <h3 className="text-xl font-semibold">{title}</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4" onClick={onClose}>
+            <div className={`bg-card text-card-foreground rounded-lg shadow-xl w-full ${size} flex flex-col max-h-[90vh]`} onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-border flex justify-between items-center flex-shrink-0">
+                    <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+                    <button onClick={onClose} className="p-1 rounded-full text-foreground-muted hover:bg-background-muted"><X size={20} /></button>
                 </div>
                 <div className="p-6 overflow-y-auto">{children}</div>
             </div>
@@ -87,23 +87,23 @@ const PurchaseOrderForm = ({ onSave, onCancel, stores, products }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="label">Store</label>
-                    <select name="storeId" value={formData.storeId} onChange={handleChange} className="input" required>
+                    <label className="label text-foreground-muted">Store</label>
+                    <select name="storeId" value={formData.storeId} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required>
                         {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="label">Supplier Name</label>
-                    <input name="supplierName" value={formData.supplierName} onChange={handleChange} className="input" required />
+                    <label className="label text-foreground-muted">Supplier Name</label>
+                    <input name="supplierName" value={formData.supplierName} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required />
                 </div>
             </div>
-            <h4 className="font-semibold pt-4 border-t">Items</h4>
+            <h4 className="font-semibold text-foreground pt-4 border-t border-border">Items</h4>
             <div className="space-y-3">
                 {formData.items.map((item, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2 items-end">
                         <div className="col-span-5">
-                            <label className="label text-xs">Product</label>
-                            <select name="productVariantId" value={item.productVariantId} onChange={e => handleItemChange(index, e)} className="input" required>
+                            <label className="label text-xs text-foreground-muted">Product</label>
+                            <select name="productVariantId" value={item.productVariantId} onChange={e => handleItemChange(index, e)} className="input bg-background-muted border-border text-foreground" required>
                                 <option value="">Select Product</option>
                                 {products.flatMap(p => p.variants.map(v => (
                                     <option key={v.id} value={v.id}>{p.name} ({v.sku})</option>
@@ -111,12 +111,12 @@ const PurchaseOrderForm = ({ onSave, onCancel, stores, products }) => {
                             </select>
                         </div>
                         <div className="col-span-3">
-                            <label className="label text-xs">Quantity</label>
-                            <input name="quantityOrdered" type="number" min="1" value={item.quantityOrdered} onChange={e => handleItemChange(index, e)} className="input" />
+                            <label className="label text-xs text-foreground-muted">Quantity</label>
+                            <input name="quantityOrdered" type="number" min="1" value={item.quantityOrdered} onChange={e => handleItemChange(index, e)} className="input bg-background-muted border-border text-foreground" />
                         </div>
                         <div className="col-span-3">
-                            <label className="label text-xs">Unit Cost (cents)</label>
-                            <input name="unitCostCents" type="number" min="0" value={item.unitCostCents} onChange={e => handleItemChange(index, e)} className="input" />
+                            <label className="label text-xs text-foreground-muted">Unit Cost (cents)</label>
+                            <input name="unitCostCents" type="number" min="0" value={item.unitCostCents} onChange={e => handleItemChange(index, e)} className="input bg-background-muted border-border text-foreground" />
                         </div>
                         <div className="col-span-1">
                             <button type="button" onClick={() => removeItem(index)} className="btn-secondary p-2 h-10 w-10 text-red-500"><Trash2 size={16} /></button>
@@ -124,8 +124,8 @@ const PurchaseOrderForm = ({ onSave, onCancel, stores, products }) => {
                     </div>
                 ))}
             </div>
-            <button type="button" onClick={addItem} className="btn-secondary text-sm"><PlusCircle size={16} className="mr-2" />Add Item</button>
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <button type="button" onClick={addItem} className="btn-secondary text-sm"><PlusCircle size={16} className="mr-2" />Add Item</button> 
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary" disabled={isLoading}>
                     {isLoading && <Loader className="animate-spin h-4 w-4 mr-2" />}
@@ -304,24 +304,24 @@ const StockAdjustmentForm = ({ onSave, onCancel, item, stores, products }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-sm">Adjust stock for: <span className="font-semibold">{item?.productName} ({item?.variantSku})</span></p>
+            <p className="text-sm text-foreground-muted">Adjust stock for: <span className="font-semibold text-foreground">{item?.productName} ({item?.variantSku})</span></p>
             <input type="hidden" name="productVariantId" value={formData.productVariantId} />
             <div>
-                <label className="label">Store</label>
-                <select name="storeId" value={formData.storeId} onChange={handleChange} className="input" required>
+                <label className="label text-foreground-muted">Store</label>
+                <select name="storeId" value={formData.storeId} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required>
                     {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
                 </select>
             </div>
             <div>
-                <label className="label">Change Quantity</label>
-                <input name="changeQuantity" type="number" value={formData.changeQuantity} onChange={handleChange} className="input" placeholder="e.g., 10 or -5" required />
-                <p className="text-xs text-slate-500 mt-1">Use a positive number to add stock, a negative number to remove it.</p>
+                <label className="label text-foreground-muted">Change Quantity</label>
+                <input name="changeQuantity" type="number" value={formData.changeQuantity} onChange={handleChange} className="input bg-background-muted border-border text-foreground" placeholder="e.g., 10 or -5" required />
+                <p className="text-xs text-foreground-muted mt-1">Use a positive number to add stock, a negative number to remove it.</p>
             </div>
             <div>
-                <label className="label">Reason</label>
-                <input name="reason" value={formData.reason} onChange={handleChange} className="input" required />
+                <label className="label text-foreground-muted">Reason</label>
+                <input name="reason" value={formData.reason} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required />
             </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary" disabled={isLoading}>
                     {isLoading && <Loader className="animate-spin h-4 w-4 mr-2" />}
@@ -365,18 +365,18 @@ const AddStockItemForm = ({ onSave, onCancel, stores, products, existingVariantI
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className="label">Product Variant</label>
-                <select name="productVariantId" value={formData.productVariantId} onChange={handleChange} className="input" required>
+                <label className="label text-foreground-muted">Product Variant</label>
+                <select name="productVariantId" value={formData.productVariantId} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required>
                     <option value="">Select a product to add</option>
                     {availableVariants.map(v => <option key={v.id} value={v.id}>{v.productName} ({v.sku})</option>)}
                 </select>
             </div>
             <div>
-                <label className="label">Initial Quantity</label>
-                <input name="changeQuantity" type="number" min="0" value={formData.changeQuantity} onChange={handleChange} className="input" required />
+                <label className="label text-foreground-muted">Initial Quantity</label>
+                <input name="changeQuantity" type="number" min="0" value={formData.changeQuantity} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required />
             </div>
-            <div><label className="label">Reason</label><input name="reason" value={formData.reason} onChange={handleChange} className="input" required /></div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div><label className="label text-foreground-muted">Reason</label><input name="reason" value={formData.reason} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></div>
+            <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary" disabled={isLoading}>{isLoading && <Loader className="animate-spin h-4 w-4 mr-2" />} Add to Stock</button>
             </div>
@@ -498,46 +498,46 @@ const StockLevelsTab = () => {
         new Set(stockLevels.map(item => item.productVariantId))
     , [stockLevels]);
 
-    if (loading.stores) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
-    if (error) return <div className="text-center text-red-500 p-4 bg-red-50 rounded-md">{error}</div>;
+    if (loading.stores) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (error) return <div className="text-center text-red-500 p-4 bg-red-500/10 rounded-md">{error}</div>;
 
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">Current Stock Levels</h3> {canManage && selectedStore && (
+                <h3 className="text-xl font-semibold text-foreground">Current Stock Levels</h3> {canManage && selectedStore && (
                     <button onClick={() => setIsAddStockModalOpen(true)} className="btn-primary flex items-center gap-2"><PlusCircle size={18} /> Add Product to Stock</button>
                 )}
                 <div>
-                    <label className="label text-sm">Select Store</label>
-                    <select value={selectedStore} onChange={e => setSelectedStore(e.target.value)} className="input">
+                    <label className="label text-sm text-foreground-muted">Select Store</label>
+                    <select value={selectedStore} onChange={e => setSelectedStore(e.target.value)} className="input bg-background-muted border-border text-foreground">
                         <option value="">-- Select a Store --</option>
                         {stores.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
                     </select>
                 </div>
             </div>
             {loading.stock ? (
-                <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>
+                <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-primary" /></div>
             ) : Object.keys(groupedStock).length === 0 && selectedStore ? (
-                <div className="text-center py-10 border-2 border-dashed border-slate-300 rounded-lg">
-                    <p className="text-slate-500">No stock records found for this store.</p>
+                <div className="text-center py-10 border-2 border-dashed border-border rounded-lg bg-card text-card-foreground">
+                    <p className="text-foreground-muted">No stock records found for this store.</p>
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {Object.entries(groupedStock).map(([category, items]) => (
-                        <div key={category} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            <h4 className="px-4 py-2 bg-slate-100 text-slate-600 font-semibold text-sm border-b border-slate-200">{category}</h4>
+                    {Object.entries(groupedStock).map(([category, items]) => ( 
+                        <div key={category} className="bg-card rounded-xl shadow-sm overflow-hidden">
+                            <h4 className="px-4 py-2 bg-background-muted text-foreground-muted font-semibold text-sm border-b border-border">{category}</h4>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200">
-                                    <thead className="bg-slate-50">
+                                <table className="min-w-full divide-y divide-border">
+                                    <thead className="bg-background-muted">
                                         <tr><th className="th-cell">Product</th><th className="th-cell">SKU</th><th className="th-cell text-right">Quantity</th>
                                         {canManage && <th className="th-cell">Actions</th>}
                                         </tr>
                                     </thead>
-                                    <tbody className="text-slate-700">
+                                    <tbody className="text-foreground-muted">
                                         {items.map(item => (
-                                            <tr key={item.inventoryId} className="border-b border-slate-200 hover:bg-slate-50 last:border-b-0">
-                                                <td className="td-cell font-medium">{item.productName}</td><td className="td-cell">{item.productVariantSku}</td><td className="td-cell text-right font-semibold">{item.quantity}</td>
-                                                {canManage && <td className="td-cell"><button onClick={() => handleOpenAdjustModal(item)} className="p-1.5 text-slate-500 hover:text-blue-600 rounded-full" title="Adjust Stock"><SlidersHorizontal size={16} /></button></td>}
+                                            <tr key={item.inventoryId} className="border-b border-border hover:bg-background-muted last:border-b-0">
+                                                <td className="td-cell font-medium text-foreground">{item.productName}</td><td className="td-cell text-foreground-muted">{item.productVariantSku}</td><td className="td-cell text-right font-semibold text-foreground">{item.quantity}</td>
+                                                {canManage && <td className="td-cell"><button onClick={() => handleOpenAdjustModal(item)} className="p-1.5 text-foreground-muted hover:text-primary rounded-full" title="Adjust Stock"><SlidersHorizontal size={16} /></button></td>}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -547,10 +547,10 @@ const StockLevelsTab = () => {
                     ))}
                 </div>
             )}
-            <Modal isOpen={isAdjustModalOpen} onClose={() => setIsAdjustModalOpen(false)} title="Adjust Stock" size="max-w-lg">
+            <Modal isOpen={isAdjustModalOpen} onClose={() => setIsAdjustModalOpen(false)} title="Adjust Stock" size="max-w-lg"> {/* No change here, already good */}
                 <StockAdjustmentForm onSave={handleSaveAdjustment} onCancel={() => setIsAdjustModalOpen(false)} item={adjustmentItem} stores={stores} products={products} />
             </Modal>
-            <Modal isOpen={isAddStockModalOpen} onClose={() => setIsAddStockModalOpen(false)} title="Add Product to Stock" size="max-w-lg">
+            <Modal isOpen={isAddStockModalOpen} onClose={() => setIsAddStockModalOpen(false)} title="Add Product to Stock" size="max-w-lg"> {/* No change here, already good */}
                 <AddStockItemForm onSave={handleSaveNewStockItem} onCancel={() => setIsAddStockModalOpen(false)} stores={stores} products={products} existingVariantIds={existingVariantIdsInStore} selectedStoreId={selectedStore} />
             </Modal>
         </div>
@@ -580,16 +580,16 @@ const StockMovementsTab = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
-    if (error) return <div className="text-center text-red-500 p-4 bg-red-50 rounded-md">{error}</div>;
+    if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (error) return <div className="text-center text-red-500 p-4 bg-red-500/10 rounded-md">{error}</div>;
 
     return (
         <div>
-            <h3 className="text-xl font-semibold mb-4">Stock Movement History</h3>
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <h3 className="text-xl font-semibold text-foreground mb-4">Stock Movement History</h3>
+            <div className="bg-card rounded-xl shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-background-muted">
                             <tr>
                                 <th className="th-cell">Date</th>
                                 <th className="th-cell">Product</th>
@@ -599,15 +599,15 @@ const StockMovementsTab = () => {
                                 <th className="th-cell">Reason</th>
                             </tr>
                         </thead>
-                        <tbody className="text-slate-700">
+                        <tbody className="text-foreground-muted">
                             {movements.map(item => (
-                                <tr key={item.id} className="border-b border-slate-200 hover:bg-slate-50">
-                                    <td className="td-cell text-sm">{formatDate(item.createdAt)}</td>
-                                    <td className="td-cell font-medium">{item.productName}</td>
-                                    <td className="td-cell">{item.variantSku}</td>
-                                    <td className="td-cell">{item.storeName}</td>
+                                <tr key={item.id} className="border-b border-border hover:bg-background-muted">
+                                    <td className="td-cell text-sm text-foreground-muted">{formatDate(item.createdAt)}</td>
+                                    <td className="td-cell font-medium text-foreground">{item.productName}</td>
+                                    <td className="td-cell text-foreground-muted">{item.variantSku}</td>
+                                    <td className="td-cell text-foreground-muted">{item.storeName}</td>
                                     <td className={`td-cell text-right font-semibold ${item.changeQuantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{item.changeQuantity > 0 ? `+${item.changeQuantity}` : item.changeQuantity}</td>
-                                    <td className="td-cell text-sm text-slate-500">{item.reason}</td>
+                                    <td className="td-cell text-sm text-foreground-muted">{item.reason}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -629,12 +629,12 @@ const InventoryView = () => {
 
     return (
         <div className="p-6 md:p-8 h-full flex flex-col">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-slate-800">Inventory</h1>
-                <p className="text-slate-500 mt-1">Manage purchase orders and track stock.</p>
+            <div className="mb-6 bg-background text-foreground">
+                <h1 className="text-3xl font-bold text-foreground">Inventory</h1>
+                <p className="text-foreground-muted mt-1">Manage purchase orders and track stock.</p>
             </div>
 
-            <div className="border-b border-slate-200">
+            <div className="border-b border-border">
                 <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                     {tabs.map((tab) => (
                         <button
@@ -642,8 +642,8 @@ const InventoryView = () => {
                             onClick={() => setActiveTab(tab.id)}
                             className={`whitespace-nowrap flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                                 activeTab === tab.id
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-foreground-muted hover:text-foreground hover:border-border'
                             }`}
                         >
                             <tab.icon className="mr-2 h-5 w-5" />

@@ -45,26 +45,26 @@ const ShiftPolicyModal = ({ isOpen, onClose, onSave, policy, loading }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">{policy ? 'Edit' : 'Add'} Shift Policy</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100"><X className="h-5 w-5" /></button>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-lg">
+                <div className="p-4 border-b border-border flex justify-between items-center">
+                    <h2 className="text-xl font-semibold text-foreground">{policy ? 'Edit' : 'Add'} Shift Policy</h2>
+                    <button onClick={onClose} className="p-2 rounded-full text-foreground-muted hover:bg-background-muted"><X className="h-5 w-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2"><input name="policyName" value={formData.policyName} onChange={handleChange} placeholder="Policy Name" className="input" required /></div>
-                        <div><label className="label">Start Time</label><input name="shiftStartTime" type="time" value={formData.shiftStartTime} onChange={handleChange} className="input" required /></div>
-                        <div><label className="label">End Time</label><input name="shiftEndTime" type="time" value={formData.shiftEndTime} onChange={handleChange} className="input" required /></div>
-                        <div><label className="label">Grace Period (mins)</label><input name="gracePeriodMinutes" type="number" value={formData.gracePeriodMinutes} onChange={handleChange} className="input" required /></div>
-                        <div><label className="label">Half-Day After (mins)</label><input name="graceHalfDayMinutes" type="number" value={formData.graceHalfDayMinutes} onChange={handleChange} className="input" required /></div>
-                        <div className="md:col-span-2"><textarea name="description" value={formData.description} onChange={handleChange} placeholder="Description" className="input" /></div>
+                        <div className="md:col-span-2"><input name="policyName" value={formData.policyName} onChange={handleChange} placeholder="Policy Name" className="input bg-background-muted border-border text-foreground" required /></div>
+                        <div><label className="label text-foreground-muted">Start Time</label><input name="shiftStartTime" type="time" value={formData.shiftStartTime} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></div>
+                        <div><label className="label text-foreground-muted">End Time</label><input name="shiftEndTime" type="time" value={formData.shiftEndTime} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></div>
+                        <div><label className="label text-foreground-muted">Grace Period (mins)</label><input name="gracePeriodMinutes" type="number" value={formData.gracePeriodMinutes} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></div>
+                        <div><label className="label text-foreground-muted">Half-Day After (mins)</label><input name="graceHalfDayMinutes" type="number" value={formData.graceHalfDayMinutes} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></div>
+                        <div className="md:col-span-2"><textarea name="description" value={formData.description} onChange={handleChange} placeholder="Description" className="input bg-background-muted border-border text-foreground" /></div>
                         <div className="md:col-span-2 flex items-center gap-2">
-                            <input type="checkbox" id="isDefault" name="isDefault" checked={formData.isDefault} onChange={handleChange} className="h-4 w-4 rounded" />
-                            <label htmlFor="isDefault" className="text-sm font-medium">Set as Default Policy</label>
+                            <input type="checkbox" id="isDefault" name="isDefault" checked={formData.isDefault} onChange={handleChange} className="h-4 w-4 rounded border-border text-primary" />
+                            <label htmlFor="isDefault" className="text-sm font-medium text-foreground-muted">Set as Default Policy</label>
                         </div>
                     </div>
-                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
+                    <div className="p-4 border-t border-border bg-background-muted flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
                         <button type="submit" className="btn-primary flex items-center" disabled={loading}>
                             {loading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Check className="h-4 w-4 mr-2" />} Save

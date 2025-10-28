@@ -1,17 +1,39 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Store, Settings as SettingsIcon } from 'lucide-react';
+import { SlidersHorizontal, Store, Settings as SettingsIcon, Users, Factory, Palette } from 'lucide-react';
 import { useTenant } from '../context/TenantContext';
+import CompanyHubLayout from '../components/CompanyHubLayout';
 
 const allSettingsSections = [
-    { name: 'HRMS', path: '/company-settings/hrms', icon: SlidersHorizontal, module: 'HRMS_CORE' },
-    { name: 'POS', path: '/company-settings/pos', icon: Store, module: 'POS' },
+    { name: 'HRMS', path: '/company-settings/hrms', icon: SlidersHorizontal, module: 'HRMS_CORE', color: 'text-blue-500' },
+    { name: 'POS', path: '/company-settings/pos', icon: Store, module: 'POS', color: 'text-orange-500' },
+    { name: 'CRM', path: '/company-settings/crm', icon: Users, module: 'CRM', color: 'text-green-500' },
+    { name: 'Production', path: '/company-settings/production', icon: Factory, module: 'PRODUCTION', color: 'text-purple-500' },
 ];
 
 const Settings = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { hasModule } = useTenant();
+    const themes = ['light', 'dark', 'greenish', 'blueish'];
+    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+    useEffect(() => {
+        const root = document.documentElement;
+        // Remove all theme classes
+        themes.forEach(t => root.classList.remove(t));
+        // Add the current theme class if it's not light
+        if (theme !== 'light') {
+            root.classList.add(theme);
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const cycleTheme = () => {
+        const currentIndex = themes.indexOf(theme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        setTheme(themes[nextIndex]);
+    };
 
     const settingsSections = useMemo(() => {
         return allSettingsSections.filter(section => !section.module || hasModule(section.module));
@@ -25,39 +47,49 @@ const Settings = () => {
     }, [location.pathname, navigate]);
 
     return (
-            <div className="flex flex-col md:flex-row gap-8 h-full">
-                {/* Settings Navigation Sidebar */}
-                <aside className="md:w-64 flex-shrink-0">
-                    <div className="flex items-center gap-3 mb-6">
-                        <SettingsIcon className="h-7 w-7 text-slate-500" />
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
-                            <p className="text-slate-500 text-sm">Manage modules</p>
+        <CompanyHubLayout>
+            <div className="flex flex-col h-full"> {/* Added h-full to ensure the flex column takes full height */}
+                <nav className="bg-card text-card-foreground border-b border-border">
+                    <div className="flex items-center justify-between p-4">
+                        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+                        <div className="flex items-center justify-between capitalize">
+                            <span className="text-sm text-foreground-muted">{theme} Mode</span>
+                            <button
+                                onClick={cycleTheme}
+                                className="p-2 rounded-full hover:bg-background-muted text-foreground-muted"
+                                title="Cycle Theme"
+                            >
+                                <Palette className="h-5 w-5" />
+                            </button>
                         </div>
                     </div>
-                    <nav className="space-y-2">
+                    <div className="flex space-x-6 overflow-x-auto px-4" aria-label="Tabs">
                         {settingsSections.map(section => (
                             <NavLink
                                 key={section.name}
                                 to={section.path}
-                                className={({ isActive }) => `w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-left ${
-                                    isActive
-                                        ? 'bg-slate-200 text-slate-900 font-semibold'
-                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                }`}
+                                className={({ isActive }) =>
+                                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-left whitespace-nowrap ${
+                                        isActive
+                                            ? 'bg-primary text-primary-foreground shadow-sm'
+                                            : 'text-foreground-muted hover:bg-background-muted'
+                                    }`
+                                }
                             >
-                                <section.icon className="h-5 w-5 mr-3" />
-                                <span>{section.name} Settings</span>
+                                {({ isActive }) => (
+                                    <><section.icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? '' : section.color}`} /><span>{section.name} Settings</span></>
+                                )}
                             </NavLink>
                         ))}
-                    </nav>
-                </aside>
+                    </div>
+                </nav>
 
                 {/* Main Settings Content */}
-                <div className="flex-1 bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div className="h-full overflow-y-auto"><Outlet /></div>
+                <div className="flex-1 bg-card rounded-xl shadow-sm overflow-hidden"> {/* Removed duplicate padding here */}
+                    <Outlet />
                 </div>
             </div>
+        </CompanyHubLayout>
     );
 }
 

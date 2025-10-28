@@ -5,15 +5,15 @@ import axios from 'axios';
 // Reusable component for a field in a profile card
 const InfoField = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-base font-medium text-slate-800">{value || 'N/A'}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="text-base font-medium text-foreground">{value || 'N/A'}</p>
     </div>
 );
 
 // Reusable card component for profile sections
 const ProfileCard = ({ title, children }) => (
-    <div className="bg-slate-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-slate-900 border-b border-slate-200 pb-3 mb-4">{title}</h3>
+    <div className="bg-background-muted rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-foreground border-b border-border pb-3 mb-4">{title}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
             {children}
         </div>
@@ -27,12 +27,12 @@ const EditField = ({ label, name, value, onChange, type = 'text', options = [] }
         name: name,
         value: value ?? '',
         onChange: onChange,
-        className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm"
+        className: "input bg-background-muted border-border text-foreground"
     };
 
     return (
         <div>
-            <label htmlFor={name} className="block text-sm font-medium text-slate-700">{label}</label>
+            <label htmlFor={name} className="block text-sm font-medium text-foreground-muted">{label}</label>
             {type === 'select' ? (
                 <select {...commonProps}>
                     {options.map(option => (
@@ -60,7 +60,7 @@ const Profile = ({ employee, onUpdate }) => {
 
     // If no employee data is available, render a placeholder or nothing.
     if (!employee) {
-        return <div className="text-center text-slate-500">No employee data available.</div>;
+        return <div className="text-center text-foreground-muted">No employee data available.</div>;
     }
 
     const handleChange = (e) => {
@@ -106,20 +106,20 @@ const Profile = ({ employee, onUpdate }) => {
             <div className="flex justify-end mb-4 gap-2">
                 {isEditing ? (
                     <>
-                        <button onClick={handleCancel} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 text-sm font-medium">Cancel</button>
-                        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center" disabled={loading}>
+                        <button onClick={handleCancel} className="btn-secondary" disabled={loading}>Cancel</button>
+                        <button onClick={handleSave} className="btn-primary flex items-center" disabled={loading}>
                             {loading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Check className="h-4 w-4 mr-2" />}
                             Save
                         </button>
                     </>
                 ) : (
-                    <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center">
+                    <button onClick={() => setIsEditing(true)} className="btn-primary flex items-center">
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit Profile
                     </button>
                 )}
             </div>
-            {error && <div className="text-center text-red-600 p-3 bg-red-50 rounded-md mb-4">{error}</div>}
+            {error && <div className="text-center text-red-600 dark:text-red-400 p-3 bg-red-50 dark:bg-red-900/20 rounded-md mb-4">{error}</div>}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ProfileCard title="Primary Details">
                     {isEditing ? <>

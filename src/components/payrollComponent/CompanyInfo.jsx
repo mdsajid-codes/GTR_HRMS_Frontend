@@ -5,19 +5,19 @@ import axios from 'axios';
 // --- Helper Components ---
 const InputField = ({ label, id, ...props }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium text-slate-700">{label}</label>
-        <input id={id} {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+        <label htmlFor={id} className="block text-sm font-medium text-foreground-muted">{label}</label>
+        <input id={id} {...props} className="input bg-background-muted border-border text-foreground" />
     </div>
 );
 
 const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl p-6 w-full max-w-lg">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    <button onClick={onClose} className="text-slate-500 hover:text-slate-800">&times;</button>
+                    <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                    <button onClick={onClose} className="text-foreground-muted hover:text-foreground">&times;</button>
                 </div>
                 {children}
             </div>
@@ -27,8 +27,8 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
 const InfoDisplay = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="font-medium text-slate-800">{value || <span className="text-slate-400">N/A</span>}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="font-medium text-foreground">{value || <span className="text-foreground-muted/50">N/A</span>}</p>
     </div>
 );
 
@@ -132,10 +132,10 @@ const CompanyDetailsTab = () => {
 
     if (!companyInfo) {
         return (
-            <div className="text-center py-10 border-2 border-dashed border-slate-300 rounded-lg">
-                <Building className="mx-auto h-12 w-12 text-slate-400" />
-                <h3 className="mt-2 text-sm font-medium text-slate-900">No Company Information</h3>
-                <p className="mt-1 text-sm text-slate-500">Get started by adding your company's details.</p>
+            <div className="text-center py-10 border-2 border-dashed border-border rounded-lg bg-card text-card-foreground">
+                <Building className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                <h3 className="mt-2 text-sm font-medium text-foreground">No Company Information</h3>
+                <p className="mt-1 text-sm text-foreground-muted">Get started by adding your company's details.</p>
                 <div className="mt-6">
                     <button onClick={() => setIsEditing(true)} className="btn-primary flex items-center mx-auto">
                         <PlusCircle size={16} className="mr-2" />
@@ -153,9 +153,9 @@ const CompanyDetailsTab = () => {
                     <Edit size={16} /> Edit
                 </button>
             </div>
-            <div className="space-y-6">
-                <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-4">General Information</h4>
+            <div className="space-y-6 bg-card p-6 rounded-xl shadow-sm">
+                <div className="p-4 border border-border rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-4">General Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <InfoDisplay label="Company Name" value={companyInfo.companyName} />
                         <InfoDisplay label="Email" value={companyInfo.email} />
@@ -163,8 +163,8 @@ const CompanyDetailsTab = () => {
                         <InfoDisplay label="Website" value={companyInfo.website} />
                     </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-4">Address</h4>
+                <div className="p-4 border border-border rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-4">Address</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <InfoDisplay label="Address" value={companyInfo.address} />
                         <InfoDisplay label="City" value={companyInfo.city} />
@@ -173,8 +173,8 @@ const CompanyDetailsTab = () => {
                         <InfoDisplay label="Country" value={companyInfo.country} />
                     </div>
                 </div>
-                <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-4">Statutory Details</h4>
+                <div className="p-4 border border-border rounded-lg">
+                    <h4 className="font-semibold text-foreground mb-4">Statutory Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <InfoDisplay label="PAN" value={companyInfo.pan} />
                         <InfoDisplay label="TAN" value={companyInfo.tan} />
@@ -191,26 +191,26 @@ const CompanyDetailsTab = () => {
 const CrudTable = ({ title, columns, data, onAdd, onEdit, onDelete, addLabel }) => (
     <div>
         <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">{title}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
             <button onClick={onAdd} className="flex items-center gap-2 btn-secondary">
                 <PlusCircle size={16} /> {addLabel}
             </button>
         </div>
-        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+        <div className="overflow-x-auto border border-border rounded-lg">
+            <table className="min-w-full divide-y divide-border">
+                <thead className="bg-background-muted">
                     <tr>
                         {columns.map(col => <th key={col.key} className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{col.header}</th>)}
                         <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
+                <tbody className="bg-card divide-y divide-border text-foreground-muted">
                     {data.map(item => (
                         <tr key={item.id}>
                             {columns.map(col => <td key={col.key} className="px-4 py-3 whitespace-nowrap text-sm">{col.key === 'primary' ? (item[col.key] ? 'Yes' : 'No') : item[col.key]}</td>)}
-                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                <button onClick={() => onEdit(item)} className="text-blue-600 hover:text-blue-900 mr-3"><Edit size={16} /></button>
-                                <button onClick={() => onDelete(item.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground-muted">
+                                <button onClick={() => onEdit(item)} className="text-primary hover:text-primary/80 mr-3"><Edit size={16} /></button>
+                                <button onClick={() => onDelete(item.id)} className="text-red-500 hover:text-red-600"><Trash2 size={16} /></button>
                             </td>
                         </tr>
                     ))}
@@ -350,16 +350,16 @@ const CompanyInfo = () => {
 
     return (
         <div>
-            <div className="border-b border-slate-200 mb-6">
-                <nav className="-mb-px flex space-x-6" aria-label="Sub-tabs">
+            <div className="border-b border-border mb-6">
+                <nav className="-mb-px flex space-x-6 text-foreground" aria-label="Sub-tabs">
                     {subTabs.map((tab) => (
                         <button
                             key={tab.name}
                             onClick={() => setActiveSubTab(tab.name)}
                             className={`whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                                 activeSubTab === tab.name
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-foreground-muted hover:text-foreground hover:border-border'
                             }`}
                         >
                             <tab.icon className="mr-2 h-5 w-5" />
@@ -368,7 +368,7 @@ const CompanyInfo = () => {
                     ))}
                 </nav>
             </div>
-            <div>
+            <div className="bg-card p-6 rounded-xl shadow-sm">
                 {ActiveComponent && <ActiveComponent />}
             </div>
         </div>

@@ -25,15 +25,15 @@ const api = {
 // --- Reusable Components ---
 const InputField = ({ label, id, ...props }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
-        <input id={id} {...props} className="input" />
+        <label htmlFor={id} className="block text-sm font-medium text-foreground-muted mb-1">{label}</label>
+        <input id={id} {...props} className="input bg-background-muted border-border text-foreground" />
     </div>
 );
 
 const InfoDisplay = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="font-medium text-slate-800">{value || <span className="text-slate-400">N/A</span>}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="font-medium text-foreground">{value || <span className="text-foreground-muted/50">N/A</span>}</p>
     </div>
 );
 
@@ -127,7 +127,7 @@ const CompanyInfo = () => {
                     <InputField label="PF Registration No." id="pfRegistrationNumber" name="pfRegistrationNumber" value={formData.pfRegistrationNumber || ''} onChange={handleChange} />
                     <InputField label="ESI Registration No." id="esiRegistrationNumber" name="esiRegistrationNumber" value={formData.esiRegistrationNumber || ''} onChange={handleChange} />
                 </div>
-                <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                <div className="flex justify-end gap-2 pt-4 border-t border-border">
                     <button type="button" onClick={handleCancel} className="btn-secondary" disabled={saving}>Cancel</button>
                     <button type="submit" className="btn-primary flex items-center gap-2" disabled={saving}>
                         {saving ? <Loader className="animate-spin h-4 w-4" /> : <Save className="h-4 w-4" />}
@@ -140,10 +140,10 @@ const CompanyInfo = () => {
 
     if (!companyInfo) {
         return (
-            <div className="text-center py-16 bg-white rounded-lg shadow-sm border-2 border-dashed border-slate-300">
-                <Building className="mx-auto h-12 w-12 text-slate-400" />
-                <h3 className="mt-2 text-lg font-medium text-slate-900">No Company Information</h3>
-                <p className="mt-1 text-sm text-slate-500">Get started by adding your company's details.</p>
+            <div className="text-center py-16 bg-card rounded-lg shadow-sm border-2 border-dashed border-border">
+                <Building className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                <h3 className="mt-2 text-lg font-medium text-foreground">No Company Information</h3>
+                <p className="mt-1 text-sm text-foreground-muted">Get started by adding your company's details.</p>
                 <div className="mt-6">
                     <button onClick={() => setIsEditing(true)} className="btn-primary flex items-center mx-auto gap-2">
                         <PlusCircle size={16} /> Add Company Details
@@ -154,9 +154,9 @@ const CompanyInfo = () => {
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-sm">
+        <div className="p-6 bg-card rounded-lg shadow-sm">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-slate-800">Company Profile</h3>
+                <h3 className="text-xl font-semibold text-foreground">Company Profile</h3>
                 <button onClick={() => setIsEditing(true)} className="btn-secondary flex items-center gap-2">
                     <Edit size={16} /> Edit
                 </button>
@@ -188,8 +188,8 @@ const CompanyInfo = () => {
 };
 
 const Section = ({ title, children }) => (
-    <div className="p-4 border rounded-lg bg-slate-50/50">
-        <h4 className="font-semibold mb-4 text-slate-700">{title}</h4>
+    <div className="p-4 border border-border rounded-lg bg-background-muted">
+        <h4 className="font-semibold mb-4 text-foreground-muted">{title}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {children}
         </div>

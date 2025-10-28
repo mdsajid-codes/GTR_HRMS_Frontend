@@ -4,15 +4,15 @@ import CompanyHubLayout from '../components/CompanyHubLayout';
 import { useTenant } from '../context/TenantContext';
 
 const StatCard = ({ icon: Icon, title, value, description }) => (
-    <div className="bg-white p-6 rounded-xl shadow-sm flex items-start justify-between">
+    <div className="bg-card p-6 rounded-xl shadow-sm flex items-start justify-between">
         <div>
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="text-3xl font-bold text-slate-800 mt-1">{value}</p>
+            <p className="text-sm font-medium text-foreground-muted">{title}</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
             {description && (
-                <p className="mt-2 text-sm text-slate-500">{description}</p>
+                <p className="mt-2 text-sm text-foreground-muted">{description}</p>
             )}
         </div>
-        <div className="bg-blue-100 text-blue-600 p-3 rounded-lg">
+        <div className="bg-primary/10 text-primary p-3 rounded-lg">
             <Icon className="h-6 w-6" />
         </div>
     </div>
@@ -33,9 +33,9 @@ const CompanyDashboard = () => {
 
     return (
         <CompanyHubLayout>
-            <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Company Overview</h1>
-                <p className="text-slate-500 mb-6">A high-level view of your HRMS and POS systems for tenant <span className="font-semibold text-slate-600">{tenantId}</span>.</p>
+            <div className="max-w-7xl mx-auto bg-background text-foreground">
+                <h1 className="text-3xl font-bold text-foreground mb-2">Company Overview</h1>
+                <p className="text-foreground-muted mb-6">A high-level view of your HRMS and POS systems for tenant <span className="font-semibold text-foreground">{tenantId}</span>.</p>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../DashboardLayout';
-import { Plus, Edit, Trash2, Loader, AlertCircle, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader, AlertCircle, X, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import SyncPolicyModal from '../attendance/SyncPolicyModal';
 
 // Modal for adding/editing leave groups
 const LeaveGroupModal = ({ isOpen, onClose, onSave, leaveGroup, loading }) => {
@@ -80,6 +81,7 @@ const LeaveGroup = ({ embedded = false }) => {
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLeaveGroup, setEditingLeaveGroup] = useState(null);
+    const [syncingLeaveGroup, setSyncingLeaveGroup] = useState(null);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -153,6 +155,43 @@ const LeaveGroup = ({ embedded = false }) => {
         }
     };
 
+    const handleOpenSyncModal = (leaveGroup) => {
+        setSyncingLeaveGroup(leaveGroup);
+    };
+
+    const handleConfirmSync = async (leaveGroup, selectedEmployeeCodes) => {
+        if (selectedEmployeeCodes.length === 0) {
+            alert("No employees selected.");
+            return;
+        }
+
+        setError('');
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+            for (const employeeCode of selectedEmployeeCodes) {
+                try {
+                    const payload = { leaveGroupId: leaveGroup.id };
+                    await axios.put(`${BASE_URL}/time-attendence/${employeeCode}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                    successCount++;
+                } catch (updateErr) {
+                    console.error(`Failed to update leave group for ${employeeCode}:`, updateErr);
+                    errorCount++;
+                }
+            }
+
+            alert(`Sync complete!\n- ${successCount} employees updated successfully.\n- ${errorCount} updates failed.`);
+
+        } catch (err) {
+            setError('An unexpected error occurred during the sync process.');
+            console.error(err);
+        }
+    };
+
     const content = (
         <>
             <div className="p-6 md:p-8">
@@ -193,11 +232,16 @@ const LeaveGroup = ({ embedded = false }) => {
                                                 <td className="td-cell font-medium">{lg.name}</td>
                                                 <td className="td-cell text-sm text-slate-500">{lg.code}</td>
                                                 <td className="td-cell">
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => handleEdit(lg)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit">
+                                                    <div className="flex items-center gap-2"> 
+                                                        <button onClick={() => handleOpenSyncModal(lg)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title="Sync to employees" disabled={!!syncingLeaveGroup}>
+                                                            {syncingLeaveGroup?.id === lg.id
+                                                                ? <Loader className="h-4 w-4 animate-spin" />
+                                                                : <RefreshCw className="h-4 w-4" />}
+                                                        </button>
+                                                        <button onClick={() => handleEdit(lg)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit" disabled={!!syncingLeaveGroup}>
                                                             <Edit className="h-4 w-4" />
                                                         </button>
-                                                        <button onClick={() => handleDelete(lg.id, lg.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete">
+                                                        <button onClick={() => handleDelete(lg.id, lg.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete" disabled={!!syncingLeaveGroup}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     </div>
@@ -225,6 +269,12 @@ const LeaveGroup = ({ embedded = false }) => {
                 onSave={handleSave}
                 leaveGroup={editingLeaveGroup}
                 loading={modalLoading}
+            />
+            <SyncPolicyModal 
+                isOpen={!!syncingLeaveGroup} 
+                onClose={() => setSyncingLeaveGroup(null)} 
+                policy={syncingLeaveGroup}
+                onSync={handleConfirmSync}
             />
         </>
     );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PlusCircle, Edit, Loader, X, ShieldAlert } from 'lucide-react';
+import { PlusCircle, Edit, Loader, X, ShieldAlert, Trash2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import SyncPolicyModal from '../components/attendance/SyncPolicyModal';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -22,6 +23,10 @@ const api = {
     updateLocation: async (id, data) => {
         const response = await axios.put(`${API_URL}/locations/${id}`, data, { headers: getAuthHeaders() });
         return response.data;
+    },
+    deleteLocation: async (id) => {
+        // Adding delete to the api object for consistency
+        await axios.delete(`${API_URL}/locations/${id}`, { headers: getAuthHeaders() });
     },
 };
 
@@ -95,6 +100,7 @@ const Locations = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [syncingLocation, setSyncingLocation] = useState(null);
 
     const fetchLocations = useCallback(() => {
         setLoading(true);
@@ -135,6 +141,48 @@ const Locations = () => {
         }
     };
 
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this location?')) {
+            try {
+                await api.deleteLocation(id);
+                fetchLocations();
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to delete location.');
+            }
+        }
+    };
+
+    const handleOpenSyncModal = (location) => {
+        setSyncingLocation(location);
+    };
+
+    const handleConfirmSync = async (location, selectedEmployeeCodes) => {
+        if (selectedEmployeeCodes.length === 0) {
+            alert("No employees selected.");
+            return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            for (const employeeCode of selectedEmployeeCodes) {
+                try {
+                    const payload = { workLocationId: location.id };
+                    await axios.put(`${API_URL}/time-attendence/${employeeCode}`, payload, { headers: { "Authorization": `Bearer ${token}` } });
+                    successCount++;
+                } catch (updateErr) {
+                    console.error(`Failed to update location for ${employeeCode}:`, updateErr);
+                    errorCount++;
+                }
+            }
+            alert(`Sync complete!\n- ${successCount} employees updated successfully.\n- ${errorCount} updates failed.`);
+        } catch (err) {
+            alert('An unexpected error occurred during the sync process.');
+        }
+    };
+
     if (loading) return <div className="flex justify-center p-10"><Loader className="animate-spin text-blue-600" /></div>;
     if (error && !isUpgradeModalOpen) return <div className="text-center text-red-500 p-4">{error}</div>;
 
@@ -148,12 +196,27 @@ const Locations = () => {
                 <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50"><tr><th className="th-cell">Location Name</th><th className="th-cell">City</th><th className="th-cell">Country</th><th className="th-cell">Primary</th><th className="th-cell">Actions</th></tr></thead>
                     <tbody className="divide-y divide-slate-200">
-                        {locations.map(loc => (<tr key={loc.id} className="hover:bg-slate-50"><td className="td-cell font-medium">{loc.name}</td><td className="td-cell">{loc.city}</td><td className="td-cell">{loc.country}</td><td className="td-cell">{loc.primary ? 'Yes' : 'No'}</td><td className="td-cell"><button onClick={() => handleEdit(loc)} className="p-1 text-blue-600 hover:text-blue-800"><Edit size={16} /></button></td></tr>))}
+                        {locations.map(loc => (
+                            <tr key={loc.id} className="hover:bg-slate-50">
+                                <td className="td-cell font-medium">{loc.name}</td><td className="td-cell">{loc.city}</td><td className="td-cell">{loc.country}</td><td className="td-cell">{loc.primary ? 'Yes' : 'No'}</td>
+                                <td className="td-cell flex items-center gap-1">
+                                    <button onClick={() => handleOpenSyncModal(loc)} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-100 rounded-full" title="Sync to employees" disabled={!!syncingLocation}><RefreshCw className="h-4 w-4" /></button>
+                                    <button onClick={() => handleEdit(loc)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full" title="Edit" disabled={!!syncingLocation}><Edit size={16} /></button>
+                                    <button onClick={() => handleDelete(loc.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full" title="Delete" disabled={!!syncingLocation}><Trash2 size={16} /></button>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingLocation ? 'Edit Location' : 'Add Location'}><LocationForm item={editingLocation} onSave={handleSave} onCancel={handleCloseModal} saving={saving} error={modalError} /></Modal>
             <UpgradeModal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} message={error} />
+            <SyncPolicyModal
+                isOpen={!!syncingLocation}
+                onClose={() => setSyncingLocation(null)}
+                policy={syncingLocation}
+                onSync={handleConfirmSync}
+            />
         </div>
     );
 }

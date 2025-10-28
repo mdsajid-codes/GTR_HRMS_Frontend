@@ -47,19 +47,19 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading, leaveTypes = []
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Request Leave</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-md">
+                <div className="p-4 border-b border-border flex justify-between items-center">
+                    <h2 className="text-xl font-semibold text-foreground">Request Leave</h2>
+                    <button onClick={onClose} className="p-2 rounded-full text-foreground-muted hover:bg-background-muted">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4">
                         <div>
-                            <label htmlFor="leaveType" className="block text-sm font-medium text-slate-700">Leave Type</label>
-                            <select id="leaveType" name="leaveType" value={formData.leaveType} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm">
+                            <label htmlFor="leaveType" className="block text-sm font-medium text-foreground-muted">Leave Type</label>
+                            <select id="leaveType" name="leaveType" value={formData.leaveType} onChange={handleChange} required className="input bg-background-muted border-border text-foreground">
                                 {leaveTypes.length > 0 ? (
                                     leaveTypes.map(lt => <option key={lt.id} value={lt.leaveType}>{lt.leaveType.replace('_', ' ')}</option>)
                                 ) : (
@@ -69,21 +69,21 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit, loading, leaveTypes = []
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="startDate" className="block text-sm font-medium text-slate-700">Start Date</label>
-                                <input type="date" id="fromDate" name="fromDate" value={formData.fromDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                                <label htmlFor="startDate" className="block text-sm font-medium text-foreground-muted">Start Date</label>
+                                <input type="date" id="fromDate" name="fromDate" value={formData.fromDate} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
                             </div>
                             <div>
-                                <label htmlFor="endDate" className="block text-sm font-medium text-slate-700">End Date</label>
-                                <input type="date" id="toDate" name="toDate" value={formData.toDate} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" />
+                                <label htmlFor="endDate" className="block text-sm font-medium text-foreground-muted">End Date</label>
+                                <input type="date" id="toDate" name="toDate" value={formData.toDate} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="reason" className="block text-sm font-medium text-slate-700">Reason</label>
-                            <textarea id="reason" name="reason" value={formData.reason} onChange={handleChange} rows="3" required className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm" placeholder="Please provide a reason for your leave..."></textarea>
+                            <label htmlFor="reason" className="block text-sm font-medium text-foreground-muted">Reason</label>
+                            <textarea id="reason" name="reason" value={formData.reason} onChange={handleChange} rows="3" required className="input bg-background-muted border-border text-foreground" placeholder="Please provide a reason for your leave..."></textarea>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
                     </div>
-                    <div className="p-4 border-t bg-slate-50 flex justify-end gap-2">
+                    <div className="p-4 border-t border-border bg-background-muted flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
                         <button type="submit" className="btn-primary" disabled={loading}>
                             {loading && <Loader className="animate-spin h-4 w-4 mr-2" />}
@@ -112,22 +112,22 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
     const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div className="bg-card p-4 rounded-lg shadow-sm border border-border flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start">
-                    <h4 className="font-semibold text-slate-800">{(leaveType?.leaveType || leaveType || '').replace('_', ' ')}</h4>
+                    <h4 className="font-semibold text-foreground">{(leaveType?.leaveType || leaveType || '').replace('_', ' ')}</h4>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
                         <StatusIcon className="h-3.5 w-3.5" />
                         {displayStatus.toLowerCase()}
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500 mt-2">
+                <div className="flex items-center gap-2 text-sm text-foreground-muted mt-2">
                     <Calendar className="h-4 w-4" />
                     <span>{formatDate(fromDate)}</span>
                     <ArrowRight className="h-4 w-4" />
                     <span>{formatDate(toDate)}</span>
                 </div>
-                <p className="text-sm text-slate-600 mt-3 flex items-start gap-2">
+                <p className="text-sm text-foreground-muted mt-3 flex items-start gap-2">
                     <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <span>{reason || 'No reason provided.'}</span>
                 </p>
@@ -149,7 +149,7 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
                     </div>
                 )}
             </div>
-            {displayStatus === 'SUBMITTED' && (
+            {displayStatus === 'SUBMITTED' && canManage && ( // Assuming canManage is available in scope or passed as prop
                 <div className="mt-4 pt-3 border-t border-slate-200 flex justify-end">
                     <button onClick={() => onCancel(id)} className="flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
                         <Trash2 className="h-4 w-4 mr-1.5" />
@@ -267,7 +267,7 @@ const LeavesView = () => {
     return (
         <div className="p-6 md:p-8">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-slate-800">My Leaves</h1>
+                <h1 className="text-3xl font-bold text-foreground">My Leaves</h1>
                 <button
                     onClick={() => setIsModalOpen(true)} className="btn-primary">
                     <Plus className="h-5 w-5 mr-2" />
@@ -275,15 +275,15 @@ const LeavesView = () => {
                 </button>
             </div>
 
-            <div className="flex border-b border-slate-200 mb-6">
+            <div className="flex border-b border-border mb-6">
                 {TABS.map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
                             activeTab === tab
-                                ? 'border-b-2 border-blue-600 text-blue-600'
-                                : 'border-b-2 border-transparent text-slate-500 hover:text-slate-800'
+                                ? 'border-b-2 border-primary text-primary'
+                                : 'border-b-2 border-transparent text-foreground-muted hover:text-foreground'
                         }`}
                     >
                         {tab.charAt(0) + tab.slice(1).toLowerCase()}
@@ -292,14 +292,14 @@ const LeavesView = () => {
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded relative mb-4" role="alert">
                     <strong className="font-bold">Error: </strong>
                     <span className="block sm:inline">{error}</span>
                 </div>
             )}
 
             {loading ? (
-                <div className="flex justify-center items-center h-64"><Loader className="h-8 w-8 animate-spin text-blue-600" /></div>
+                <div className="flex justify-center items-center h-64"><Loader className="h-8 w-8 animate-spin text-primary" /></div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredLeaves.length > 0 ? (
@@ -308,9 +308,9 @@ const LeavesView = () => {
                         ))
                     ) : (
                         <div className="col-span-full text-center text-slate-500 py-10">
-                            <FileClock className="mx-auto h-12 w-12 text-slate-400" />
-                            <h3 className="mt-2 text-sm font-semibold text-slate-900">No leave requests</h3>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <FileClock className="mx-auto h-12 w-12 text-foreground-muted/50" />
+                            <h3 className="mt-2 text-sm font-semibold text-foreground">No leave requests</h3>
+                            <p className="mt-1 text-sm text-foreground-muted">
                                 {activeTab === 'ALL' ? "You haven't requested any leaves yet." : `You have no ${activeTab.toLowerCase()} leave requests.`}
                             </p>
                         </div>

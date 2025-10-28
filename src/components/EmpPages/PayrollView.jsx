@@ -6,21 +6,21 @@ import { Download, FileText, Search, Loader, Landmark, HandCoins, Receipt, Edit,
 
 const InputField = ({ label, id, type = 'text', children, ...props }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium text-slate-700">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-foreground-muted">{label}</label>
         {type === 'select' ? (
-            <select id={id} {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+            <select id={id} {...props} className="input bg-background-muted border-border text-foreground">
                 {children}
             </select>
         ) : (
-            <input id={id} type={type} {...props} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+            <input id={id} type={type} {...props} className="input bg-background-muted border-border text-foreground" />
         )}
     </div>
 );
 
 const InfoDisplay = ({ label, value }) => (
     <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="font-medium text-slate-800">{value || <span className="text-slate-400">N/A</span>}</p>
+        <p className="text-sm text-foreground-muted">{label}</p>
+        <p className="font-medium text-foreground">{value || <span className="text-foreground-muted/50">N/A</span>}</p>
     </div>
 );
 
@@ -51,11 +51,11 @@ const loanAndExpenseStatusStyles = {
 const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl p-6 w-full max-w-lg">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">{title}</h3>
-                    <button onClick={onClose} className="text-slate-500 hover:text-slate-800">&times;</button>
+                    <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                    <button onClick={onClose} className="text-foreground-muted hover:text-foreground">&times;</button>
                 </div>
                 {children}
             </div>
@@ -68,11 +68,11 @@ const PayrollHistoryCard = ({ payroll, onDownload, isDownloading }) => {
     const displayStatus = status || 'PENDING';
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="bg-card p-6 rounded-xl shadow-sm border border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h3 className="text-lg font-semibold text-slate-800">{formatDate(payDate)}</h3>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(netSalary, currency)}</p>
-                <p className="text-sm text-slate-500">Net Salary</p>
+                <h3 className="text-lg font-semibold text-foreground">{formatDate(payDate)}</h3>
+                <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(netSalary, currency)}</p>
+                <p className="text-sm text-foreground-muted">Net Salary</p>
             </div>
             <div className="flex flex-col sm:items-end gap-3">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
@@ -81,7 +81,7 @@ const PayrollHistoryCard = ({ payroll, onDownload, isDownloading }) => {
                 <button
                     onClick={() => onDownload(id)}
                     disabled={isDownloading}
-                    className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-slate-400"
+                    className="flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium disabled:bg-foreground-muted/50"
                 >
                     {isDownloading ? <Loader className="animate-spin h-4 w-4 mr-2" /> : <Download className="h-4 w-4 mr-2" />}
                     Download Payslip
@@ -110,7 +110,7 @@ const PayslipsTab = ({ payrolls, onDownload, downloadingId }) => {
     return (
         <div>
             <div className="flex justify-end mb-6">
-                <select id="year-filter" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="w-full sm:w-40 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                <select id="year-filter" value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="input w-full sm:w-40 text-sm bg-background-muted border-border text-foreground">
                     {availableYears.map(year => (<option key={year} value={year}>{year}</option>))}
                 </select>
             </div>
@@ -118,9 +118,9 @@ const PayslipsTab = ({ payrolls, onDownload, downloadingId }) => {
                 {filteredPayrolls.length > 0 ? (
                     filteredPayrolls.map(payroll => (<PayrollHistoryCard key={payroll.id} payroll={payroll} onDownload={onDownload} isDownloading={downloadingId === payroll.id} />))
                 ) : (
-                    <div className="text-center text-slate-500 py-16 bg-slate-50 rounded-xl">
-                        {payrolls.length > 0 ? (<><Search className="mx-auto h-12 w-12 text-slate-400" /><h3 className="mt-2 text-sm font-semibold text-slate-900">No Payroll Found</h3><p className="mt-1 text-sm text-slate-500">No records match your search for the year {filterYear}.</p></>)
-                            : (<><FileText className="mx-auto h-12 w-12 text-slate-400" /><h3 className="mt-2 text-sm font-semibold text-slate-900">No Payroll Data</h3><p className="mt-1 text-sm text-slate-500">Your payroll history will appear here.</p></>)}
+                    <div className="text-center text-foreground-muted py-16 bg-background-muted rounded-xl">
+                        {payrolls.length > 0 ? (<><Search className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-semibold text-foreground">No Payroll Found</h3><p className="mt-1 text-sm">No records match your search for the year {filterYear}.</p></>)
+                            : (<><FileText className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-semibold text-foreground">No Payroll Data</h3><p className="mt-1 text-sm">Your payroll history will appear here.</p></>)}
                     </div>
                 )}
             </div>
@@ -201,8 +201,8 @@ const BankAccountTab = ({ employee }) => {
     }
 
     return (
-        <div>
-            <h2 className="text-xl font-semibold mb-4">Bank Account for Salary</h2>
+        <div className="bg-card p-6 rounded-xl shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Bank Account for Salary</h2>
             {!isEditing && (
                 <div className="flex justify-end mb-4">
                     <button onClick={() => setIsEditing(true)} className="btn-secondary flex items-center gap-2"><Edit size={16} /> Edit</button>
@@ -210,13 +210,13 @@ const BankAccountTab = ({ employee }) => {
             )}
             {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
-                    <InputField label="Bank Name" name="bankName" value={formData.bankName} onChange={handleChange} required />
-                    <InputField label="Account Holder Name" name="accountHolderName" value={formData.accountHolderName} onChange={handleChange} required />
-                    <InputField label="Account Number" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required />
-                    <InputField label="IFSC Code" name="ifscCode" value={formData.ifscCode} onChange={handleChange} required />
+                    <InputField label="Bank Name" id="bankName" name="bankName" value={formData.bankName} onChange={handleChange} required />
+                    <InputField label="Account Holder Name" id="accountHolderName" name="accountHolderName" value={formData.accountHolderName} onChange={handleChange} required />
+                    <InputField label="Account Number" id="accountNumber" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required />
+                    <InputField label="IFSC Code" id="ifscCode" name="ifscCode" value={formData.ifscCode} onChange={handleChange} required />
                     <div className="flex items-center">
-                        <input type="checkbox" id="isPrimary" name="primary" checked={formData.primary} onChange={handleChange} className="h-4 w-4" />
-                        <label htmlFor="isPrimary" className="ml-2 text-sm">This is my primary account</label>
+                        <input type="checkbox" id="isPrimary" name="primary" checked={formData.primary} onChange={handleChange} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
+                        <label htmlFor="isPrimary" className="ml-2 text-sm text-foreground-muted">This is my primary account</label>
                     </div>
                     <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary" disabled={saveLoading}>Cancel</button>
@@ -301,8 +301,8 @@ const LoanRequestModal = ({ isOpen, onClose, employeeCode, onLoanRequested }) =>
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Request a New Loan">
-            {loading ? (
-                <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>
+            {loading ? ( 
+                <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-primary" /></div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <InputField
@@ -322,7 +322,7 @@ const LoanRequestModal = ({ isOpen, onClose, employeeCode, onLoanRequested }) =>
                     </InputField>
                     
                     {selectedProduct && (
-                        <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
+                        <div className="text-xs text-foreground-muted bg-background-muted p-2 rounded">
                             Max Amount: {formatCurrency(selectedProduct.maxLoanAmount)} | Max Installments: {selectedProduct.maxInstallments} | Interest: {selectedProduct.interestRate}%
                         </div>
                     )}
@@ -382,8 +382,8 @@ const LoansTab = ({ employee }) => {
 
     useEffect(() => { fetchLoans(); }, [fetchLoans]);
 
-    if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
-    if (error) return <div className="text-center text-red-600 p-4 bg-red-50 rounded-md">{error}</div>;
+    if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (error) return <div className="text-center text-red-600 p-4 bg-red-500/10 rounded-md">{error}</div>;
 
     return (
         <>
@@ -393,9 +393,9 @@ const LoansTab = ({ employee }) => {
                     <PlusCircle size={16} /> Request New Loan
                 </button>
             </div>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+            <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-background-muted">
                         <tr>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Product</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
@@ -405,7 +405,7 @@ const LoansTab = ({ employee }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Requested On</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
+                    <tbody className="bg-card divide-y divide-border text-foreground-muted">
                         {loans.length > 0 ? loans.map(loan => (
                             <tr key={loan.id}>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{loan.loanProductName}</td>
@@ -413,7 +413,7 @@ const LoansTab = ({ employee }) => {
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{formatCurrency(loan.emiAmount)}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{loan.remainingInstallments}/{loan.totalInstallments}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${loanAndExpenseStatusStyles[loan.status]?.bg || 'bg-slate-100'} ${loanAndExpenseStatusStyles[loan.status]?.text || 'text-slate-800'}`}>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${loanAndExpenseStatusStyles[loan.status]?.bg || 'bg-background-muted'} ${loanAndExpenseStatusStyles[loan.status]?.text || 'text-foreground'}`}>
                                         {loan.status.toLowerCase()}
                                     </span>
                                 </td>
@@ -495,16 +495,16 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
         <Modal isOpen={isOpen} onClose={onClose} title="Submit New Expense">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <InputField label="Expense Date" id="expenseDate" name="expenseDate" type="date" value={formData.expenseDate} onChange={handleChange} required />
-                    <InputField label="Category" id="category" name="category" type="text" value={formData.category} onChange={handleChange} required placeholder="e.g., Travel, Food" />
-                    <InputField label="Bill Number" id="billNumber" name="billNumber" type="text" value={formData.billNumber} onChange={handleChange} placeholder="e.g., INV-123" />
-                    <InputField label="Merchant Name" id="merchentName" name="merchentName" type="text" value={formData.merchentName} onChange={handleChange} placeholder="e.g., Starbucks" />
+                    <InputField label="Expense Date" id="expenseDate" name="expenseDate" type="date" value={formData.expenseDate} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
+                    <InputField label="Category" id="category" name="category" type="text" value={formData.category} onChange={handleChange} required placeholder="e.g., Travel, Food" className="input bg-background-muted border-border text-foreground" />
+                    <InputField label="Bill Number" id="billNumber" name="billNumber" type="text" value={formData.billNumber} onChange={handleChange} placeholder="e.g., INV-123" className="input bg-background-muted border-border text-foreground" />
+                    <InputField label="Merchant Name" id="merchentName" name="merchentName" type="text" value={formData.merchentName} onChange={handleChange} placeholder="e.g., Starbucks" className="input bg-background-muted border-border text-foreground" />
                 </div>
-                <InputField label="Amount" id="amount" name="amount" type="number" value={formData.amount} onChange={handleChange} required placeholder="e.g., 1500.50" />
-                <InputField label="Description" id="description" name="description" type="text" value={formData.description} onChange={handleChange} required />
+                <InputField label="Amount" id="amount" name="amount" type="number" value={formData.amount} onChange={handleChange} required placeholder="e.g., 1500.50" className="input bg-background-muted border-border text-foreground" />
+                <InputField label="Description" id="description" name="description" type="text" value={formData.description} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
                 <div>
-                    <label htmlFor="receiptFile" className="block text-sm font-medium text-slate-700">Receipt (Optional)</label>
-                    <input id="receiptFile" name="receiptFile" type="file" onChange={handleFileChange} className="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <label htmlFor="receiptFile" className="block text-sm font-medium text-foreground-muted">Receipt (Optional)</label>
+                    <input id="receiptFile" name="receiptFile" type="file" onChange={handleFileChange} className="mt-1 block w-full text-sm text-foreground-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                 </div>
                 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -569,9 +569,9 @@ const ExpensesTab = ({ employee }) => {
                     <PlusCircle size={16} /> Submit New Expense
                 </button>
             </div>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+            <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-background-muted">
                         <tr>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
@@ -581,7 +581,7 @@ const ExpensesTab = ({ employee }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Receipt</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
+                    <tbody className="bg-card divide-y divide-border text-foreground-muted">
                         {expenses.length > 0 ? expenses.map(exp => (
                             <tr key={exp.id}>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">{new Date(exp.expenseDate).toLocaleDateString()}</td>
@@ -594,15 +594,15 @@ const ExpensesTab = ({ employee }) => {
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    {exp.receiptPath && (
-                                        <button onClick={() => handleViewReceipt(exp)} className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                                    {exp.receiptPath && ( 
+                                        <button onClick={() => handleViewReceipt(exp)} className="text-primary hover:underline text-xs flex items-center gap-1">
                                             <Eye size={14} /> View
                                         </button>
                                     )}
                                 </td>
                             </tr>
                         )) : (
-                            <tr><td colSpan="6" className="text-center py-10 text-slate-500">No expense claims found.</td></tr>
+                            <tr><td colSpan="6" className="text-center py-10 text-foreground-muted">No expense claims found.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -615,10 +615,10 @@ const ExpensesTab = ({ employee }) => {
                 onExpenseSubmitted={fetchExpenses}
             />
             {viewingReceipt && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
-                    <div className="bg-white p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-end">
-                            <button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full hover:bg-slate-100 -mr-2 -mt-2 mb-2">
+                <div className="fixed inset-0 bg-black/75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
+                    <div className="bg-card p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-end"> 
+                            <button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full text-foreground-muted hover:bg-background-muted -mr-2 -mt-2 mb-2">
                                 <X size={20} />
                             </button>
                         </div>
@@ -710,7 +710,7 @@ const PayrollView = ({ employee, setActiveItem }) => {
         <div className="p-6 md:p-8">
             <h1 className="text-3xl font-bold text-slate-800 mb-6">Payroll</h1>
 
-            <div className="border-b border-slate-200 mb-6">
+            <div className="border-b border-border mb-6">
                 <nav className="-mb-px flex space-x-6" aria-label="Sub-tabs">
                     {subTabs.map((tab) => (
                         <button
@@ -718,8 +718,8 @@ const PayrollView = ({ employee, setActiveItem }) => {
                             onClick={() => setActiveSubTab(tab.name)}
                             className={`whitespace-nowrap flex items-center py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                                 activeSubTab === tab.name
-                                    ? 'border-blue-600 text-blue-600'
-                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-foreground-muted hover:text-foreground hover:border-border'
                             }`}
                         >
                             <tab.icon className="mr-2 h-5 w-5" />
@@ -729,7 +729,7 @@ const PayrollView = ({ employee, setActiveItem }) => {
                 </nav>
             </div>
 
-            {error && (<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>)}
+            {error && (<div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded relative mb-4" role="alert"><strong className="font-bold">Error: </strong><span className="block sm:inline">{error}</span></div>)}
 
             <div>{renderContent()}</div>
         </div>

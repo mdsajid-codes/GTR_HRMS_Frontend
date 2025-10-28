@@ -34,8 +34,8 @@ const NavItem = ({ item, isActive, onClick }) => (
         onClick={onClick}
         className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors w-full text-left ${
             isActive
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:bg-slate-200'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-foreground-muted hover:bg-background-muted'
         }`}
     >
         <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
@@ -53,11 +53,11 @@ const SidebarContent = ({ activeItem, setActiveItem, onLinkClick, accessibleNavL
     };
 
     return (
-        <div className="flex flex-col h-full bg-white">
-            <div className="p-4 border-b border-slate-200 flex-shrink-0">
+        <div className="flex flex-col h-full bg-card text-card-foreground">
+            <div className="p-4 border-b border-border flex-shrink-0">
                 <Link to="/employee-dashboard" className="flex items-center gap-3">
-                    <Sparkles className="h-7 w-7 text-blue-600" />
-                    <span className="font-bold text-xl text-slate-800">Enterprise HRMS</span>
+                    <Sparkles className="h-7 w-7 text-primary" />
+                    <span className="font-bold text-xl text-foreground">Enterprise HRMS</span>
                 </Link>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
@@ -73,18 +73,18 @@ const SidebarContent = ({ activeItem, setActiveItem, onLinkClick, accessibleNavL
                     />
                 ))}
             </nav>
-            <div className="p-4 border-t border-slate-200 flex-shrink-0">
+            <div className="p-4 border-t border-border flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary flex-shrink-0">
                             {username.charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-3 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{username}</p>
-                            <p className="text-xs text-slate-500">Employee</p>
+                            <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+                            <p className="text-xs text-foreground-muted">Employee</p>
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="text-slate-500 hover:text-red-600 ml-2 flex-shrink-0" title="Logout">
+                    <button onClick={handleLogout} className="text-foreground-muted hover:text-red-600 ml-2 flex-shrink-0" title="Logout">
                         <LogOut className="h-5 w-5" />
                     </button>
                 </div>
@@ -178,7 +178,7 @@ const EmployeeDashboard = () => {
         const activeLink = accessibleNavLinks.find(link => link.name === activeItem) || accessibleNavLinks[0];
         
         if (!activeLink) {
-            return <div className="p-8 text-center text-slate-500">No modules are accessible for your account. Please contact support.</div>;
+            return <div className="p-8 text-center text-foreground-muted">No modules are accessible for your account. Please contact support.</div>;
         }
 
         const Component = activeLink.Component;
@@ -187,37 +187,36 @@ const EmployeeDashboard = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-100">
+        <div className="flex h-screen bg-background text-foreground">
             {/* Static sidebar for desktop */}
             <div className="hidden lg:flex lg:flex-shrink-0">
-                <div className="flex flex-col w-64 border-r border-slate-200">
+                <div className="flex flex-col w-64 border-r border-border">
                     <SidebarContent activeItem={activeItem} setActiveItem={setActiveItem} accessibleNavLinks={accessibleNavLinks} />
                 </div>
             </div>
 
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Top bar for mobile */}
-                <header className="lg:hidden sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow-sm">
+                <header className="lg:hidden sticky top-0 z-10 flex-shrink-0 flex h-16 bg-card shadow-sm">
                     <button
                         type="button"
-                        className="px-4 border-r border-slate-200 text-slate-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                        className="px-4 border-r border-border text-foreground-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
                         onClick={() => setSidebarOpen(true)}
                     >
                         <Menu className="h-6 w-6" />
                     </button>
                     <div className="flex-1 px-4 flex justify-between items-center">
                         <Link to="/employee-dashboard" className="flex items-center gap-2">
-                            <Sparkles className="h-6 w-6 text-blue-600" />
-                            <span className="font-bold text-lg">HRMS</span>
+                            <Sparkles className="h-6 w-6 text-primary" />
+                            <span className="font-bold text-lg text-foreground">HRMS</span>
                         </Link>
                     </div>
                 </header>
 
-                {/* Main content */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background-muted">
                     {loading ? (
                         <div className="p-8 flex justify-center items-center h-full">
-                            <Loader className="h-8 w-8 animate-spin text-blue-600" />
+                            <Loader className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : error ? (
                         <div className="p-8 flex justify-center items-center h-full">
@@ -230,7 +229,7 @@ const EmployeeDashboard = () => {
                     ) : employee ? (
                         renderContent()
                     ) : (
-                        <div className="p-8 bg-slate-50">No employee data found.</div>
+                        <div className="p-8 bg-background-muted text-foreground-muted">No employee data found.</div>
                     )}
                 </main>
             </div>

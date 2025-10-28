@@ -31,15 +31,15 @@ const api = {
 
 const FormField = ({ label, children }) => (
     <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+        <label className="block text-sm font-medium text-foreground-muted mb-1">{label}</label>
         {children}
     </div>
 );
 
 const ReadOnlyField = ({ label, value }) => (
     <div>
-        <label className="block text-sm font-medium text-slate-500 mb-1">{label}</label>
-        <div className="w-full p-2 bg-slate-100 border border-slate-200 rounded-md text-slate-600">
+        <label className="block text-sm font-medium text-foreground-muted mb-1">{label}</label>
+        <div className="w-full p-2 bg-background-muted border border-border rounded-md text-foreground-muted">
             {value}
         </div>
     </div>
@@ -137,24 +137,24 @@ const TenantInfo = () => {
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center p-10"><Loader className="animate-spin text-blue-600" /></div>;
+        return <div className="flex justify-center items-center p-10"><Loader className="animate-spin text-primary" /></div>;
     }
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-sm space-y-8">
-            {error && <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm">{error}</div>}
+        <div className="p-6 bg-card rounded-lg shadow-sm space-y-8">
+            {error && <div className="bg-red-500/10 text-red-700 p-3 rounded-md text-sm">{error}</div>}
             
             {/* Logo Section */}
             <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Company Logo</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Company Logo</h3>
                 <div className="flex items-center gap-6">
                     {logoPreview ? (
-                        <img src={logoPreview} alt="Logo" className="h-20 w-20 object-contain rounded-md border p-1 bg-white" />
+                        <img src={logoPreview} alt="Logo" className="h-20 w-20 object-contain rounded-md border p-1 bg-card" />
                     ) : (
-                        <div className="h-20 w-20 flex items-center justify-center bg-slate-100 rounded-md text-slate-400 text-sm">No Logo</div>
+                        <div className="h-20 w-20 flex items-center justify-center bg-background-muted rounded-md text-foreground-muted text-sm">No Logo</div>
                     )}
                     <div className="flex-1">
-                        <input type="file" accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        <input type="file" accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-foreground-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                         <button type="button" onClick={handleLogoUpload} className="btn-secondary mt-2 flex items-center gap-2" disabled={uploading || !logoFile}>
                             {uploading ? <Loader className="animate-spin h-4 w-4" /> : <UploadCloud className="h-4 w-4" />}
                             {uploading ? 'Uploading...' : 'Upload Logo'}
@@ -164,14 +164,14 @@ const TenantInfo = () => {
             </div>
 
             {/* Details Section */}
-            <form onSubmit={handleSubmit} className="space-y-6 border-t border-slate-200 pt-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Company Details</h3>
+            <form onSubmit={handleSubmit} className="space-y-6 border-t border-border pt-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Company Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ReadOnlyField label="Database ID" value={staticData.id} />
-                    <FormField label="Company Name"><input type="text" name="name" value={formData.name} onChange={handleChange} className="input" /></FormField>
-                    <FormField label="Primary Contact Email"><input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="input" /></FormField>
-                    <FormField label="Primary Contact Phone"><input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleChange} className="input" /></FormField>
-                    <FormField label="Address"><input type="text" name="address" value={formData.address} onChange={handleChange} className="input" /></FormField>
+                    <FormField label="Company Name"><input type="text" name="name" value={formData.name} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                    <FormField label="Primary Contact Email"><input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                    <FormField label="Primary Contact Phone"><input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                    <FormField label="Address"><input type="text" name="address" value={formData.address} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
                 </div>
                 <div className="flex justify-end pt-4">
                     <button type="submit" className="btn-primary flex items-center gap-2" disabled={saving}>

@@ -16,8 +16,8 @@ import WorkLocations from '../components/base/WorkLocations';
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('departments');
 
-    const activeTabClass = 'border-blue-600 text-blue-600';
-    const inactiveTabClass = 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300';
+    const activeTabClass = 'border-primary text-primary';
+    const inactiveTabClass = 'border-transparent text-foreground-muted hover:text-foreground hover:border-border';
 
     const canSeeLeaveTypes = useMemo(() => {
         const plan = localStorage.getItem('plan');
@@ -34,13 +34,13 @@ const Settings = () => {
 
     return (
         <DashboardLayout>
-            <div className="p-6 md:p-8">
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-slate-800">Settings</h1>
-                    <p className="text-slate-500 mt-1">Manage company-wide settings for departments, designations, and more.</p>
+            <div className="p-6 md:p-8 bg-background text-foreground">
+                <div className="mb-6 md:mb-8">
+                    <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+                    <p className="text-foreground-muted mt-1">Manage company-wide settings for departments, designations, and more.</p>
                 </div>
 
-                <div className="border-b border-slate-200">
+                <div className="border-b border-border">
                     <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
                         <button
                             onClick={() => setActiveTab('departments')}

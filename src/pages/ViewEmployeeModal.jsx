@@ -183,36 +183,36 @@ const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
                     placeholder="Search by name, code, or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white dark:bg-slate-700 dark:text-slate-200"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             </div>
             <div className="overflow-y-auto" style={{maxHeight: 'calc(90vh - 250px)'}}>
-                <table className="min-w-full bg-white">
-                    <thead className="bg-slate-50 sticky top-0">
+                <table className="min-w-full bg-white dark:bg-slate-800">
+                    <thead className="bg-slate-50 dark:bg-slate-700/50 sticky top-0">
                         <tr>
-                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Name</th>
-                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Employee Code</th>
-                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Work Email</th>
-                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm text-slate-600">Designation</th>
+                            <th className="th-cell">Name</th>
+                            <th className="th-cell">Employee Code</th>
+                            <th className="th-cell">Work Email</th>
+                            <th className="th-cell">Designation</th>
                         </tr>
                     </thead>
-                    <tbody className="text-slate-700">
+                    <tbody className="text-slate-700 dark:text-slate-300">
                         {loading ? (
                             <tr><td colSpan="4" className="text-center py-10"><Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto" /></td></tr>
                         ) : error ? (
                             <tr><td colSpan="4" className="text-center py-10 text-red-500">{error}</td></tr>
                         ) : filteredEmployees.length > 0 ? (
                             filteredEmployees.map(emp => (
-                                <tr key={emp.employeeCode} className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer" onClick={() => handleSelectEmployee(emp)}>
-                                    <td className="py-3 px-4 font-medium">{emp.firstName} {emp.lastName}</td>
-                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.employeeCode}</td>
-                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.emailWork}</td>
-                                    <td className="py-3 px-4 text-sm text-slate-500">{emp.jobDetails?.designation || 'N/A'}</td>
+                                <tr key={emp.employeeCode} className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer" onClick={() => handleSelectEmployee(emp)}>
+                                    <td className="td-cell font-medium text-slate-800 dark:text-slate-100">{emp.firstName} {emp.lastName}</td>
+                                    <td className="td-cell">{emp.employeeCode}</td>
+                                    <td className="td-cell">{emp.emailWork}</td>
+                                    <td className="td-cell">{emp.jobDetails?.designation || 'N/A'}</td>
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan="4" className="text-center py-10 text-slate-500">No employees found.</td></tr>
+                            <tr><td colSpan="4" className="text-center py-10 text-slate-500 dark:text-slate-400">No employees found.</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -224,12 +224,12 @@ const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                    <h2 className="text-xl font-semibold text-slate-800">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
+                    <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
                         {selectedEmployee.employeeCode ? 'Employee Details' : 'Find Employee'}
                     </h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
+                    <button onClick={onClose} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -238,21 +238,21 @@ const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
                     {selectedEmployee.employeeCode ? (
                         <>
                             {/* Header inside modal */}
-                            <div className="bg-white shadow-sm sticky top-0 z-10">
-                                <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10">
+                                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div className="flex items-center gap-4 min-w-0">
-                                        <button onClick={handleBackToList} className="p-2 rounded-full hover:bg-slate-100">
+                                        <button onClick={handleBackToList} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
                                             <ArrowLeft className="h-5 w-5" />
                                         </button>
                                         <div className="relative group">
                                             {photoUrl ? (
-                                                <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white shadow-md" />
+                                                <img src={photoUrl} alt="Employee" className="w-16 h-16 rounded-full object-cover ring-4 ring-white dark:ring-slate-800 shadow-md" />
                                             ) : (
-                                                <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white shadow-md">
+                                                <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold ring-4 ring-white dark:ring-slate-800 shadow-md">
                                                     {selectedEmployee.initials}
                                                 </div>
                                             )}
-                                            <label htmlFor="modal-photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full cursor-pointer transition-opacity">
+                                            <label htmlFor="modal-photo-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-60 rounded-full cursor-pointer transition-opacity">
                                                 {uploadingPhoto ? (
                                                     <Loader className="animate-spin h-6 w-6 text-white" />
                                                 ) : (
@@ -263,29 +263,29 @@ const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-3">
-                                                <h1 className="text-2xl font-bold text-slate-800 truncate">
+                                                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 truncate">
                                                     {`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
                                                 </h1>
-                                                <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
-                                                    selectedEmployee.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${ 
+                                                    selectedEmployee.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300'
                                                 }`}>{selectedEmployee.status.toLowerCase()}</span>
                                             </div>
-                                            <p className="text-sm text-slate-500">{selectedEmployee.jobDetails?.designation || 'N/A'}</p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">{selectedEmployee.jobDetails?.designation || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <nav className="flex overflow-x-auto border-b border-slate-200">
+                                <nav className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-700">
                                     {employeeNavLinks.map((link) => (
                                         <button
                                             key={link.name}
                                             onClick={() => setActiveTab(link.name)}
-                                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 group ${
                                                 activeTab === link.name
-                                                    ? 'border-blue-600 text-blue-600'
-                                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                                                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
                                             }`}
                                         >
-                                            <link.icon className="h-4 w-4" />
+                                            <link.icon className={`h-4 w-4 ${activeTab === link.name ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300'}`} />
                                             <span>{link.name}</span>
                                         </button>
                                     ))}
@@ -293,7 +293,7 @@ const ViewEmployeeModal = ({ isOpen, onClose, selectedLocation }) => {
                             </div>
 
                             {/* Main Content Area */}
-                            <main className="p-6">
+                            <main className="p-6 bg-slate-50 dark:bg-slate-900/50">
                                 {renderContent()}
                             </main>
                         </>

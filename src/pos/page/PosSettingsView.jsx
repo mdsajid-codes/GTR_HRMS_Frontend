@@ -9,11 +9,11 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="text-xl font-semibold">{title}</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-100"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4" onClick={onClose}>
+            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                <div className="p-4 border-b border-border flex justify-between items-center">
+                    <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+                    <button onClick={onClose} className="p-1 rounded-full text-foreground-muted hover:bg-background-muted"><X size={20} /></button>
                 </div>
                 <div className="p-6">
                     {children}
@@ -25,15 +25,15 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 
 const FormField = ({ label, name, value, onChange, type = 'text', required = false, ...props }) => (
     <div>
-        <label htmlFor={name} className="block text-sm font-medium text-slate-700">{label}</label>
-        <input
+        <label htmlFor={name} className="block text-sm font-medium text-foreground-muted">{label}</label>
+        <input 
             type={type}
             id={name}
             name={name}
             value={value || ''}
             onChange={onChange}
             required={required}
-            className="input mt-1"
+            className="input mt-1 bg-background-muted border-border text-foreground"
             {...props}
         />
     </div>
@@ -45,11 +45,11 @@ const StoreForm = ({ item, onSave, onCancel }) => {
     const handleSubmit = e => { e.preventDefault(); onSave(formData); };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField label="Store Name" name="name" value={formData.name} onChange={handleChange} required />
-            <FormField label="Address" name="address" value={formData.address} onChange={handleChange} />
-            <FormField label="Currency" name="currency" value={formData.currency} onChange={handleChange} />
-            <FormField label="Timezone" name="timezone" value={formData.timezone} onChange={handleChange} />
-            <FormField label="VAT Number" name="vatNumber" value={formData.vatNumber} onChange={handleChange} />
+            <FormField label="Store Name" name="name" value={formData.name} onChange={handleChange} required /> {/* No change here, already good */}
+            <FormField label="Address" name="address" value={formData.address} onChange={handleChange} /> {/* No change here, already good */}
+            <FormField label="Currency" name="currency" value={formData.currency} onChange={handleChange} /> {/* No change here, already good */}
+            <FormField label="Timezone" name="timezone" value={formData.timezone} onChange={handleChange} /> {/* No change here, already good */}
+            <FormField label="VAT Number" name="vatNumber" value={formData.vatNumber} onChange={handleChange} /> {/* No change here, already good */}
             <div className="flex justify-end gap-2 pt-4"><button type="button" onClick={onCancel} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Save</button></div>
         </form>
     );
@@ -61,9 +61,9 @@ const TaxRateForm = ({ item, onSave, onCancel }) => {
     const handleSubmit = e => { e.preventDefault(); onSave(formData); };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField label="Tax Name" name="name" value={formData.name} onChange={handleChange} required />
-            <FormField label="Percent" name="percent" type="number" step="0.01" value={formData.percent} onChange={handleChange} required />
-            <label className="flex items-center gap-2"><input type="checkbox" name="compound" checked={formData.compound} onChange={handleChange} /> Compound Tax</label>
+            <FormField label="Tax Name" name="name" value={formData.name} onChange={handleChange} required /> {/* No change here, already good */}
+            <FormField label="Percent" name="percent" type="number" step="0.01" value={formData.percent} onChange={handleChange} required /> {/* No change here, already good */}
+            <label className="flex items-center gap-2 text-foreground-muted"><input type="checkbox" name="compound" checked={formData.compound} onChange={handleChange} className="h-4 w-4 rounded border-border text-primary focus:ring-primary" /> Compound Tax</label>
             <div className="flex justify-end gap-2 pt-4"><button type="button" onClick={onCancel} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Save</button></div>
         </form>
     );
@@ -75,8 +75,8 @@ const CategoryForm = ({ item, onSave, onCancel }) => {
     const handleSubmit = e => { e.preventDefault(); onSave(formData); };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField label="Category Name" name="name" value={formData.name} onChange={handleChange} required />
-            <FormField label="Description" name="description" value={formData.description} onChange={handleChange} />
+            <FormField label="Category Name" name="name" value={formData.name} onChange={handleChange} required /> {/* No change here, already good */}
+            <FormField label="Description" name="description" value={formData.description} onChange={handleChange} /> {/* No change here, already good */}
             <div className="flex justify-end gap-2 pt-4"><button type="button" onClick={onCancel} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Save</button></div>
         </form>
     );
