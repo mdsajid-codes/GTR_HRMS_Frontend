@@ -19,7 +19,15 @@ import CompanyDashboard from './pages/CompanyDashboard'
 import LeaveManagement from './pages/LeaveManagement.jsx'
 import ProductionSettings from './production/settings/ProductionSettings.jsx'
 import CrmSettings from './crm/settings/CrmSettings.jsx'
+import CrmModule from './crm/pages/CrmModule.jsx'
 
+// Placeholder for CRM child pages
+const CrmPlaceholder = ({ pageName }) => (
+  <div className="text-center py-20">
+    <h1 className="text-3xl font-bold text-foreground">{pageName}</h1>
+    <p className="text-foreground-muted mt-2">This page is under construction.</p>
+  </div>
+);
 function App() {
   return (
     <TenantProvider>
@@ -42,6 +50,17 @@ function App() {
             <Route path="hrms" element={<HrmsSettings />} />
             <Route path='production' element={<ProductionSettings /> } />
             <Route path='crm' element={<CrmSettings /> } />
+          </Route>
+          <Route path='/crm-dashboard' element={<CrmModule />}>
+            <Route index element={<CrmPlaceholder pageName="CRM Dashboard" />} />
+            <Route path="home" element={<CrmPlaceholder pageName="Home" />} />
+            <Route path="calling-data" element={<CrmPlaceholder pageName="Calling Data" />} />
+            <Route path="leads" element={<CrmPlaceholder pageName="Leads" />} />
+            <Route path="companies" element={<CrmPlaceholder pageName="Companies" />} />
+            <Route path="contacts" element={<CrmPlaceholder pageName="Contacts" />} />
+            <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
+            <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />
+            <Route path="operations" element={<CrmPlaceholder pageName="Operations" />} />
           </Route>
         </Routes>
       </Router>

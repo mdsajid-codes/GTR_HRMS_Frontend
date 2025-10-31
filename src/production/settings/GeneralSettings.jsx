@@ -1,7 +1,7 @@
 // GeneralSettings.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { Layers, DollarSign, Edit, Trash2, PlusCircle, Loader, X, Search } from 'lucide-react';
+import { Layers, DollarSign, Edit, Trash2, PlusCircle, Loader, X, Search, MapPin } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -117,10 +117,23 @@ const CrudTable = ({ columns, data, onEdit, onDelete }) => (
 
 // --- Form Components ---
 
-const InventoryTypeForm = ({ item, onSave, onCancel }) => {
+const InventoryTypeForm = ({ item, onSave, onCancel, locations }) => {
   const [formData, setFormData] = useState(
-    item || { id: undefined, name: '', description: '' }
+    item || { id: undefined, name: '', description: '', locationId: '' }
   );
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        ...item,
+        locationId: item.locationId || '', // Ensure locationId is set if editing
+      });
+    } else {
+      // When creating a new item, default to the selected locationId from props
+      const newLocationId = onSave.locationId || '';
+      setFormData({ id: undefined, name: '', description: '', locationId: newLocationId });
+    }
+  }, [item]);
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -143,6 +156,17 @@ const InventoryTypeForm = ({ item, onSave, onCancel }) => {
         onChange={handleChange}
         placeholder="Brief description of this inventory type"
       />
+      <div className="space-y-1">
+        <label htmlFor="locationId" className="block text-sm font-medium text-foreground-muted">
+          Location (Optional)
+        </label>
+        <select id="locationId" name="locationId" value={formData.locationId} onChange={handleChange} className="input mt-1 bg-background-muted border-border text-foreground">
+          <option value="">Select Location</option>
+          {locations.map(loc => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
+        </select>
+      </div>
       <div className="flex justify-end gap-2 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel
@@ -155,10 +179,23 @@ const InventoryTypeForm = ({ item, onSave, onCancel }) => {
   );
 };
 
-const PriceCategoryForm = ({ item, onSave, onCancel }) => {
+const PriceCategoryForm = ({ item, onSave, onCancel, locations }) => {
   const [formData, setFormData] = useState(
-    item || { id: undefined, name: '', description: '' }
+    item || { id: undefined, name: '', description: '', locationId: '' }
   );
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        ...item,
+        locationId: item.locationId || '', // Ensure locationId is set if editing
+      });
+    } else {
+      // When creating a new item, default to the selected locationId from props
+      const newLocationId = onSave.locationId || '';
+      setFormData({ id: undefined, name: '', description: '', locationId: newLocationId });
+    }
+  }, [item]);
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -181,6 +218,17 @@ const PriceCategoryForm = ({ item, onSave, onCancel }) => {
         onChange={handleChange}
         placeholder="Details about this price category"
       />
+      <div className="space-y-1">
+        <label htmlFor="locationId" className="block text-sm font-medium text-foreground-muted">
+          Location (Optional)
+        </label>
+        <select id="locationId" name="locationId" value={formData.locationId} onChange={handleChange} className="input mt-1 bg-background-muted border-border text-foreground">
+          <option value="">Select Location</option>
+          {locations.map(loc => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
+        </select>
+      </div>
       <div className="flex justify-end gap-2 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel
@@ -195,11 +243,12 @@ const PriceCategoryForm = ({ item, onSave, onCancel }) => {
 
 // --- CRUD Factory ---
 
-const createCrudTab = (config) => () => {
+const createCrudTab = (config) => ({ locationId }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
+  const [locations, setLocations] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   const authHeaders = () => {
@@ -207,36 +256,60 @@ const createCrudTab = (config) => () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const fetchItems = useCallback(() => {
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
-    axios
-      .get(`${API_URL}${config.endpoints.getAll}`, { headers: authHeaders() })
-      .then((res) => setData(Array.isArray(res.data) ? res.data : []))
-      .catch((err) => {
-        console.error(`Error fetching ${config.name}:`, err);
-        alert(`Error fetching ${config.name}: ${err.response?.data?.message || err.message}`);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [itemsRes, locationsRes] = await Promise.all([
+        axios.get(`${API_URL}${config.endpoints.getAll}`, { headers }),
+        axios.get(`${API_URL}/locations`, { headers }), // Fetch locations
+      ]);
+
+      setData(Array.isArray(itemsRes.data) ? itemsRes.data : []);
+      setLocations(Array.isArray(locationsRes.data) ? locationsRes.data : []);
+    } catch (err) {
+      console.error(`Error fetching data for ${config.name}:`, err);
+      alert(
+        `Error fetching data for ${config.name}: ${
+          err.response?.data?.message || err.message
+        }`
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [config.endpoints.getAll, config.name]);
 
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
+
+  const filteredAndSearchedData = useMemo(() => {
+    let filtered = data;
+    if (locationId === 'none') {
+      filtered = data.filter(item => !item.locationId);
+    } else if (locationId && locationId !== 'all') {
+      filtered = data.filter(item => String(item.locationId) === String(locationId));
+    }
+    if (!searchTerm) return filtered;
     const lowercasedFilter = searchTerm.toLowerCase();
-    return data.filter((item) =>
+    return filtered.filter((item) =>
       config.columns.some(
         (col) =>
           item[col.key] &&
           String(item[col.key]).toLowerCase().includes(lowercasedFilter)
       )
     );
-  }, [data, searchTerm, config.columns]);
-
+  }, [data, searchTerm, config.columns, locationId]);
+  
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    fetchAllData();
+  }, [fetchAllData]);
 
   const handleAdd = () => {
-    setCurrentItem(null);
+    // Pass the current locationId when creating a new item
+    setCurrentItem({
+      id: undefined,
+      locationId: locationId !== 'all' ? locationId : ''
+    });
     setIsModalOpen(true);
   };
   const handleEdit = (item) => {
@@ -249,6 +322,12 @@ const createCrudTab = (config) => () => {
   };
 
   const handleSave = async (itemData) => {
+    // If locationId is an empty string, convert it to null for the backend
+    const payload = {
+      ...itemData,
+      locationId: itemData.locationId || null,
+    };
+
     const isUpdating = Boolean(itemData.id);
     const url = isUpdating
       ? `${API_URL}${config.endpoints.update}/${itemData.id}`
@@ -256,8 +335,8 @@ const createCrudTab = (config) => () => {
     const method = isUpdating ? 'put' : 'post';
 
     try {
-      await axios[method](url, itemData, { headers: authHeaders() });
-      fetchItems();
+      await axios[method](url, payload, { headers: authHeaders() });
+      fetchAllData();
       handleCloseModal();
     } catch (err) {
       alert(
@@ -275,8 +354,8 @@ const createCrudTab = (config) => () => {
     }
     if (window.confirm(`Are you sure you want to delete this ${config.singularName}?`)) {
       axios
-        .delete(`${API_URL}${config.endpoints.delete}/${id}`, { headers: authHeaders() })
-        .then(() => fetchItems())
+        .delete(`${API_URL}${config.endpoints.delete}/${id}`, { headers: authHeaders() }) // Use id directly
+        .then(() => fetchAllData())
         .catch((err) =>
           alert(
             `Error deleting ${config.singularName}: ${
@@ -314,13 +393,13 @@ const createCrudTab = (config) => () => {
           </button>
         </div>
       </div>
-      <CrudTable columns={config.columns} data={filteredData} onEdit={handleEdit} onDelete={handleDelete} />
+      <CrudTable columns={config.columns} data={filteredAndSearchedData} onEdit={handleEdit} onDelete={handleDelete} />
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={currentItem ? `Edit ${config.singularName}` : `Add ${config.singularName}`}
       >
-        <config.FormComponent item={currentItem} onSave={handleSave} onCancel={handleCloseModal} />
+        <config.FormComponent item={currentItem} onSave={handleSave} onCancel={handleCloseModal} locations={locations} />
       </Modal>
     </>
   );
@@ -336,6 +415,7 @@ const InventoryTypesTab = createCrudTab({
   columns: [
     { header: 'Name', key: 'name' },
     { header: 'Description', key: 'description' },
+    { header: 'Location', key: 'locationName' }, // Display location name
   ],
   endpoints: {
     getAll: '/production/inventory-types',
@@ -354,6 +434,7 @@ const PriceCategoriesTab = createCrudTab({
   columns: [
     { header: 'Name', key: 'name' },
     { header: 'Description', key: 'description' },
+    { header: 'Location', key: 'locationName' }, // Display location name
   ],
   endpoints: {
     getAll: '/production/price-categories',
@@ -369,7 +450,7 @@ const tabs = [
   { name: 'Price Categories', icon: DollarSign, component: PriceCategoriesTab },
 ];
 
-const GeneralSettings = () => {
+const GeneralSettings = ({ locationId }) => {
   const [activeTab, setActiveTab] = useState(tabs[0].name);
   const ActiveComponent = tabs.find((tab) => tab.name === activeTab)?.component;
 
@@ -393,7 +474,7 @@ const GeneralSettings = () => {
           ))}
         </nav>
       </div>
-      <div>{ActiveComponent && <ActiveComponent />}</div>
+      <div>{ActiveComponent && <ActiveComponent locationId={locationId} />}</div>
     </div>
   );
 };

@@ -281,13 +281,13 @@ const tabs = [
     { name: 'Employee Details', icon: Users, component: KpiEmployeeDetailsTab },
 ];
 
-const ManageKpi = () => {
+const ManageKpi = ({ locationId }) => {
     const [activeTab, setActiveTab] = useState(tabs[0].name);
 
     const ActiveComponent = tabs.find(tab => tab.name === activeTab)?.component;
 
     return (
-        <div className="p-6 bg-card rounded-xl shadow-sm">
+        <div className="p-6 bg-card rounded-xl shadow-sm flex flex-col h-full">
             <div className="border-b border-border mb-6">
                 <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                     {tabs.map((tab) => (
@@ -306,8 +306,8 @@ const ManageKpi = () => {
                     ))}
                 </nav>
             </div>
-            <div>
-                {ActiveComponent && <ActiveComponent />}
+            <div className="flex-grow overflow-hidden">
+                {ActiveComponent && <ActiveComponent locationId={locationId} />}
             </div>
         </div>
     );

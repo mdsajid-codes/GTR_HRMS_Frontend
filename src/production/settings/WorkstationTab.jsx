@@ -5,7 +5,7 @@ import WorkstationFormPage from './WorkstationFormPage';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const WorkstationTab = () => {
+const WorkstationTab = ({ locationId, onSwitchTab }) => {
     const [workstations, setWorkstations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('list');
@@ -31,16 +31,23 @@ const WorkstationTab = () => {
     }, [fetchWorkstations]);
 
     const filteredWorkstations = useMemo(() => {
-        if (!searchTerm) return workstations;
+        let filtered = workstations;
+        if (locationId === 'none') {
+            filtered = workstations.filter(item => !item.locationId);
+        } else if (locationId && locationId !== 'all') {
+            filtered = workstations.filter(item => String(item.locationId) === String(locationId));
+        }
+
+        if (!searchTerm) return filtered;
         const lowercasedFilter = searchTerm.toLowerCase();
-        return workstations.filter(ws =>
+        return filtered.filter(ws =>
             ws.workstationName.toLowerCase().includes(lowercasedFilter) ||
             ws.workGroupName.toLowerCase().includes(lowercasedFilter)
         );
-    }, [workstations, searchTerm]);
+    }, [workstations, searchTerm, locationId]);
 
     const handleAdd = () => {
-        setEditingWorkstation(null);
+        setEditingWorkstation({ locationId: locationId !== 'all' ? locationId : '' });
         setView('form');
     };
 
@@ -82,7 +89,9 @@ const WorkstationTab = () => {
         { header: 'Workstation Number', key: 'workstationNumber' },
         { header: 'Workstation Name', key: 'workstationName' },
         { header: 'Work Group', key: 'workGroupName' },
+        { header: 'Location', key: 'locationName' },
         { header: 'Assigned Employees', key: 'employees' },
+        { header: 'Maintenance Plan', key: 'maintenancePlan' },
     ];
 
     if (view === 'form') {
@@ -137,10 +146,17 @@ const WorkstationTab = () => {
                                     <td className="td-cell">{ws.workstationNumber}</td>
                                     <td className="td-cell">{ws.workstationName}</td>
                                     <td className="td-cell">{ws.workGroupName}</td>
+                                    <td className="td-cell">{ws.locationName || 'N/A'}</td>
                                     <td className="td-cell">
                                         {ws.employees && ws.employees.length > 0
                                             ? ws.employees.map(emp => emp.name).join(', ')
                                             : 'N/A'}
+                                    </td>
+                                    <td className="td-cell">
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => onSwitchTab('Manage Tools', ws.id)} className="btn-secondary btn-sm">Manage Tool</button>
+                                            <button onClick={() => onSwitchTab('Manage Tasks', ws.id)} className="btn-secondary btn-sm">Manage Task</button>
+                                        </div>
                                     </td>
                                     <td className="td-cell">
                                         <div className="flex items-center gap-2">
@@ -158,7 +174,7 @@ const WorkstationTab = () => {
                             <tr>
                                 <td
                                     className="px-4 py-6 text-sm text-foreground-muted text-center"
-                                    colSpan="5"
+                                    colSpan={columns.length + 2}
                                 >
                                     No workstations found.
                                 </td>

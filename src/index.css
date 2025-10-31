@@ -29,4 +29,14 @@
   .input {
       @apply mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600 sm:text-sm;
   }
+  .label-sm {
+  @apply block text-xs font-medium text-foreground-muted mb-1;
+}
+.input-sm {
+  @apply input py-1.5 px-2 text-sm;
+}
+.btn-sm {
+  @apply btn-secondary py-1 px-2 text-xs;
+}
+
 }

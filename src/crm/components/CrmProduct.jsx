@@ -19,13 +19,14 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     );
 };
 
-const ProductForm = ({ item, onSave, onCancel, loading, industries }) => {
-    const [formData, setFormData] = useState({ name: '', industryId: '' });
+const ProductForm = ({ item, onSave, onCancel, loading, industries, locations }) => {
+    const [formData, setFormData] = useState({ name: '', industryId: '', locationId: '' });
 
     useEffect(() => {
         setFormData({
             name: item?.name || '',
             industryId: item?.industryId || '',
+            locationId: item?.locationId || '',
         });
     }, [item]);
 
@@ -47,6 +48,13 @@ const ProductForm = ({ item, onSave, onCancel, loading, industries }) => {
                     {industries.map(ind => <option key={ind.id} value={ind.id}>{ind.name}</option>)}
                 </select>
             </div>
+            <div>
+                <label htmlFor="locationId" className="block text-sm font-medium text-foreground-muted">Location (Optional)</label>
+                <select id="locationId" name="locationId" value={formData.locationId} onChange={(e) => setFormData(prev => ({ ...prev, locationId: e.target.value }))} className="input mt-1 bg-background-muted border-border text-foreground">
+                    <option value="">Select Location</option>
+                    {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                </select>
+            </div>
             <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={onCancel} className="btn-secondary" disabled={loading}>Cancel</button>
                 <button type="submit" className="btn-primary flex items-center" disabled={loading}>
@@ -58,9 +66,10 @@ const ProductForm = ({ item, onSave, onCancel, loading, industries }) => {
     );
 };
 
-const CrmProduct = () => {
+const CrmProduct = ({ locationId }) => {
     const [products, setProducts] = useState([]);
     const [industries, setIndustries] = useState([]);
+    const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,12 +84,14 @@ const CrmProduct = () => {
         setLoading(true);
         setError('');
         try {
-            const [productsRes, industriesRes] = await Promise.all([
+            const [productsRes, industriesRes, locationsRes] = await Promise.all([
                 axios.get(`${API_URL}/crm/products`, { headers: authHeaders }),
                 axios.get(`${API_URL}/settings/industries`, { headers: authHeaders }),
+                axios.get(`${API_URL}/locations`, { headers: authHeaders }),
             ]);
             setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
             setIndustries(Array.isArray(industriesRes.data) ? industriesRes.data : []);
+            setLocations(Array.isArray(locationsRes.data) ? locationsRes.data : []);
         } catch (err) {
             setError('Failed to fetch data.');
             console.error(err);
@@ -93,18 +104,25 @@ const CrmProduct = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleAdd = () => { setEditingItem(null); setIsModalOpen(true); };
+    const handleAdd = () => {
+        setEditingItem({ locationId: locationId !== 'all' ? locationId : '' });
+        setIsModalOpen(true);
+    };
     const handleEdit = (item) => { setEditingItem(item); setIsModalOpen(true); };
     const handleCloseModal = () => { setIsModalOpen(false); setEditingItem(null); };
 
     const handleSave = async (itemData) => {
         setModalLoading(true);
-        const isUpdating = Boolean(itemData.id);
+        const payload = {
+            ...itemData,
+            locationId: itemData.locationId || null,
+        };
+        const isUpdating = Boolean(payload.id);
         const url = isUpdating ? `${API_URL}/crm/products/${itemData.id}` : `${API_URL}/crm/products`;
         const method = isUpdating ? 'put' : 'post';
 
         try {
-            await axios[method](url, itemData, { headers: authHeaders });
+            await axios[method](url, payload, { headers: authHeaders });
             await fetchData();
             handleCloseModal();
         } catch (err) {
@@ -126,10 +144,16 @@ const CrmProduct = () => {
     };
 
     const filteredData = useMemo(() => {
-        return products
+        let filtered = products;
+        if (locationId === 'none') {
+            filtered = products.filter(item => !item.locationId);
+        } else if (locationId && locationId !== 'all') {
+            filtered = products.filter(item => String(item.locationId) === String(locationId));
+        }
+        return filtered
             .filter(item => !filterIndustry || item.industryId == filterIndustry)
             .filter(item => !searchTerm || item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [products, searchTerm, filterIndustry]);
+    }, [products, searchTerm, filterIndustry, locationId]);
 
     return (
         <div className="p-6 bg-card rounded-xl shadow-sm">
@@ -154,18 +178,20 @@ const CrmProduct = () => {
                             <th className="th-cell w-16">#</th>
                             <th className="th-cell">Product Name</th>
                             <th className="th-cell">Industry</th>
+                            <th className="th-cell">Location</th>
                             <th className="th-cell w-32">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border text-foreground-muted">
                         {loading ? (
-                            <tr><td colSpan="4" className="text-center py-10"><Loader className="animate-spin h-8 w-8 text-primary mx-auto" /></td></tr>
+                            <tr><td colSpan="5" className="text-center py-10"><Loader className="animate-spin h-8 w-8 text-primary mx-auto" /></td></tr>
                         ) : filteredData.length > 0 ? (
                             filteredData.map((item, index) => (
                                 <tr key={item.id}>
                                     <td className="td-cell">{index + 1}</td>
                                     <td className="td-cell font-medium text-foreground">{item.name}</td>
                                     <td className="td-cell">{item.industryName || 'N/A'}</td>
+                                    <td className="td-cell">{item.locationName || 'N/A'}</td>
                                     <td className="td-cell">
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => handleEdit(item)} className="text-primary hover:text-primary/80" title="Edit"><Edit size={16} /></button>
@@ -175,14 +201,14 @@ const CrmProduct = () => {
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan="4" className="text-center py-10"><AlertCircle className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-medium text-foreground">No products found</h3><p className="mt-1 text-sm">Get started by adding a new product.</p></td></tr>
+                            <tr><td colSpan="5" className="text-center py-10"><AlertCircle className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-medium text-foreground">No products found</h3><p className="mt-1 text-sm">Get started by adding a new product.</p></td></tr>
                         )}
                     </tbody>
                 </table>
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingItem ? 'Edit Product' : 'Add Product'}>
-                <ProductForm item={editingItem} onSave={handleSave} onCancel={handleCloseModal} loading={modalLoading} industries={industries} />
+                <ProductForm item={editingItem} onSave={handleSave} onCancel={handleCloseModal} loading={modalLoading} industries={industries} locations={locations} />
             </Modal>
         </div>
     );

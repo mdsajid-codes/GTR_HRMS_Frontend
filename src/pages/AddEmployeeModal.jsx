@@ -32,7 +32,7 @@ const EditField = ({ label, name, value, onChange, type = 'text', options = [], 
     );
 };
 
-const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
+const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false, employeeToEdit = null }) => {
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         // User Details
@@ -181,6 +181,57 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         }
     }, [isOpen, API_URL]);
 
+    // Effect to populate form data when editing an existing employee
+    useEffect(() => {
+        if (isOpen && employeeToEdit) {
+            setLoading(true);
+            setError('');
+            const token = localStorage.getItem('token');
+            const headers = { "Authorization": `Bearer ${token}` };
+
+            const fetchEmployeeFullDetails = async () => {
+                try {
+                    // Fetch profile and time attendance details as they are not in the initial employeeToEdit object
+                    const [profileRes, timeAttendenceRes] = await Promise.all([
+                        axios.get(`${API_URL}/employee-profiles/${employeeToEdit.employeeCode}`, { headers }).catch(err => {
+                            console.warn("Failed to fetch employee profile for edit:", err);
+                            return { data: {} }; // Return empty object if not found
+                        }),
+                        axios.get(`${API_URL}/time-attendence/${employeeToEdit.employeeCode}`, { headers }).catch(err => {
+                            console.warn("Failed to fetch time attendance for edit:", err);
+                            return { data: {} }; // Return empty object if not found
+                        })
+                    ]);
+
+                    setFormData({
+                        user: {
+                            name: `${employeeToEdit.firstName || ''} ${employeeToEdit.lastName || ''}`.trim(),
+                            email: employeeToEdit.emailWork || '',
+                            password: '', // Passwords should never be pre-filled
+                            confirmPassword: '',
+                        },
+                        employee: {
+                            ...employeeToEdit,
+                            locationId: employeeToEdit.location?.id || null, // Map location object to ID
+                        },
+                        profile: profileRes.data,
+                        jobDetails: employeeToEdit.jobDetails || {},
+                        timeAttendence: timeAttendenceRes.data,
+                    });
+                } catch (err) {
+                    setError('Failed to load employee details for editing.');
+                    console.error("Error fetching full employee details for edit:", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchEmployeeFullDetails();
+        } else if (isOpen && !employeeToEdit) { // Reset form for new employee when modal opens without employeeToEdit
+            setFormData(getInitialFormData()); // Helper function to get initial form data
+            setCurrentStep(1);
+        }
+    }, [isOpen, employeeToEdit, API_URL]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -194,34 +245,56 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
 
         try {
             const token = localStorage.getItem('token');
-            const headers = { "Authorization": `Bearer ${token}` };
+            const headers = { "Authorization": `Bearer ${token}` };            
+            let employeeCodeToUse = formData.employee.employeeCode;
 
-            // Step 1: Create User
-            await axios.post(`${API_URL}/users/register`, {
-                name: formData.user.name, 
-                email: formData.user.email, 
-                password: formData.user.password, 
-                roles: ['EMPLOYEE'], 
-                isActive: true, 
-                isLocked: false,
-            }, { headers });
+            if (employeeToEdit) { // EDITING EXISTING EMPLOYEE
+                // Update Employee Basic Details
+                await axios.put(`${API_URL}/employees/${employeeCodeToUse}`, {
+                    ...formData.employee,
+                    locationId: formData.employee.locationId || null, // Ensure null if empty
+                }, { headers });
 
-            // Step 2: Register Employee (basic details)
-            const employeeRequest = {
-                email: formData.user.email, // for user lookup
-                ...formData.employee
-            };
-            await axios.post(`${API_URL}/employees/register`, employeeRequest, { headers });
-            const newEmployeeCode = formData.employee.employeeCode;
+                // Update User (if name/email changed, or password) - assuming user email is employee's work email
+                // For simplicity, we'll only allow password change here, or assume user details are managed elsewhere.
+                // If user.name or user.email are meant to be updated, a specific endpoint would be needed.
+                if (formData.user.password) { // Only update password if provided
+                    await axios.put(`${API_URL}/users/password/${employeeToEdit.emailWork}`, { newPassword: formData.user.password }, { headers });
+                }
+
+            } else { // ADDING NEW EMPLOYEE
+                // Step 1: Create User
+                await axios.post(`${API_URL}/users/register`, {
+                    name: formData.user.name, 
+                    email: formData.user.email, 
+                    password: formData.user.password, 
+                    roles: ['EMPLOYEE'], 
+                    isActive: true, 
+                    isLocked: false,
+                }, { headers });
+
+                // Step 2: Register Employee (basic details)
+                const employeeRequest = {
+                    email: formData.user.email, // for user lookup
+                    ...formData.employee,
+                    locationId: formData.employee.locationId || null, // Ensure null if empty
+                };
+                await axios.post(`${API_URL}/employees/register`, employeeRequest, { headers });
+                employeeCodeToUse = formData.employee.employeeCode; // Use the employee code from form data
+            }
 
             // Step 3: Create/Update Employee Profile (address, emergency contact, etc.)
-            await axios.put(`${API_URL}/employee-profiles/${newEmployeeCode}`, formData.profile, { headers });
+            if (!simplified) {
+                await axios.put(`${API_URL}/employee-profiles/${employeeCodeToUse}`, formData.profile, { headers });
+            }
 
             // Step 4: Create/Update Job Details
-            await axios.put(`${API_URL}/job-details/${newEmployeeCode}`, formData.jobDetails, { headers });
+            await axios.put(`${API_URL}/job-details/${employeeCodeToUse}`, formData.jobDetails, { headers });
 
             // Step 5: Create/Update Time & Attendance
-            await axios.put(`${API_URL}/time-attendence/${newEmployeeCode}`, formData.timeAttendence, { headers });
+            if (!simplified) {
+                await axios.put(`${API_URL}/time-attendence/${employeeCodeToUse}`, formData.timeAttendence, { headers });
+            }
 
             alert('Employee added successfully!');
             if (onEmployeeAdded) onEmployeeAdded();
@@ -240,23 +313,89 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
         }
     };
 
-    if (!isOpen) return null;
+    // Helper to get initial form data (for resetting or new employee)
+    const getInitialFormData = () => ({
+        user: { name: '', email: '', password: '', confirmPassword: '' },
+        employee: { employeeCode: '', firstName: '', middleName: '', lastName: '', emailWork: '', emailPersonal: '', phonePrimary: '', dob: '', locationId: null, gender: '', martialStatus: '', status: 'ACTIVE' },
+        profile: { address: '', city: '', state: '', country: '', postalCode: '', emergencyContactName: '', emergencyContactRelation: '', emergencyContactPhone: '', bankName: '', bankAccountNumber: '', ifscCode: '', bloodGroup: '', notes: '' },
+        jobDetails: { location: '', actualLocation: '', department: '', designation: '', jobBand: '', reportsTo: '', dateOfJoining: '', probationEndDate: '', loginId: '', profileName: '', employeeNumber: '', legalEntity: '' },
+        timeAttendence: { timeTypeId: null, workTypeId: null, shiftTypeId: null, weeklyOffPolicyId: null, leaveGroupId: null, attendenceCaptureScheme: '', attendancePolicyId: null, holidayList: '', expensePolicy: '', recruitmentPolicy: '', isRosterBasedEmployee: false }
+    });
 
-    const steps = [ { title: 'User & Basic Info' }, { title: 'Personal & Contact' }, { title: 'Job & Attendance' }, { title: 'Profile Details' } ];
+    if (!isOpen) {
+        // Reset form data and step when modal closes
+        // This prevents old data from showing up when reopened
+        // Also reset employeeToEdit in parent component when modal closes
+        // This is handled by the parent component's onClose logic
+        return null;
+    }
 
+    const allSteps = [ { title: 'User & Basic Info' }, { title: 'Personal & Contact' }, { title: 'Job & Attendance' }, { title: 'Profile Details' } ];
+    const simplifiedSteps = [ { title: 'User & Core Employee Details' }, { title: 'Job Details' } ];
+    const steps = simplified ? simplifiedSteps : allSteps;
+
+    const isEditing = !!employeeToEdit;
+
+    const renderSimplifiedStepContent = () => {
+        switch (currentStep) {
+            case 1: // User & Core Employee Details
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <h3 className="col-span-full font-semibold text-lg mb-2">User Account</h3>
+                        <EditField label="Full Name" name="name" value={formData.user.name} onChange={handleNestedChange('user')} type="text" required disabled={isEditing} />
+                        <EditField label="Login Email" name="email" value={formData.user.email} onChange={handleNestedChange('user')} type="email" required disabled={isEditing} />
+                        <EditField label="Password" name="password" value={formData.user.password} onChange={handleNestedChange('user')} type="password" required={!isEditing} placeholder={isEditing ? 'Leave blank to keep current' : ''} />
+                        <EditField label="Confirm Password" name="confirmPassword" value={formData.user.confirmPassword} onChange={handleNestedChange('user')} type="password" required={!isEditing} />
+                        
+                        <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Core Employee Details</h3>
+                        <EditField label="Employee Code" name="employeeCode" value={formData.employee.employeeCode} onChange={handleNestedChange('employee')} required disabled={isEditing} />
+                        <EditField label="First Name" name="firstName" value={formData.employee.firstName} onChange={handleNestedChange('employee')} required />
+                        <EditField label="Middle Name" name="middleName" value={formData.employee.middleName} onChange={handleNestedChange('employee')} />
+                        <EditField label="Last Name" name="lastName" value={formData.employee.lastName} onChange={handleNestedChange('employee')} required />
+                        <EditField label="Work Email" name="emailWork" value={formData.employee.emailWork} onChange={handleNestedChange('employee')} type="email" />
+                        <EditField label="Personal Email" name="emailPersonal" value={formData.employee.emailPersonal} onChange={handleNestedChange('employee')} type="email" />
+                        <EditField label="Primary Phone" name="phonePrimary" value={formData.employee.phonePrimary} onChange={handleNestedChange('employee')} />
+                        <EditField label="Date of Birth" name="dob" value={formData.employee.dob} onChange={handleNestedChange('employee')} type="date" />
+                        <EditField label="Gender" name="gender" value={formData.employee.gender} onChange={handleNestedChange('employee')} type="select" options={[{ value: 'MALE', label: 'Male' }, { value: 'FEMALE', label: 'Female' }, { value: 'OTHER', label: 'Other' }]} />
+                        <EditField label="Marital Status" name="martialStatus" value={formData.employee.martialStatus} onChange={handleNestedChange('employee')} type="select" options={[{ value: 'SINGLE', label: 'Single' }, { value: 'MARRIED', label: 'Married' }]} />
+                    </div>
+                );
+            case 2: // Job Details
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <h3 className="col-span-full font-semibold text-lg mb-2">Job Details</h3>
+                        <EditField label="Department" name="department" value={formData.jobDetails.department} onChange={handleNestedChange('jobDetails')} type="select" options={selectOptions.departments.map(d => ({ value: d.name, label: d.name }))} />
+                        <EditField label="Designation" name="designation" value={formData.jobDetails.designation} onChange={handleNestedChange('jobDetails')} type="select" options={selectOptions.designations.map(d => ({ value: d.title, label: `${d.title} (${d.departmentName})` }))} />
+                        <EditField label="Job Band" name="jobBand" value={formData.jobDetails.jobBand} onChange={handleNestedChange('jobDetails')} type="select" options={selectOptions.jobBands.map(d => ({ value: d.name, label: `${d.name} (${d.designationTitle})` }))} />
+                        <EditField label="Date of Joining" name="dateOfJoining" value={formData.jobDetails.dateOfJoining} onChange={handleNestedChange('jobDetails')} type="date" />
+                        <EditField label="Probation End Date" name="probationEndDate" value={formData.jobDetails.probationEndDate} onChange={handleNestedChange('jobDetails')} type="date" />
+                        <EditField label="Reports To" name="reportsTo" value={formData.jobDetails.reportsTo} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Location" name="locationId" value={formData.employee.locationId} onChange={handleNestedChange('employee')} type="select" options={locations.map(l => ({ value: l.id, label: l.name }))} />
+                        <EditField label="Actual Location" name="actualLocation" value={formData.jobDetails.actualLocation} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Legal Entity" name="legalEntity" value={formData.jobDetails.legalEntity} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Login ID" name="loginId" value={formData.jobDetails.loginId} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Profile Name" name="profileName" value={formData.jobDetails.profileName} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Employee Number" name="employeeNumber" value={formData.jobDetails.employeeNumber} onChange={handleNestedChange('jobDetails')} />
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+    
     const renderStepContent = () => {
         switch (currentStep) {
             case 1: // User & Basic Info
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <h3 className="col-span-full font-semibold text-lg mb-2">User Account</h3>
-                        <EditField label="Full Name" name="name" value={formData.user.name} onChange={handleNestedChange('user')} type="text" required />
-                        <EditField label="Login Email" name="email" value={formData.user.email} onChange={handleNestedChange('user')} type="email" required />
-                        <EditField label="Password" name="password" value={formData.user.password} onChange={handleNestedChange('user')} type="password" required />
-                        <EditField label="Confirm Password" name="confirmPassword" value={formData.user.confirmPassword} onChange={handleNestedChange('user')} type="password" required />
+                        <EditField label="Full Name" name="name" value={formData.user.name} onChange={handleNestedChange('user')} type="text" required disabled={isEditing} />
+                        <EditField label="Login Email" name="email" value={formData.user.email} onChange={handleNestedChange('user')} type="email" required disabled={isEditing} />
+                        <EditField label="Password" name="password" value={formData.user.password} onChange={handleNestedChange('user')} type="password" required={!isEditing} placeholder={isEditing ? 'Leave blank to keep current' : ''} />
+                        <EditField label="Confirm Password" name="confirmPassword" value={formData.user.confirmPassword} onChange={handleNestedChange('user')} type="password" required={!isEditing} />
                         
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Employee Information</h3>
-                        <EditField label="Employee Code" name="employeeCode" value={formData.employee.employeeCode} onChange={handleNestedChange('employee')} required />
+                        <EditField label="Employee Code" name="employeeCode" value={formData.employee.employeeCode} onChange={handleNestedChange('employee')} required disabled={isEditing} />
                         <EditField label="First Name" name="firstName" value={formData.employee.firstName} onChange={handleNestedChange('employee')} required />
                         <EditField label="Middle Name" name="middleName" value={formData.employee.middleName} onChange={handleNestedChange('employee')} />
                         <EditField label="Last Name" name="lastName" value={formData.employee.lastName} onChange={handleNestedChange('employee')} required />
@@ -410,17 +549,17 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Add New Employee - {steps[currentStep - 1].title}</h2>
+                    <h2 className="text-xl font-semibold">{isEditing ? 'Edit Employee' : 'Add New Employee'} - {steps[currentStep - 1].title}</h2>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6">
                     {error && <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">{error}</div>}
-                    {renderStepContent()}
+                    {simplified ? renderSimplifiedStepContent() : renderStepContent()}
                 </form>
                 <div className="p-4 border-t flex justify-between items-center">
                     <div>

@@ -32,17 +32,28 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 // ---------- Form ----------
-const CompanyTypeForm = ({ item, onSave, onCancel, loading }) => {
-  const [name, setName] = useState('');
+const CompanyTypeForm = ({ item, onSave, onCancel, loading, locations }) => {
+  const [formData, setFormData] = useState({ name: '', locationId: '' });
 
   useEffect(() => {
-    setName(item?.name ?? '');
+    if (item) {
+      setFormData({
+        name: item.name || '',
+        locationId: item.locationId || '',
+      });
+    } else {
+      setFormData({ name: '', locationId: '' });
+    }
   }, [item]);
+
+  const handleChange = (e) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Pass id if editing so backend can map it
-    onSave({ id: item?.id, name: name.trim() });
+    onSave({ id: item?.id, ...formData });
   };
 
   return (
@@ -54,12 +65,19 @@ const CompanyTypeForm = ({ item, onSave, onCancel, loading }) => {
         <input
           id="name"
           name="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={formData.name}
+          onChange={handleChange}
           required
           className="input mt-1 bg-background-muted border-border text-foreground"
           placeholder="e.g., Corporation, LLC, Partnership"
         />
+      </div>
+      <div>
+        <label htmlFor="locationId" className="block text-sm font-medium text-foreground-muted">Location (Optional)</label>
+        <select id="locationId" name="locationId" value={formData.locationId} onChange={handleChange} className="input mt-1 bg-background-muted border-border text-foreground">
+          <option value="">Select Location</option>
+          {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+        </select>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <button type="button" onClick={onCancel} className="btn-secondary" disabled={loading}>
@@ -75,11 +93,12 @@ const CompanyTypeForm = ({ item, onSave, onCancel, loading }) => {
 };
 
 // ---------- Main Component ----------
-const CrmCompanyType = () => {
+const CrmCompanyType = ({ locationId }) => {
   const [companyTypes, setCompanyTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [locations, setLocations] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,26 +109,30 @@ const CrmCompanyType = () => {
     []
   );
 
-  const fetchCompanyTypes = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.get(`${API_URL}/crm/company-types`, { headers: authHeaders });
-      setCompanyTypes(Array.isArray(response.data) ? response.data : []);
+      const [typesRes, locationsRes] = await Promise.all([
+        axios.get(`${API_URL}/crm/company-types`, { headers: authHeaders }),
+        axios.get(`${API_URL}/locations`, { headers: authHeaders }),
+      ]);
+      setCompanyTypes(Array.isArray(typesRes.data) ? typesRes.data : []);
+      setLocations(Array.isArray(locationsRes.data) ? locationsRes.data : []);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Failed to fetch company types.');
+      setError(err.response?.data?.message || 'Failed to fetch data.');
     } finally {
       setLoading(false);
     }
   }, [authHeaders]);
 
   useEffect(() => {
-    fetchCompanyTypes();
-  }, [fetchCompanyTypes]);
+    fetchData();
+  }, [fetchData]);
 
   const handleAdd = () => {
-    setEditingItem(null);
+    setEditingItem({ locationId: locationId !== 'all' ? locationId : '' });
     setIsModalOpen(true);
   };
 
@@ -126,18 +149,22 @@ const CrmCompanyType = () => {
   const handleSave = async (itemData) => {
     setModalLoading(true);
 
-    const isUpdating = Boolean(itemData.id);
+    const payload = {
+      ...itemData,
+      locationId: itemData.locationId || null,
+    };
+    const isUpdating = Boolean(payload.id);
     const url = isUpdating
-      ? `${API_URL}/crm/company-types/${itemData.id}`
+      ? `${API_URL}/crm/company-types/${payload.id}`
       : `${API_URL}/crm/company-types`;
     const method = isUpdating ? 'put' : 'post';
 
     try {
       // IMPORTANT: actually call axios
-      await axios[method](url, itemData, { headers: authHeaders });
+      await axios[method](url, payload, { headers: authHeaders });
 
       // refresh and close
-      await fetchCompanyTypes();
+      await fetchData();
       handleCloseModal();
     } catch (err) {
       console.error(err);
@@ -155,7 +182,7 @@ const CrmCompanyType = () => {
     if (window.confirm('Are you sure you want to delete this company type?')) {
       try {
         await axios.delete(`${API_URL}/crm/company-types/${id}`, { headers: authHeaders });
-        await fetchCompanyTypes();
+        await fetchData();
       } catch (err) {
         console.error(err);
         alert(`Error: ${err.response?.data?.message || 'Failed to delete company type.'}`);
@@ -165,9 +192,14 @@ const CrmCompanyType = () => {
 
   const filteredData = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return companyTypes;
-    return companyTypes.filter((item) => String(item?.name ?? '').toLowerCase().includes(q));
-  }, [companyTypes, searchTerm]);
+    let filtered = companyTypes;
+    if (locationId === 'none') {
+      filtered = companyTypes.filter(item => !item.locationId);
+    } else if (locationId && locationId !== 'all') {
+      filtered = companyTypes.filter(item => String(item.locationId) === String(locationId));
+    }
+    return filtered.filter((item) => !q || String(item?.name ?? '').toLowerCase().includes(q));
+  }, [companyTypes, searchTerm, locationId]);
 
   return (
     <div className="p-6 bg-card rounded-xl shadow-sm">
@@ -198,13 +230,14 @@ const CrmCompanyType = () => {
             <tr>
               <th className="th-cell w-16">#</th>
               <th className="th-cell">Name</th>
+              <th className="th-cell">Location</th>
               <th className="th-cell w-32">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border text-foreground-muted">
             {loading ? (
               <tr>
-                <td colSpan={3} className="text-center py-10">
+                <td colSpan={4} className="text-center py-10">
                   <Loader className="animate-spin h-8 w-8 text-primary mx-auto" />
                 </td>
               </tr>
@@ -213,6 +246,7 @@ const CrmCompanyType = () => {
                 <tr key={item.id ?? index}>
                   <td className="td-cell">{index + 1}</td>
                   <td className="td-cell font-medium text-foreground">{String(item?.name ?? '')}</td>
+                  <td className="td-cell">{item.locationName || 'N/A'}</td>
                   <td className="td-cell">
                     <div className="flex items-center gap-2">
                       <button
@@ -235,7 +269,7 @@ const CrmCompanyType = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="text-center py-10">
+                <td colSpan={4} className="text-center py-10">
                   <AlertCircle className="mx-auto h-12 w-12 text-foreground-muted/50" />
                   <h3 className="mt-2 text-sm font-medium text-foreground">No company types found</h3>
                   <p className="mt-1 text-sm">Get started by adding a new company type.</p>
@@ -256,6 +290,7 @@ const CrmCompanyType = () => {
           onSave={handleSave}
           onCancel={handleCloseModal}
           loading={modalLoading}
+          locations={locations}
         />
       </Modal>
     </div>

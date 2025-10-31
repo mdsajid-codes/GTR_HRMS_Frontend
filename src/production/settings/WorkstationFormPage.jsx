@@ -13,10 +13,11 @@ const FormField = ({ label, children }) => (
 );
 
 const WorkstationFormPage = ({ item, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({ workstationName: '', workGroupId: '', employeeIds: [] });
+    const [formData, setFormData] = useState({ workstationName: '', workGroupId: '', employeeIds: [], locationId: '' });
     const [workGroups, setWorkGroups] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [locations, setLocations] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -24,12 +25,14 @@ const WorkstationFormPage = ({ item, onSave, onCancel }) => {
             try {
                 const token = localStorage.getItem('token');
                 const headers = { Authorization: `Bearer ${token}` };
-                const [wgRes, empRes] = await Promise.all([
+                const [wgRes, empRes, locRes] = await Promise.all([
                     axios.get(`${API_URL}/production/work-groups`, { headers }),
                     axios.get(`${API_URL}/employees/all`, { headers }),
+                    axios.get(`${API_URL}/locations`, { headers }),
                 ]);
                 setWorkGroups(wgRes.data);
                 setEmployees(empRes.data);
+                setLocations(locRes.data);
             } catch (err) {
                 console.error("Failed to fetch data for form", err);
             } finally {
@@ -45,6 +48,7 @@ const WorkstationFormPage = ({ item, onSave, onCancel }) => {
                 workstationName: item.workstationName || '',
                 workGroupId: item.workGroup?.id || '',
                 employeeIds: item.employees?.map(emp => emp.id) || [],
+                locationId: item.locationId || '',
             });
         }
     }, [item]);
@@ -63,7 +67,11 @@ const WorkstationFormPage = ({ item, onSave, onCancel }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave(formData);
+        const payload = {
+            ...formData,
+            locationId: formData.locationId || null
+        };
+        onSave(payload);
     };
 
     const employeeOptions = employees.map(emp => ({ value: emp.id, label: `${emp.firstName} ${emp.lastName} (${emp.employeeCode})` }));
@@ -77,6 +85,12 @@ const WorkstationFormPage = ({ item, onSave, onCancel }) => {
             <form onSubmit={handleSubmit} className="space-y-4 max-w-lg mx-auto">
                 <FormField label="Workstation Name"><input name="workstationName" value={formData.workstationName} onChange={handleChange} required className="input bg-background-muted border-border" /></FormField>
                 <FormField label="Work Group"><select name="workGroupId" value={formData.workGroupId} onChange={handleChange} required className="input bg-background-muted border-border"><option value="">Select Work Group</option>{workGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></FormField>
+                <FormField label="Location (Optional)">
+                    <select name="locationId" value={formData.locationId} onChange={handleChange} className="input bg-background-muted border-border">
+                        <option value="">Select Location</option>
+                        {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                    </select>
+                </FormField>
                 <FormField label="Assign Employees"><SearchableSelect options={employeeOptions} selected={formData.employeeIds} onSelect={handleEmployeeSelect} placeholder="Search and select employees..." /></FormField>
                 <div className="flex justify-end gap-2 pt-4"><button type="button" onClick={onCancel} className="btn-secondary">Cancel</button><button type="submit" className="btn-primary">Save</button></div>
             </form>
