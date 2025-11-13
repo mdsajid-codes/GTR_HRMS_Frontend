@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Building, Users, SlidersHorizontal, HandCoins, Receipt, Hand } from 'lucide-react';
+import { Building, Users, SlidersHorizontal, HandCoins, Receipt, Hand, Play } from 'lucide-react';
 import CompanyInfo from '../components/payrollComponent/CompanyInfo';
 import PayrollSettings from '../components/payrollComponent/PayrollSettings';
 import EmployeePayroll from '../components/payrollComponent/EmployeePayroll';
 import EmployeeDetails from '../components/payrollComponent/EmployeeDetails';
+import PayrollRun from '../components/payrollComponent/PayrollRun';
 import { useTenant } from '../context/TenantContext';
 import AllLoanRequests from '../components/payrollComponent/AllLoanRequests';
 import AllExpenseRequests from '../components/payrollComponent/AllExpenseRequests';
@@ -12,6 +13,7 @@ import AllExpenseRequests from '../components/payrollComponent/AllExpenseRequest
 
 const allTabs = [
     { name: 'Manage Employee Payroll', icon: HandCoins, component: EmployeePayroll, color: 'text-green-600', bgColor: 'bg-green-100', module: 'HRMS_PAYROLL' },
+    { name: 'Payroll Run', icon: Play, component: PayrollRun, color: 'text-cyan-600', bgColor: 'bg-cyan-100', module: 'HRMS_PAYROLL' },
     { name: 'Employee Details', icon: Users, component: EmployeeDetails, color: 'text-blue-600', bgColor: 'bg-blue-100', module: 'HRMS_CORE' },
     { name: 'Loan Requests', icon: Hand, component: AllLoanRequests, color: 'text-indigo-600', bgColor: 'bg-indigo-100', module: 'HRMS_PAYROLL' },
     { name: 'Expense Requests', icon: Receipt, component: AllExpenseRequests, color: 'text-rose-600', bgColor: 'bg-rose-100', module: 'HRMS_PAYROLL' },

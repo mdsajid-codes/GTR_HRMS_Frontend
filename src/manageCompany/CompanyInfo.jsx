@@ -16,10 +16,18 @@ const api = {
         return response.data;
     },
     saveCompanyInfo: async (data) => {
-        // The backend uses POST for both create and update
+        // The backend uses POST for both create and update.
         const response = await axios.post(`${API_URL}/company-info`, data, { headers: getAuthHeaders() });
         return response.data;
     },
+    uploadLogo: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axios.post(`${API_URL}/company-info/logo`, formData, {
+            headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
 };
 
 // --- Reusable Components ---
@@ -43,6 +51,8 @@ const CompanyInfo = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
 
     const initialFormData = {
         companyName: '', address: '', city: '', state: '', postalCode: '', country: '',
@@ -59,6 +69,7 @@ const CompanyInfo = () => {
                 if (data && data.companyName) {
                     setCompanyInfo(data);
                     setFormData(data);
+                    setLogoPreview(data.logoUrl ? `${API_URL}${data.logoUrl}?t=${new Date().getTime()}` : null);
                 } else {
                     setCompanyInfo(null);
                     setFormData(initialFormData);
@@ -79,14 +90,29 @@ const CompanyInfo = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setLogoFile(file);
+            setLogoPreview(URL.createObjectURL(file));
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         setError('');
         try {
-            const savedData = await api.saveCompanyInfo(formData);
+            let savedData = await api.saveCompanyInfo(formData);
+
+            if (logoFile) {
+                // Re-assign savedData with the response from logo upload which contains the updated logoUrl
+                savedData = await api.uploadLogo(logoFile);
+            }
+
             setCompanyInfo(savedData);
             setFormData(savedData);
+            setLogoFile(null); // Clear the file input after successful upload
             setIsEditing(false);
             alert('Company information saved successfully!');
         } catch (err) {
@@ -95,12 +121,14 @@ const CompanyInfo = () => {
             alert(`Error: ${errorMessage}`);
         } finally {
             setSaving(false);
+            // No need to call fetchCompanyInfo() as we are setting state from the response.
         }
     };
 
     const handleCancel = () => {
         setIsEditing(false);
         setFormData(companyInfo || initialFormData);
+        setLogoPreview(companyInfo?.logoUrl ? `${API_URL}${companyInfo.logoUrl}?t=${new Date().getTime()}` : null);
     };
 
     if (loading) {
@@ -111,19 +139,31 @@ const CompanyInfo = () => {
         return (
             <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-sm space-y-8">
                 {error && <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm">{error}</div>}
+                <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Company Logo</h3>
+                    <div className="flex items-center gap-6">
+                        {logoPreview ? (
+                            <img src={logoPreview} alt="Logo" className="h-20 w-20 object-contain rounded-md border p-1 bg-card" />
+                        ) : (
+                            <div className="h-20 w-20 flex items-center justify-center bg-background-muted rounded-md text-foreground-muted text-sm">No Logo</div>
+                        )}
+                        <div className="flex-1">
+                            <input type="file" accept="image/*" onChange={handleFileChange} className="block w-full text-sm text-foreground-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        </div>
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <InputField label="Company Name" id="companyName" name="companyName" value={formData.companyName || ''} onChange={handleChange} required />
+                    <InputField label="Company Name" id="companyName" name="companyName" value={formData.companyName || ''} onChange={handleChange} required className="md:col-span-3" />
                     <InputField label="Email" id="email" name="email" type="email" value={formData.email || ''} onChange={handleChange} />
                     <InputField label="Phone" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} />
                     <InputField label="Website" id="website" name="website" value={formData.website || ''} onChange={handleChange} />
-                    <InputField label="Address" id="address" name="address" value={formData.address || ''} onChange={handleChange} />
+                    <InputField label="Address" id="address" name="address" value={formData.address || ''} onChange={handleChange} className="md:col-span-3" />
                     <InputField label="City" id="city" name="city" value={formData.city || ''} onChange={handleChange} />
-                    <InputField label="State" id="state" name="state" value={formData.state || ''} onChange={handleChange} />
-                    <InputField label="Postal Code" id="postalCode" name="postalCode" value={formData.postalCode || ''} onChange={handleChange} />
+                    <InputField label="State / Emirate" id="state" name="state" value={formData.state || ''} onChange={handleChange} />
+                    <InputField label="Postal Code / P.O. Box" id="postalCode" name="postalCode" value={formData.postalCode || ''} onChange={handleChange} />
                     <InputField label="Country" id="country" name="country" value={formData.country || ''} onChange={handleChange} />
-                    <InputField label="PAN" id="pan" name="pan" value={formData.pan || ''} onChange={handleChange} />
-                    <InputField label="TAN" id="tan" name="tan" value={formData.tan || ''} onChange={handleChange} />
-                    <InputField label="GSTIN" id="gstIn" name="gstIn" value={formData.gstIn || ''} onChange={handleChange} />
+                    <InputField label="PAN / TRN" id="pan" name="pan" value={formData.pan || ''} onChange={handleChange} />
+                    <InputField label="GSTIN / TAN" id="tan" name="tan" value={formData.tan || ''} onChange={handleChange} />
                     <InputField label="PF Registration No." id="pfRegistrationNumber" name="pfRegistrationNumber" value={formData.pfRegistrationNumber || ''} onChange={handleChange} />
                     <InputField label="ESI Registration No." id="esiRegistrationNumber" name="esiRegistrationNumber" value={formData.esiRegistrationNumber || ''} onChange={handleChange} />
                 </div>
@@ -162,6 +202,11 @@ const CompanyInfo = () => {
                 </button>
             </div>
             <div className="space-y-6">
+                {companyInfo.logoUrl && (
+                    <Section title="Company Logo">
+                        <img src={`${API_URL}${companyInfo.logoUrl}?t=${new Date().getTime()}`} alt="Company Logo" className="h-24 w-auto object-contain rounded-md border p-2 bg-white" />
+                    </Section>
+                )}
                 <Section title="General Information">
                     <InfoDisplay label="Company Name" value={companyInfo.companyName} />
                     <InfoDisplay label="Email" value={companyInfo.email} />
@@ -171,14 +216,13 @@ const CompanyInfo = () => {
                 <Section title="Address">
                     <InfoDisplay label="Address" value={companyInfo.address} />
                     <InfoDisplay label="City" value={companyInfo.city} />
-                    <InfoDisplay label="State" value={companyInfo.state} />
-                    <InfoDisplay label="Postal Code" value={companyInfo.postalCode} />
+                    <InfoDisplay label="State / Emirate" value={companyInfo.state} />
+                    <InfoDisplay label="Postal Code / P.O. Box" value={companyInfo.postalCode} />
                     <InfoDisplay label="Country" value={companyInfo.country} />
                 </Section>
                 <Section title="Statutory Details">
-                    <InfoDisplay label="PAN" value={companyInfo.pan} />
-                    <InfoDisplay label="TAN" value={companyInfo.tan} />
-                    <InfoDisplay label="GSTIN" value={companyInfo.gstIn} />
+                    <InfoDisplay label="PAN / TRN" value={companyInfo.pan} />
+                    <InfoDisplay label="GSTIN / TAN" value={companyInfo.tan} />
                     <InfoDisplay label="PF Registration No." value={companyInfo.pfRegistrationNumber} />
                     <InfoDisplay label="ESI Registration No." value={companyInfo.esiRegistrationNumber} />
                 </Section>

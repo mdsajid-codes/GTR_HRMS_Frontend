@@ -456,7 +456,7 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
     };
 
     const handleFileChange = (e) => {
-        setReceiptFile(e.target.files[0]);
+        setReceiptFile(e.target.files); // Handle multiple files
     };
 
     const handleSubmit = async (e) => {
@@ -473,8 +473,10 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
 
             const submissionForm = new FormData();
             submissionForm.append('expense', new Blob([JSON.stringify(expenseData)], { type: 'application/json' }));
-            if (receiptFile) {
-                submissionForm.append('file', receiptFile);
+            if (receiptFile && receiptFile.length > 0) {
+                for (let i = 0; i < receiptFile.length; i++) {
+                    submissionForm.append('files', receiptFile[i]);
+                }
             }
 
             await axios.post(`${API_URL}/expenses`, submissionForm, {
@@ -496,15 +498,17 @@ const ExpenseRequestModal = ({ isOpen, onClose, employeeCode, onExpenseSubmitted
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <InputField label="Expense Date" id="expenseDate" name="expenseDate" type="date" value={formData.expenseDate} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
-                    <InputField label="Category" id="category" name="category" type="text" value={formData.category} onChange={handleChange} required placeholder="e.g., Travel, Food" className="input bg-background-muted border-border text-foreground" />
-                    <InputField label="Bill Number" id="billNumber" name="billNumber" type="text" value={formData.billNumber} onChange={handleChange} placeholder="e.g., INV-123" className="input bg-background-muted border-border text-foreground" />
-                    <InputField label="Merchant Name" id="merchentName" name="merchentName" type="text" value={formData.merchentName} onChange={handleChange} placeholder="e.g., Starbucks" className="input bg-background-muted border-border text-foreground" />
+                    <InputField label="Category" id="category" name="category" type="text" value={formData.category} onChange={handleChange} required placeholder="e.g., Travel, Food" />
                 </div>
-                <InputField label="Amount" id="amount" name="amount" type="number" value={formData.amount} onChange={handleChange} required placeholder="e.g., 1500.50" className="input bg-background-muted border-border text-foreground" />
-                <InputField label="Description" id="description" name="description" type="text" value={formData.description} onChange={handleChange} required className="input bg-background-muted border-border text-foreground" />
+                <InputField label="Amount" id="amount" name="amount" type="number" value={formData.amount} onChange={handleChange} required placeholder="e.g., 1500.50" />
+                <div className="grid grid-cols-2 gap-4">
+                    <InputField label="Bill Number" id="billNumber" name="billNumber" type="text" value={formData.billNumber} onChange={handleChange} placeholder="e.g., INV-123" />
+                    <InputField label="Merchant Name" id="merchentName" name="merchentName" type="text" value={formData.merchentName} onChange={handleChange} placeholder="e.g., Starbucks" />
+                </div>
+                <InputField label="Description" id="description" name="description" type="text" value={formData.description} onChange={handleChange} required />
                 <div>
-                    <label htmlFor="receiptFile" className="block text-sm font-medium text-foreground-muted">Receipt (Optional)</label>
-                    <input id="receiptFile" name="receiptFile" type="file" onChange={handleFileChange} className="mt-1 block w-full text-sm text-foreground-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                    <label htmlFor="receiptFile" className="block text-sm font-medium text-foreground-muted">Receipt(s) (Optional)</label>
+                    <input id="receiptFile" name="receiptFile" type="file" onChange={handleFileChange} multiple className="mt-1 block w-full text-sm text-foreground-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                 </div>
                 
                 {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -541,23 +545,6 @@ const ExpensesTab = ({ employee }) => {
 
     useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
-    const handleViewReceipt = async (expense) => {
-        if (!expense.receiptPath) return;
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/expenses/${expense.id}/receipt`, {
-                headers: { "Authorization": `Bearer ${token}` },
-                responseType: 'blob'
-            });
-            const file = new Blob([response.data], { type: response.headers['content-type'] });
-            const fileURL = URL.createObjectURL(file);
-            setViewingReceipt(fileURL);
-        } catch (err) {
-            console.error("Error fetching receipt:", err);
-            alert("Could not load the receipt. It may have been deleted.");
-        }
-    };
-
     if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
     if (error) return <div className="text-center text-red-600 p-4 bg-red-50 rounded-md">{error}</div>;
 
@@ -577,7 +564,7 @@ const ExpensesTab = ({ employee }) => {
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Category</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Amount</th>
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Description</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Status</th> 
                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Receipt</th>
                         </tr>
                     </thead>
@@ -593,12 +580,18 @@ const ExpensesTab = ({ employee }) => {
                                         {exp.status.toLowerCase()}
                                     </span>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    {exp.receiptPath && ( 
-                                        <button onClick={() => handleViewReceipt(exp)} className="text-primary hover:underline text-xs flex items-center gap-1">
-                                            <Eye size={14} /> View
-                                        </button>
-                                    )}
+                                <td className="px-4 py-3 whitespace-nowrap text-sm space-y-1">
+                                    {exp.attachments && exp.attachments.map(file => (
+                                        <a 
+                                            key={file.id} 
+                                            href={file.viewUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="text-primary hover:underline text-xs flex items-center gap-1 w-full truncate"
+                                        >
+                                            <Eye size={14}/> <span className="truncate">{file.originalFilename}</span>
+                                        </a>
+                                    ))}
                                 </td>
                             </tr>
                         )) : (
@@ -614,18 +607,6 @@ const ExpensesTab = ({ employee }) => {
                 employeeCode={employee.employeeCode}
                 onExpenseSubmitted={fetchExpenses}
             />
-            {viewingReceipt && (
-                <div className="fixed inset-0 bg-black/75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
-                    <div className="bg-card p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-end"> 
-                            <button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full text-foreground-muted hover:bg-background-muted -mr-2 -mt-2 mb-2">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <img src={viewingReceipt} alt="Expense Receipt" className="max-w-full max-h-[80vh] object-contain" />
-                    </div>
-                </div>
-            )}
         </>
     );
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { LogIn, LogOut, UserCheck, UserX, AlertTriangle, ChevronsLeft, ChevronsRight, Loader, Clock, CalendarOff, UserMinus, Plane } from 'lucide-react';
+import { LogIn, LogOut, UserCheck, UserX, AlertTriangle, ChevronsLeft, ChevronsRight, Loader, Clock, CalendarOff, UserMinus, Plane, HelpCircle, Eye, BookOpen } from 'lucide-react';
+import MissingAttendanceRequestModal from './MissingAttendanceRequestModal';
+import MyMissingRequestsTab from './MyMissingRequestsTab';
 
 // Helper to format time from "HH:mm:ss" to "HH:mm AM/PM"
 const formatTime = (timeString) => {
@@ -48,7 +50,8 @@ const StatusBadge = ({ status }) => {
         ABSENT: { label: 'Absent', style: 'bg-red-100 text-red-700' },
         ON_LEAVE: { label: 'On Leave', style: 'bg-yellow-100 text-yellow-700' },
         HALF_DAY: { label: 'Half Day', style: 'bg-orange-100 text-orange-700' },
-        HOLIDAY: { label: 'Holiday', style: 'bg-blue-100 text-blue-700' },
+        HOLIDAY: { label: 'Holiday', style: 'bg-purple-100 text-purple-700' },
+        WEEKLY_OFF: { label: 'Weekly Off', style: 'bg-blue-100 text-blue-700' },
     };
     const { label, style } = statusStyles[status] || { label: status, style: 'bg-slate-100 text-slate-600' };
     return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${style}`}>{label}</span>;
@@ -60,6 +63,8 @@ const AttendanceView = () => {
     const [todaysRecord, setTodaysRecord] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('Log');
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [employeeDetails, setEmployeeDetails] = useState(null);
     const API_URL = import.meta.env.VITE_API_BASE_URL;
     const employeeCode = localStorage.getItem('employeeCode');
@@ -156,6 +161,27 @@ const AttendanceView = () => {
         });
     };
 
+    const handleRequestSubmit = async (formData) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API_URL}/missing-attendance/request/${employeeCode}`, formData, {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+            alert('Your request has been submitted successfully.');
+            setIsRequestModalOpen(false);
+            // Optionally, refetch requests history here if you add it to this view
+        } catch (err) {
+            console.error("Failed to submit missing attendance request", err);
+            alert(err.response?.data?.message || "An error occurred while submitting your request.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleAttendanceAction = async () => {
         setLoading(true);
         const token = localStorage.getItem('token');
@@ -166,9 +192,11 @@ const AttendanceView = () => {
 
         try {
             if (todaysRecord && todaysRecord.checkIn && !todaysRecord.checkOut) {
-                // This is a Check Out action. We need to ensure we pass the policy ID.
+                // This is a Check Out action.
                 const payload = {
-                    ...todaysRecord,
+                    employeeCode,
+                    attendanceDate: todaysRecord.attendanceDate,
+                    checkIn: todaysRecord.checkIn,
                     checkOut: currentTime,
                     attendancePolicyId: employeeDetails?.attendancePolicy?.id || null,
                 };
@@ -190,8 +218,11 @@ const AttendanceView = () => {
             // Refresh the whole month's data
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            const startDate = new Date(year, month, 1).toISOString().slice(0, 10);
-            const endDate = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+            // To ensure correct timezone handling, construct date parts separately
+            const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
             const updatedResponse = await axios.get(`${API_URL}/attendance-records/employee/${employeeCode}`, { params: { startDate, endDate }, headers });
             setAttendanceData(updatedResponse.data.sort((a, b) => new Date(a.attendanceDate) - new Date(b.attendanceDate)));
         } catch (err) { 
@@ -203,6 +234,10 @@ const AttendanceView = () => {
     };
 
     const renderAttendanceButton = () => {
+        if (loading) {
+            return <button className="btn-secondary cursor-not-allowed flex items-center gap-2" disabled><Loader className="animate-spin h-4 w-4" /> Loading...</button>;
+        }
+
         if (!todaysRecord || !todaysRecord.checkIn) {
             return <button onClick={handleAttendanceAction} className="btn-primary flex items-center gap-2"><LogIn size={18} /> Check In</button>;
         }
@@ -222,11 +257,19 @@ const AttendanceView = () => {
         );
     }
 
+    const TABS = [
+        { name: 'Log', icon: BookOpen },
+        { name: 'My Requests', icon: HelpCircle },
+    ];
+
     return (
         <div className="p-6 md:p-8 space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <h1 className="text-3xl font-bold text-slate-800">My Attendance</h1>
                 <div className="flex items-center gap-4">
+                    <button onClick={() => setIsRequestModalOpen(true)} className="btn-secondary flex items-center gap-2">
+                        <HelpCircle size={16} /> Request Regularization
+                    </button>
                     {renderAttendanceButton()}
                     <div className="flex items-center gap-2 bg-white p-1 rounded-lg shadow-sm">
                         <button onClick={() => changeMonth(-1)} className="p-2 rounded-md hover:bg-slate-100"><ChevronsLeft className="h-5 w-5" /></button>
@@ -245,41 +288,66 @@ const AttendanceView = () => {
                 <StatCard icon={Clock} title="Overtime" value={overtimeFormatted} color="bg-blue-500" />
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-semibold text-slate-800 mb-4">Monthly Log</h2>
-                <div className="overflow-x-auto">
-                    {loading ? (
-                        <div className="flex justify-center items-center h-64"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>
-                    ) : error ? (
-                        <div className="text-center py-10 text-red-500">{error}</div>
-                    ) : (
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                <tr>
-                                    <th className="th-cell">Date</th>
-                                    <th className="th-cell">Status</th>
-                                    <th className="th-cell text-center">Check In</th>
-                                    <th className="th-cell text-center">Check Out</th>
-                                    <th className="th-cell text-center">Work Hours</th>
-                                    <th className="th-cell">Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-slate-700">
-                                {attendanceData.map(record => (
-                                    <tr key={record.id} className="border-b border-slate-200 hover:bg-slate-50">
-                                        <td className="td-cell font-medium">{new Date(record.attendanceDate).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</td>
-                                        <td className="td-cell"><StatusBadge status={record.status} /></td>
-                                        <td className="td-cell text-center font-mono">{formatTime(record.checkIn)}</td>
-                                        <td className="td-cell text-center font-mono">{formatTime(record.checkOut)}</td>
-                                        <td className="td-cell text-center font-mono">{calculateDuration(record.checkIn, record.checkOut)}</td>
-                                        <td className="td-cell text-xs text-slate-500">{record.remarks}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            <div className="bg-white rounded-xl shadow-sm">
+                <div className="border-b border-slate-200">
+                    <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
+                        {TABS.map(tab => (
+                            <button
+                                key={tab.name}
+                                onClick={() => setActiveTab(tab.name)}
+                                className={`whitespace-nowrap flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeTab === tab.name
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                }`}
+                            >
+                                <tab.icon className="h-5 w-5" />
+                                {tab.name}
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+                <div className="p-6">
+                    {activeTab === 'Log' && (
+                        <div className="overflow-x-auto">
+                            {loading ? (
+                                <div className="flex justify-center items-center h-64"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>
+                            ) : error ? (
+                                <div className="text-center py-10 text-red-500">{error}</div>
+                            ) : (
+                                <table className="w-full text-sm text-left text-slate-500">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                        <tr>
+                                            <th className="th-cell">Date</th><th className="th-cell">Status</th><th className="th-cell text-center">Check In</th><th className="th-cell text-center">Check Out</th><th className="th-cell text-center">Work Hours</th><th className="th-cell">Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-slate-700">
+                                        {attendanceData.map(record => (
+                                            <tr key={record.id} className="border-b border-slate-200 hover:bg-slate-50">
+                                                <td className="td-cell font-medium">{new Date(record.attendanceDate).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</td>
+                                                <td className="td-cell"><StatusBadge status={record.status} /></td>
+                                                <td className="td-cell text-center font-mono">{formatTime(record.checkIn)}{record.isLate && (<span className="ml-2 text-xs font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Late</span>)}</td>
+                                                <td className="td-cell text-center font-mono">{formatTime(record.checkOut)}</td>
+                                                <td className="td-cell text-center font-mono">{calculateDuration(record.checkIn, record.checkOut)}</td>
+                                                <td className="td-cell text-xs text-slate-500">{record.remarks}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )}
+                    {activeTab === 'My Requests' && (
+                        <MyMissingRequestsTab employeeCode={employeeCode} />
                     )}
                 </div>
             </div>
+            <MissingAttendanceRequestModal
+                isOpen={isRequestModalOpen}
+                onClose={() => setIsRequestModalOpen(false)}
+                onSubmit={handleRequestSubmit}
+                loading={loading}
+            />
         </div>
     );
 }

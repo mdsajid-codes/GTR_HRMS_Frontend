@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, Scale, Handshake, Play, Loader, Edit, Trash2, PlusCircle, Layers } from 'lucide-react';
+import { Settings, Scale, Handshake, Loader, Edit, Trash2, PlusCircle, Layers, Gift, ToggleLeft, ToggleRight, FileText, Star } from 'lucide-react';
 import axios from 'axios';
 
 // --- Helper Components ---
@@ -167,7 +167,7 @@ const GeneralSettingsTab = () => {
 };
 
 // --- CRUD Factory and Forms ---
-const CrudTable = ({ title, columns, data, onAdd, onEdit, onDelete, addLabel }) => (
+const CrudTable = ({ title, columns, data, onAdd, onEdit, onDelete, addLabel, onToggle, showToggle = false }) => (
     <div>
         <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">{title}</h3>
@@ -186,8 +186,13 @@ const CrudTable = ({ title, columns, data, onAdd, onEdit, onDelete, addLabel }) 
                         <tr key={item.id}>
                             {columns.map(col => <td key={col.key} className="px-4 py-3 whitespace-nowrap text-sm">{typeof item[col.key] === 'boolean' ? (item[col.key] ? 'Yes' : 'No') : item[col.key]}</td>)}
                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                {showToggle && (
+                                    <button onClick={() => onToggle(item.id, item.active)} className={`mr-3 p-1 rounded-full ${item.active ? 'text-green-600 hover:bg-green-100' : 'text-slate-400 hover:bg-slate-100'}`} title={item.active ? 'Deactivate' : 'Activate'}>
+                                        {item.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                                    </button>
+                                )}
                                 <button onClick={() => onEdit(item)} className="text-blue-600 hover:text-blue-900 mr-3"><Edit size={16} /></button>
-                                <button onClick={() => onDelete(item.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>
+                                {onDelete && <button onClick={() => onDelete(item.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>}
                             </td>
                         </tr>
                     ))}
@@ -197,7 +202,43 @@ const CrudTable = ({ title, columns, data, onAdd, onEdit, onDelete, addLabel }) 
     </div>
 );
 
-const createCrudTab = (config) => () => {
+const PayslipTemplateForm = ({ initialData, onSave, onCancel }) => {
+    const [formData, setFormData] = useState(initialData || {
+        name: '',
+        templateContent: '', // This should be templateContent to match the backend
+        default: false, // Changed from isDefault to default
+    });
+
+    useEffect(() => {
+        if (initialData) {
+            setFormData(initialData);
+        }
+    }, [initialData]);
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <InputField label="Template Name" name="name" value={formData.name} onChange={handleChange} required />
+            <InputField label="Template HTML" name="templateContent" type="textarea" rows="10" value={formData.templateContent} onChange={handleChange} required placeholder="Enter the HTML content for the payslip..." />
+            <CheckboxField label="Set as default template" id="default" name="default" checked={formData.default} onChange={handleChange} />
+            <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary">Save Template</button>
+            </div>
+        </form>
+    );
+};
+
+const createCrudTab = (config, customLogic = {}) => () => {
     const [items, setItems] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -222,28 +263,41 @@ const createCrudTab = (config) => () => {
         if (window.confirm(`Are you sure you want to delete this ${config.singularName}?`)) {
             const token = localStorage.getItem('token');
             axios.delete(`${API_URL}${config.endpoints.delete}/${id}`, { headers: { "Authorization": `Bearer ${token}` } })
-                .then(() => fetchItems())
+                .then(fetchItems)
                 .catch(err => console.error(`Error deleting ${config.singularName}:`, err));
         }
     };
 
     const handleSave = (data) => {
         const token = localStorage.getItem('token');
-        const request = data.id
+        const request = data.id 
             ? axios.put(`${API_URL}${config.endpoints.update}/${data.id}`, data, { headers: { "Authorization": `Bearer ${token}` } })
             : axios.post(`${API_URL}${config.endpoints.create}`, data, { headers: { "Authorization": `Bearer ${token}` } });
 
-        request.then(() => { fetchItems(); setIsModalOpen(false); })
+        request.then(() => {
+                fetchItems();
+                setIsModalOpen(false);
+            })
             .catch(err => { console.error(`Error saving ${config.singularName}:`, err); alert(`Failed to save ${config.singularName}.`); });
     };
+
+    const handleSetDefault = (id) => {
+        if (!config.endpoints.setDefault) return;
+        const token = localStorage.getItem('token');
+        axios.post(`${API_URL}${config.endpoints.setDefault}/${id}`, {}, { headers: { "Authorization": `Bearer ${token}` } })
+            .then(fetchItems)
+            .catch(err => alert(`Failed to set default: ${err.response?.data?.message || err.message}`));
+    };
+
+    const finalConfig = { ...config, ...customLogic, onSetDefault: handleSetDefault };
 
     if (loading) {
         return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
     }
 
     return (
-        <>
-            <CrudTable title={config.title} columns={config.columns} data={items} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} addLabel={config.addLabel} />
+        <> 
+            <CrudTable title={config.title} columns={config.columns} data={items} onAdd={handleAdd} onEdit={handleEdit} onDelete={finalConfig.onDelete || handleDelete} addLabel={config.addLabel} onToggle={finalConfig.onToggle} showToggle={!!finalConfig.onToggle} />
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? `Edit ${config.singularName}` : `Add ${config.singularName}`}>
                 <config.FormComponent initialData={editingItem} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />
             </Modal>
@@ -361,6 +415,45 @@ const LoanProductForm = ({ initialData, onSave, onCancel }) => {
     );
 };
 
+const BenefitTypeForm = ({ initialData, onSave, onCancel }) => {
+    const [formData, setFormData] = useState(initialData || {
+        code: '',
+        name: '',
+        description: '',
+        calculationType: 'FLAT_AMOUNT',
+        valueForAccrual: 0,
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <InputField label="Benefit Code" name="code" value={formData.code} onChange={handleChange} required maxLength="50" disabled={!!initialData} />
+            <InputField label="Benefit Name" name="name" value={formData.name} onChange={handleChange} required />
+            <InputField label="Description" name="description" type="textarea" value={formData.description} onChange={handleChange} />
+            <div className="grid grid-cols-2 gap-4">
+                <InputField label="Calculation Type" name="calculationType" type="select" value={formData.calculationType} onChange={handleChange} required>
+                    <option value="FLAT_AMOUNT">Flat Amount</option>
+                    <option value="PERCENTAGE_OF_BASIC">Percentage of Basic</option>
+                </InputField>
+                <InputField label="Value for Accrual" name="valueForAccrual" type="number" step="0.01" value={formData.valueForAccrual} onChange={handleChange} required />
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary">Save Benefit</button>
+            </div>
+        </form>
+    );
+};
+
 const StatutoryRulesTab = createCrudTab({
     name: 'statutory rules', singularName: 'rule', title: 'Statutory Rules', addLabel: 'Add Rule',
     columns: [
@@ -389,6 +482,36 @@ const SalaryComponentsTab = createCrudTab({
     FormComponent: SalaryComponentForm,
 });
 
+const BenefitTypesTab = createCrudTab({
+    name: 'benefit types',
+    singularName: 'Benefit Type',
+    title: 'Benefit Types',
+    addLabel: 'Add Benefit Type',
+    columns: [
+        { header: 'Code', key: 'code' },
+        { header: 'Name', key: 'name' },
+        { header: 'Description', key: 'description' },
+        { header: 'Calc Type', key: 'calculationType' },
+        { header: 'Accrual Value', key: 'valueForAccrual' },
+        { header: 'Active', key: 'active' },
+    ],
+    endpoints: {
+        getAll: '/benefit-types',
+        create: '/benefit-types',
+        update: '/benefit-types',
+        toggle: '/benefit-types', // Custom endpoint for toggling
+    },
+    FormComponent: BenefitTypeForm,
+}, {
+    onDelete: null, // Disable delete
+    onToggle: (id, fetchItems) => (itemId) => { // Custom toggle handler
+        const token = localStorage.getItem('token');
+        axios.patch(`${import.meta.env.VITE_API_BASE_URL}/benefit-types/${itemId}/toggle-status`, {}, { headers: { "Authorization": `Bearer ${token}` } })
+            .then(fetchItems)
+            .catch(err => alert(`Failed to toggle status: ${err.response?.data?.message || err.message}`));
+    }
+});
+
 const LoanProductsTab = createCrudTab({
     name: 'loan products', singularName: 'product', title: 'Loan Products', addLabel: 'Add Product',
     columns: [
@@ -401,198 +524,20 @@ const LoanProductsTab = createCrudTab({
     FormComponent: LoanProductForm,
 });
 
-// --- Payroll Runs Tab ---
-const statusStyles = {
-    DRAFT: 'bg-yellow-100 text-yellow-800',
-    PROCESSING: 'bg-blue-100 text-blue-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    PAID: 'bg-teal-100 text-teal-800',
-    GENERATED: 'bg-green-100 text-green-800', // For compatibility
-    FAILED: 'bg-red-100 text-red-800',
-};
+const PayslipTemplatesTab = createCrudTab({
+    name: 'payslip templates',
+    singularName: 'Template',
+    title: 'Payslip Templates',
+    addLabel: 'Add Template',
+    columns: [
+        { header: 'Name', key: 'name' },
+        { header: 'Default', key: 'default' },
+        { header: 'Last Updated', key: 'updatedAt' },
+    ],
+    endpoints: { getAll: '/payslip-templates', create: '/payslip-templates', update: '/payslip-templates', delete: '/payslip-templates', setDefault: '/payslip-templates' },
+    FormComponent: PayslipTemplateForm,
+});
 
-const PayrollRunsTab = () => {
-    const [runs, setRuns] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-    const [isPayslipsModalOpen, setPayslipsModalOpen] = useState(false);
-    const [selectedRun, setSelectedRun] = useState(null);
-    const [payslips, setPayslips] = useState([]);
-    const [payslipsLoading, setPayslipsLoading] = useState(false);
-
-    const API_URL = import.meta.env.VITE_API_BASE_URL;
-
-    const fetchRuns = useCallback(() => {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        axios.get(`${API_URL}/payroll-runs`, { headers: { "Authorization": `Bearer ${token}` } })
-            .then(res => setRuns(res.data.sort((a, b) => new Date(b.payPeriodStart) - new Date(a.payPeriodStart))))
-            .catch(err => {
-                console.error("Error fetching payroll runs:", err);
-                setError('Failed to load payroll runs.');
-            })
-            .finally(() => setLoading(false));
-    }, [API_URL]);
-
-    useEffect(() => {
-        fetchRuns();
-    }, [fetchRuns]);
-
-    const handleCreateRun = async (year, month) => {
-        try {
-            const token = localStorage.getItem('token');
-            await axios.post(`${API_URL}/payroll-runs`, { year, month }, { headers: { "Authorization": `Bearer ${token}` } });
-            setCreateModalOpen(false);
-            fetchRuns();
-            alert('Payroll run created successfully as a draft.');
-        } catch (err) {
-            console.error("Error creating payroll run:", err);
-            alert(err.response?.data?.message || 'Failed to create payroll run.');
-        }
-    };
-
-    const handleExecuteRun = async (runId) => {
-        if (!window.confirm('Are you sure you want to execute this payroll run? This will generate payslips for all employees and cannot be undone.')) return;
-        try {
-            const token = localStorage.getItem('token');
-            await axios.post(`${API_URL}/payroll-runs/${runId}/execute`, {}, { headers: { "Authorization": `Bearer ${token}` } });
-            fetchRuns();
-            alert('Payroll run executed successfully.');
-        } catch (err) {
-            console.error("Error executing payroll run:", err);
-            alert(err.response?.data?.message || 'Failed to execute payroll run.');
-        }
-    };
-
-    const handleViewPayslips = async (run) => {
-        setSelectedRun(run);
-        setPayslipsModalOpen(true);
-        setPayslipsLoading(true);
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/payroll-runs/${run.id}/payslips`, { headers: { "Authorization": `Bearer ${token}` } });
-            setPayslips(response.data);
-        } catch (err) {
-            console.error("Error fetching payslips:", err);
-            alert('Failed to fetch payslips for this run.');
-        } finally {
-            setPayslipsLoading(false);
-        }
-    };
-
-    const CreateRunModal = ({ isOpen, onClose, onCreate }) => {
-        const [year, setYear] = useState(new Date().getFullYear());
-        const [month, setMonth] = useState(new Date().getMonth() + 1);
-
-        const handleSubmit = (e) => {
-            e.preventDefault();
-            onCreate(year, month);
-        };
-
-        return (
-            <Modal isOpen={isOpen} onClose={onClose} title="Create New Payroll Run">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <InputField label="Year" type="number" value={year} onChange={(e) => setYear(e.target.value)} required />
-                    <InputField label="Month" type="number" min="1" max="12" value={month} onChange={(e) => setMonth(e.target.value)} required />
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-                        <button type="submit" className="btn-primary">Create Draft</button>
-                    </div>
-                </form>
-            </Modal>
-        );
-    };
-
-    const PayslipsModal = ({ isOpen, onClose, run, payslips, loading }) => {
-        if (!run) return null;
-        return (
-            <Modal isOpen={isOpen} onClose={onClose} title={`Payslips for ${new Date(run.payPeriodStart).toLocaleString('default', { month: 'long' })} ${run.year}`}>
-                {loading ? (
-                    <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>
-                ) : (
-                    <div className="overflow-y-auto max-h-[60vh]">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Employee</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Net Salary</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
-                                {payslips.map(p => (
-                                    <tr key={p.id}>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm">{p.employeeName || p.employeeId}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm">{p.netSalary}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm">{p.status}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </Modal>
-        );
-    };
-
-    if (loading) {
-        return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
-    }
-
-    if (error) {
-        return <div className="text-center text-red-600 p-4 bg-red-50 rounded-md">{error}</div>;
-    }
-
-    return (
-        <>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Payroll Runs</h3>
-                <button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2 btn-primary">
-                    <PlusCircle size={16} /> Create Payroll Run
-                </button>
-            </div>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Pay Period</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Executed At</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
-                        {runs.map(run => (
-                            <tr key={run.id}>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{new Date(run.payPeriodStart).toLocaleString('default', { month: 'long' })} {run.year}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusStyles[run.status] || 'bg-slate-100 text-slate-800'}`}>
-                                        {run.status}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm">{run.executedAt ? new Date(run.executedAt).toLocaleString() : 'N/A'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                                    {run.status === 'DRAFT' && (
-                                        <button onClick={() => handleExecuteRun(run.id)} className="btn-secondary py-1 px-2 text-xs">Execute</button>
-                                    )}
-                                    {run.status === 'PROCESSING' && (
-                                        <span className="text-xs italic text-slate-500">Processing...</span>
-                                    )}
-                                    {(run.status === 'COMPLETED' || run.status === 'PAID' || run.status === 'GENERATED') && (
-                                        <button onClick={() => handleViewPayslips(run)} className="btn-secondary py-1 px-2 text-xs">View Payslips</button>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <CreateRunModal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} onCreate={handleCreateRun} />
-            <PayslipsModal isOpen={isPayslipsModalOpen} onClose={() => setPayslipsModalOpen(false)} run={selectedRun} payslips={payslips} loading={payslipsLoading} />
-        </>
-    );
-};
 
 // --- Main Component ---
 const PayrollSettings = () => {
@@ -602,8 +547,9 @@ const PayrollSettings = () => {
         { name: 'General', icon: Settings, component: GeneralSettingsTab },
         { name: 'Salary Components', icon: Layers, component: SalaryComponentsTab },
         { name: 'Statutory Rules', icon: Scale, component: StatutoryRulesTab },
+        { name: 'Benefit Types', icon: Gift, component: BenefitTypesTab },
         { name: 'Loan Products', icon: Handshake, component: LoanProductsTab },
-        { name: 'Payroll Runs', icon: Play, component: PayrollRunsTab },
+        { name: 'Payslip Templates', icon: FileText, component: PayslipTemplatesTab },
     ];
 
     const ActiveComponent = subTabs.find(tab => tab.name === activeSubTab)?.component;

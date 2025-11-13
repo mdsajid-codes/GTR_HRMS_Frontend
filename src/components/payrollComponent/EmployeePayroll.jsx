@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Loader, Edit, FileText, DollarSign, PlusCircle, Trash2, Save, ArrowLeft, Share2 } from 'lucide-react';
+import { Search, Loader, Edit, FileText, DollarSign, PlusCircle, Trash2, Save, ArrowLeft, Share2, Award, LogOut } from 'lucide-react';
 import axios from 'axios';
+import EmployeeBenefitProvisionTab from './EmployeeBenefitProvisionTab';
+import EndOfServiceTab from './EndOfServiceTab';
 
 // --- Helper Components & Functions ---
 const InputField = ({ label, id, type = 'text', ...props }) => (
@@ -375,7 +377,12 @@ const PayslipsTab = ({ employee }) => {
                         <tbody className="bg-white divide-y divide-slate-200 text-slate-700">
                             {payslips.map(p => (
                                 <tr key={p.id}>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{p.payDate ? new Date(p.payDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        {p.payDate ? new Date(p.payDate).toLocaleString('default', { month: 'long', year: 'numeric' }) : 'N/A'}
+                                        {p.gratuityPayout > 0 && (
+                                            <span className="ml-2 text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Final Settlement</span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">{formatCurrency(p.netSalary)}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">{p.status}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -461,6 +468,8 @@ const EmployeePayroll = () => {
     const subTabs = [
         { name: 'Salary Structure', icon: DollarSign, component: SalaryStructureTab },
         { name: 'Payslips', icon: FileText, component: PayslipsTab },
+        { name: 'Benefit Provisions', icon: Award, component: EmployeeBenefitProvisionTab },
+        { name: 'End of Service', icon: LogOut, component: EndOfServiceTab },
     ];
 
     const ActiveSubComponent = subTabs.find(tab => tab.name === activeTab)?.component;

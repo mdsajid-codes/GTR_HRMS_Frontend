@@ -88,7 +88,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
             loginId: '',
             profileName: '',
             employeeNumber: '',
-            legalEntity: ''
+            legalEntity: '',
+            contractType: '',
         },
 
         timeAttendence: {
@@ -376,6 +377,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <EditField label="Login ID" name="loginId" value={formData.jobDetails.loginId} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Profile Name" name="profileName" value={formData.jobDetails.profileName} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Employee Number" name="employeeNumber" value={formData.jobDetails.employeeNumber} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Contract Type" name="contractType" value={formData.jobDetails.contractType} onChange={handleNestedChange('jobDetails')} type="select" options={[{ value: 'LIMITED', label: 'Limited' }, { value: 'UNLIMITED', label: 'Unlimited' }]} />
                     </div>
                 );
             default:
@@ -470,6 +472,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <EditField label="Login ID" name="loginId" value={formData.jobDetails.loginId} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Profile Name" name="profileName" value={formData.jobDetails.profileName} onChange={handleNestedChange('jobDetails')} />
                         <EditField label="Employee Number" name="employeeNumber" value={formData.jobDetails.employeeNumber} onChange={handleNestedChange('jobDetails')} />
+                        <EditField label="Contract Type" name="contractType" value={formData.jobDetails.contractType} onChange={handleNestedChange('jobDetails')} type="select" options={[{ value: 'LIMITED', label: 'Limited' }, { value: 'UNLIMITED', label: 'Unlimited' }]} />
 
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Time & Attendance Policy</h3>
                         <EditField

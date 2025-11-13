@@ -114,8 +114,10 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
     return (
         <div className="bg-card p-4 rounded-lg shadow-sm border border-border flex flex-col justify-between">
             <div>
-                <div className="flex justify-between items-start">
-                    <h4 className="font-semibold text-foreground">{(leaveType?.leaveType || leaveType || '').replace('_', ' ')}</h4>
+                <div className="flex justify-between items-start"> 
+                    <h4 className="font-semibold text-foreground">
+                        {(typeof leaveType === 'object' && leaveType !== null ? leaveType.leaveType : leaveType || '').replace('_', ' ')}
+                    </h4>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${statusStyles[displayStatus]?.bg} ${statusStyles[displayStatus]?.text}`}>
                         <StatusIcon className="h-3.5 w-3.5" />
                         {displayStatus.toLowerCase()}
@@ -149,7 +151,7 @@ const LeaveHistoryCard = ({ request, onCancel }) => {
                     </div>
                 )}
             </div>
-            {displayStatus === 'SUBMITTED' && canManage && ( // Assuming canManage is available in scope or passed as prop
+            {displayStatus === 'SUBMITTED' && (
                 <div className="mt-4 pt-3 border-t border-slate-200 flex justify-end">
                     <button onClick={() => onCancel(id)} className="flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors">
                         <Trash2 className="h-4 w-4 mr-1.5" />

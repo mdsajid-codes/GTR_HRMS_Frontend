@@ -8,7 +8,7 @@ const statusStyles = {
     SUBMITTED: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: FileClock },
     APPROVED: { bg: 'bg-green-100', text: 'text-green-800', icon: Check },
     REJECTED: { bg: 'bg-red-100', text: 'text-red-800', icon: X },
-};
+}; 
 
 const formatCurrency = (amount, currency = 'AED') => {
     return new Intl.NumberFormat('en-IN', {
@@ -73,14 +73,20 @@ const AllExpenseRequests = () => {
         }
     };
 
+    const handleViewAttachment = (attachmentUrl) => {
+        setViewingReceipt(attachmentUrl);
+    };
+
     const filteredRequests = useMemo(() => {
         let filtered = requests.filter(req => req.status === activeTab);
         if (searchTerm) {
             const lowercasedFilter = searchTerm.toLowerCase();
             filtered = filtered.filter(req =>
                 (req.employeeName?.toLowerCase() || '').includes(lowercasedFilter) ||
-                (req.employeeCode?.toLowerCase() || '').includes(lowercasedFilter)
+                (req.employeeCode?.toLowerCase() || '').includes(lowercasedFilter) ||
+                (req.category?.toLowerCase() || '').includes(lowercasedFilter)
             );
+
         }
         return filtered;
     }, [requests, activeTab, searchTerm]);
@@ -110,7 +116,7 @@ const AllExpenseRequests = () => {
                     <thead className="bg-slate-50 dark:bg-slate-700/50">
                         <tr>
                             <th className="th-cell">Employee</th><th className="th-cell">Category</th><th className="th-cell">Amount</th><th className="th-cell">Date</th><th className="th-cell">Status</th><th className="th-cell">Receipt</th><th className="th-cell">Actions</th>
-                        </tr>
+                        </tr> 
                     </thead>
                     <tbody className="dark:text-slate-300">
                         {loading ? (
@@ -128,7 +134,19 @@ const AllExpenseRequests = () => {
                                             {req.status.toLowerCase()}
                                         </span>
                                     </td>
-                                    <td className="td-cell">{req.receiptPath && <button onClick={() => handleViewReceipt(req)} className="text-primary hover:underline text-xs flex items-center gap-1"><Eye size={14} /> View</button>}</td>
+                                    <td className="td-cell">
+                                        {req.attachments && req.attachments.length > 0 ? (
+                                            <div className="flex flex-col">
+                                                {req.attachments.map((attachment) => (
+                                                    <button
+                                                        key={attachment.id}
+                                                        onClick={() => handleViewAttachment(attachment.viewUrl)}
+                                                        className="text-primary hover:underline text-xs flex items-center gap-1"
+                                                    ><Eye size={14} />{attachment.originalFilename}</button>
+                                                ))}
+                                            </div>
+                                        ) : <span>No attachments</span>}
+                                    </td>
                                     <td className="td-cell">{req.status === 'SUBMITTED' && <div className="flex items-center gap-2 text-foreground-muted"><button onClick={() => handleAction(req.id, 'reject')} className="p-1.5 hover:text-red-600 rounded-full hover:bg-background-muted" title="Reject"><X className="h-4 w-4" /></button><button onClick={() => handleAction(req.id, 'approve')} className="p-1.5 hover:text-green-600 rounded-full hover:bg-background-muted" title="Approve"><Check className="h-4 w-4" /></button></div>}</td>
                                 </tr>
                             ))
@@ -139,11 +157,11 @@ const AllExpenseRequests = () => {
                 </table>
             </div>
             {viewingReceipt && (
-                <div className="fixed inset-0 bg-black/75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}>
+                <div className="fixed inset-0 bg-black/75 z-50 flex justify-center items-center p-4" onClick={() => setViewingReceipt(null)}> 
                     <div className="bg-card p-2 rounded-lg max-w-4xl max-h-[90vh]" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-end"><button onClick={() => setViewingReceipt(null)} className="p-2 rounded-full text-foreground-muted hover:bg-background-muted -mr-2 -mt-2 mb-2"><X size={20} /></button></div> {/* Closing button for the modal */}
                         <img src={viewingReceipt} alt="Expense Receipt" className="max-w-full max-h-[80vh] object-contain" />
-                    </div>
+                    </div> 
                 </div>
             )}
         </>

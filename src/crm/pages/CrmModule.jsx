@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { 
     LayoutDashboard, 
     Home, 
@@ -18,7 +18,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 
 const crmNavLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/crm-dashboard' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/crm-dashboard/dashboard' },
     { name: 'Home', icon: Home, href: '/crm-dashboard/home' },
     { name: 'Calling Data', icon: Phone, href: '/crm-dashboard/calling-data' },
     { name: 'Leads', icon: Users, href: '/crm-dashboard/leads' },

@@ -55,7 +55,7 @@ const JobDetails = ({ employee }) => {
     const initialFormState = {
         location: '', actualLocation: '', department: '', designation: '', jobBand: '',
         reportsTo: '', dateOfJoining: '', probationEndDate: '', loginId: '',
-        profileName: '', employeeNumber: '', legalEntity: '',
+        profileName: '', employeeNumber: '', legalEntity: '', contractType: '',
     };
 
     useEffect(() => {
@@ -176,6 +176,7 @@ const JobDetails = ({ employee }) => {
                             <EditField label="Login ID" name="loginId" value={formData.loginId} onChange={handleChange} />
                             <EditField label="Profile Name" name="profileName" value={formData.profileName} onChange={handleChange} />
                             <EditField label="Employee Number" name="employeeNumber" value={formData.employeeNumber} onChange={handleChange} />
+                            <EditField label="Contract Type" name="contractType" value={formData.contractType} onChange={handleChange} type="select" options={[{ value: 'LIMITED', label: 'Limited' }, { value: 'UNLIMITED', label: 'Unlimited' }]} />
                         </>
                     ) : (
                         <>
@@ -191,6 +192,7 @@ const JobDetails = ({ employee }) => {
                             <InfoField label="Login ID" value={currentData.loginId} />
                             <InfoField label="Profile Name" value={currentData.profileName} />
                             <InfoField label="Employee Number" value={currentData.employeeNumber} />
+                            <InfoField label="Contract Type" value={currentData.contractType} />
                         </>
                     )}
                 </div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Target, Fingerprint, Link2, Settings, RefreshCw, Loader, Save, AlertCircle } from 'lucide-react';
+import { BookOpen, Target, Fingerprint, Link2, Settings, RefreshCw, Loader, Save, AlertCircle, HelpCircle } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import AttendanceLog from '../components/attendance/AttendanceLog';
 import AttendencePolicy from '../hrmsSettings/AttendencePolicy';
 import BiometricDevices from '../components/attendance/BiometricDevices';
 import axios from 'axios';
+import MissingAttendanceRequests from '../components/EmpPages/MissingAttendanceRequests';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -146,6 +147,7 @@ const attendanceNavLinks = [
     { name: 'Log', icon: BookOpen, component: AttendanceLog },
     { name: 'Policies', icon: Target, component: AttendencePolicy },
     { name: 'Biometric Devices', icon: Fingerprint, component: BiometricDevices },
+    { name: 'Missing Requests', icon: HelpCircle, component: MissingAttendanceRequests },
     { name: 'Employee Mappings', icon: Link2, component: EmployeeMappings },
     { name: 'Settings', icon: Settings, component: AttendanceSettings },
 ];

@@ -20,6 +20,9 @@ import LeaveManagement from './pages/LeaveManagement.jsx'
 import ProductionSettings from './production/settings/ProductionSettings.jsx'
 import CrmSettings from './crm/settings/CrmSettings.jsx'
 import CrmModule from './crm/pages/CrmModule.jsx'
+import CrmLead from './crm/pages/CrmLead.jsx'
+import CrmCompanies from './crm/pages/CrmCompanies.jsx'
+import LeadInfo from './crm/pages/Leadinfo.jsx';
 
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
@@ -55,8 +58,9 @@ function App() {
             <Route index element={<CrmPlaceholder pageName="CRM Dashboard" />} />
             <Route path="home" element={<CrmPlaceholder pageName="Home" />} />
             <Route path="calling-data" element={<CrmPlaceholder pageName="Calling Data" />} />
-            <Route path="leads" element={<CrmPlaceholder pageName="Leads" />} />
-            <Route path="companies" element={<CrmPlaceholder pageName="Companies" />} />
+            <Route path="leads" element={<CrmLead pageName="Leads" />} />
+            <Route path="leads/:leadId" element={<LeadInfo />} />
+            <Route path="companies" element={<CrmCompanies pageName="Companies" />} />
             <Route path="contacts" element={<CrmPlaceholder pageName="Contacts" />} />
             <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
             <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />

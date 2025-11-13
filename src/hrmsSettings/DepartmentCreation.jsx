@@ -4,6 +4,7 @@ import {
     Building2,
     Award,
     Layers,
+    FileText,
     LayoutGrid,
     Landmark,
     Network,
@@ -19,6 +20,7 @@ import Designation from '../components/base/Designation';
 import JobBand from '../components/base/JobBand';
 import Nationality from '../components/base/Nationality';
 import Category from '../components/base/Category';
+import DocumentType from '../components/base/DocumentType';
 
 const componentMap = {
     'Departments': <Department embedded={true} />,
@@ -26,6 +28,7 @@ const componentMap = {
     'Job Bands': <JobBand embedded={true} />,
     'Categories': <Category />,
     'Nationalities': <Nationality embedded={true} />,
+    'Document Types': <DocumentType embedded={true} />,
 };
 
 const creationItems = [
@@ -38,6 +41,7 @@ const creationItems = [
     { name: 'Internal Coding', icon: Braces, path: '#', color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
     { name: 'Sub Divisions', icon: GitFork, path: '#', color: 'text-teal-600', bgColor: 'bg-teal-100' },
     { name: 'Nationalities', icon: Flag, action: 'modal', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+    { name: 'Document Types', icon: FileText, action: 'modal', color: 'text-gray-600', bgColor: 'bg-gray-100' },
     { name: 'Airport Section', icon: Plane, path: '#', color: 'text-sky-600', bgColor: 'bg-sky-100' },
 ];
 
