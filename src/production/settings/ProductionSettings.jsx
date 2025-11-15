@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Settings, Factory, List, MapPin, Loader, Layers } from 'lucide-react';
+import { Settings, Factory, List, MapPin, Package, Layers, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 import GeneralSettings from './GeneralSettings';
 import WorkGroup from './WorkGroup';
 import ManageProcess from './ManageProcess';
+import ProParameter from './ProParameter';
+import ProCategories from './ProCategories';
+import ProRawMaterial from './ProRawMaterial';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -18,6 +21,9 @@ const productionNavLinks = [
     { name: 'General', icon: Settings, component: GeneralSettings, color: 'text-cyan-500' },
     { name: 'Workgroup', icon: Factory, component: WorkGroup, color: 'text-orange-500' },
     { name: 'Manage Process', icon: Layers, component: ManageProcess, color: 'text-green-500' },
+    { name: 'Parameter', icon: SlidersHorizontal, component: ProParameter, color: 'text-indigo-500' },
+    { name: 'Categories', icon: LayoutGrid, component: ProCategories, color: 'text-rose-500' },
+    { name: 'Raw Materials', icon: Package, component: ProRawMaterial, color: 'text-amber-500' },
     { name: 'BOM', icon: List, component: BomSettings, color: 'text-purple-500' },
 ];
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Sparkles, Settings, Menu, Building } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Sparkles, Settings, Menu, Building, DollarSign } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTenant } from '../context/TenantContext';
 
@@ -19,6 +19,7 @@ const SidebarContent = ({ onLinkClick }) => {
         { name: 'Dashboard', icon: LayoutDashboard, href: '/company-dashboard' },
         { name: 'HRMS', icon: Users, href: '/hrdashboard', module: 'HRMS_CORE' },
         { name: 'POS', icon: ShoppingCart, href: '/pos-dashboard', module: 'POS' },
+        { name: 'Sales', icon: DollarSign, href: '/sales-dashboard', module: 'SALES' },
         { name: 'CRM', icon: Users, href: '/crm-dashboard', module: 'CRM' },
         { name: 'Production', icon: Building, href: '/production-dashboard', module: 'PRODUCTION' },
         { name: 'Settings', icon: Settings, href: '/company-settings' },
@@ -29,17 +30,19 @@ const SidebarContent = ({ onLinkClick }) => {
     }, [hasModule]);
 
     const NavItem = ({ item }) => {
-        const isActive = location.pathname.startsWith(item.href);
         return (
             <NavLink
                 to={item.href}
                 onClick={onLinkClick}
-                className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${
-                    isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted'
-                }`}
+                // Let NavLink handle the active state with a function
+                className={({ isActive }) =>
+                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${
+                        isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted'
+                    }`
+                }
             >
-                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-foreground-muted group-hover:text-foreground'}`} />
-                <span>{item.name}</span>
+                {/* The icon color can also be determined by NavLink's active state */}
+                {({ isActive }) => (<><item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-foreground-muted group-hover:text-foreground'}`} /><span>{item.name}</span></>)}
             </NavLink>
         );
     };

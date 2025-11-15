@@ -23,7 +23,10 @@ import CrmModule from './crm/pages/CrmModule.jsx'
 import CrmLead from './crm/pages/CrmLead.jsx'
 import CrmCompanies from './crm/pages/CrmCompanies.jsx'
 import LeadInfo from './crm/pages/Leadinfo.jsx';
-
+import SalesLayout from './sales/SalesLayout.jsx'
+import SalesDashboard from './sales/SalesDashboard.jsx';
+import Orders from './sales/pages/Orders.jsx';
+ 
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
   <div className="text-center py-20">
@@ -65,6 +68,13 @@ function App() {
             <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
             <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />
             <Route path="operations" element={<CrmPlaceholder pageName="Operations" />} />
+          </Route>
+          {/* Sales Module Routes */}
+          <Route path="/sales-dashboard" element={<SalesLayout />}>
+            <Route index element={<SalesDashboard />} />
+          </Route>
+          <Route path="/sales" element={<SalesLayout />}>
+            <Route path="orders" element={<Orders />} />
           </Route>
         </Routes>
       </Router>

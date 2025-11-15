@@ -14,6 +14,7 @@ const serviceModulesOptions = [
     { value: 'POS', label: 'Point of Sale (POS)' },
     { value: 'CRM', label: 'CRM' },
     { value: 'PRODUCTION', label: 'Production' },
+    { value: 'SALES', label: 'Sales' }
 ];
 
 const adminRoleOptions = [
@@ -47,6 +48,7 @@ const InputField = ({ label, ...props }) => (
 const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => {
     const [selectedModules, setSelectedModules] = useState([]);
     const [formData, setFormData] = useState({});
+    const [adminRoles, setAdminRoles] = useState(new Set());
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -61,6 +63,8 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
                 subscriptionStartDate: tenant.subscriptionStartDate ? new Date(tenant.subscriptionStartDate).toISOString().split('T')[0] : '',
                 subscriptionEndDate: tenant.subscriptionEndDate ? new Date(tenant.subscriptionEndDate).toISOString().split('T')[0] : '',
             });
+            // Assuming we fetch or know the current admin roles. For now, we'll default based on modules.
+            setAdminRoles(new Set(tenant.adminRoles || []));
         }
     }, [tenant]);
 
@@ -73,17 +77,28 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const handleAdminRoleChange = (e) => {
+        const { value, checked } = e.target;
+        setAdminRoles(prev => {
+            const newRoles = new Set(prev);
+            if (checked) newRoles.add(value);
+            else newRoles.delete(value);
+            return newRoles;
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
         const payload = {
-            ...formData,
+            details: formData,
             serviceModules: selectedModules,
+            adminRoles: Array.from(adminRoles),
         };
 
         try {
-            await onUpdate(tenant.tenantId, payload);
+            await onUpdate(tenant.tenantId, payload.details, { serviceModules: payload.serviceModules, adminRoles: payload.adminRoles });
             onClose();
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'An error occurred during the update.');
@@ -131,6 +146,21 @@ const UpdateTenantModal = ({ isOpen, onClose, onUpdate, tenant, isLoading }) => 
                             ))}
                         </div>
 
+                        <h4 className="text-md font-semibold text-foreground-muted border-b border-border pb-2 pt-4">Admin Roles</h4>
+                        <div className="mt-2 space-y-2">
+                            {adminRoleOptions.map(role => (
+                                <label key={role.value} className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        value={role.value}
+                                        checked={adminRoles.has(role.value)}
+                                        onChange={handleAdminRoleChange}
+                                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                    />
+                                    <span>{role.label}</span>
+                                </label>
+                            ))}
+                        </div>
                         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                     </div>
 
@@ -794,27 +824,34 @@ const MasterAdmin = () => {
         }
     };
 
-    const handleOpenUpdateModal = (tenant) => {
-        setEditingTenant(tenant);
-        setIsUpdateModalOpen(true);
-    };
-
-    const handleUpdate = async (tenantId, payload) => {
+    const handleUpdate = async (tenantId, detailsPayload, servicesPayload) => {
         setModalLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${API_URL}/master/tenants/${tenantId}`, payload, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            alert(`Tenant "${tenantId}" has been updated successfully!`);
-            fetchData(); // Refresh data
+            const headers = { "Authorization": `Bearer ${token}` };
+
+            // Create an array of promises for the API calls
+            const updatePromises = [];
+
+            // 1. Update general subscription details
+            // updatePromises.push(axios.put(`${API_URL}/master/tenants/${tenantId}`, detailsPayload, { headers }));
+
+            // 2. Update service modules and admin roles
+            updatePromises.push(axios.put(`${API_URL}/master/tenants/${tenantId}/services`, servicesPayload, { headers }));
+
+            // Execute all promises
+            await Promise.all(updatePromises);
+
         } catch (err) {
             console.error('Tenant update failed:', err);
             const errorMessage = err.response?.data?.message || `Failed to update tenant.`;
             throw new Error(errorMessage);
-        } finally {
-            setModalLoading(false);
         }
+    };
+
+    const handleOpenUpdateModal = (tenant) => {
+        setEditingTenant(tenant);
+        setIsUpdateModalOpen(true);
     };
 
     const handleViewDetails = (tenant) => {
