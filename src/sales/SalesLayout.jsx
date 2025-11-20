@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Users, FileText, Settings, Menu, X, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Users, FileText, Settings, Menu, X, ArrowLeft, ClipboardList, Package } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const salesNavLinks = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/sales-dashboard' },
+    { name: 'Quotations', icon: ClipboardList, href: '/sales/quotations' },
     { name: 'Orders', icon: ShoppingCart, href: '/sales/orders' },
+    { name: 'Products', icon: Package, href: '/sales/products' },
     { name: 'Customers', icon: Users, href: '/sales/customers' },
     { name: 'Invoices', icon: FileText, href: '/sales/invoices' },
     { name: 'Settings', icon: Settings, href: '/sales/settings' },

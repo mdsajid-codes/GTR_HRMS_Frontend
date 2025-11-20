@@ -149,6 +149,15 @@ const CrmLeadStage = ({ locationId }) => {
         }
     };
 
+    const handleSetDefault = async (id) => {
+        try {
+            await axios.post(`${API_URL}/crm/lead-stages/${id}/set-default`, {}, { headers: authHeaders });
+            await fetchData();
+        } catch (err) {
+            alert(`Error setting default: ${err.response?.data?.message || 'Operation failed.'}`);
+        }
+    };
+
     const filteredData = useMemo(() => {
         let filtered = stages;
         if (locationId === 'none') {
@@ -173,11 +182,38 @@ const CrmLeadStage = ({ locationId }) => {
 
             <div className="overflow-x-auto border border-border rounded-lg">
                 <table className="min-w-full divide-y divide-border">
-                    {/* Table content here, similar to TaskStage */}
+                    <thead className="bg-background-muted">
+                        <tr>
+                            <th className="th-cell w-16">Order</th>
+                            <th className="th-cell">Stage Name</th>
+                            <th className="th-cell">Location</th>
+                            <th className="th-cell">Is Default</th>
+                            <th className="th-cell w-24">Reorder</th>
+                            <th className="th-cell w-48">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-card divide-y divide-border text-foreground-muted">
+                        {loading ? (
+                            <tr><td colSpan="6" className="text-center py-10"><Loader className="animate-spin h-8 w-8 text-primary mx-auto" /></td></tr>
+                        ) : filteredData.length > 0 ? (
+                            filteredData.map((item, index, arr) => (
+                                <tr key={item.id} className="hover:bg-background-muted transition-colors">
+                                    <td className="td-cell font-medium">{item.sortOrder}</td>
+                                    <td className="td-cell font-medium text-foreground">{item.name}</td>
+                                    <td className="td-cell">{item.locationName || 'N/A'}</td>
+                                    <td className="td-cell">{item.isDefault ? <Star size={16} className="text-amber-500 fill-amber-400" title="Default Stage" /> : null}</td>
+                                    <td className="td-cell"><div className="flex items-center gap-1"><button onClick={() => handleMove(item.id, 'up')} disabled={index === 0} className="p-1 disabled:opacity-30"><ArrowUp size={16} /></button><button onClick={() => handleMove(item.id, 'down')} disabled={index === arr.length - 1} className="p-1 disabled:opacity-30"><ArrowDown size={16} /></button></div></td>
+                                    <td className="td-cell"><div className="flex items-center gap-2"><button onClick={() => handleSetDefault(item.id)} disabled={item.isDefault} className="btn-secondary btn-sm disabled:opacity-50">Set Default</button><button onClick={() => handleEdit(item)} className="text-primary hover:text-primary/80 p-1" title="Edit"><Edit size={16} /></button><button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-600 p-1" title="Delete"><Trash2 size={16} /></button></div></td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr><td colSpan="6" className="text-center py-10"><AlertCircle className="mx-auto h-12 w-12 text-foreground-muted/50" /><h3 className="mt-2 text-sm font-medium text-foreground">No lead stages found</h3><p className="mt-1 text-sm">Get started by adding a new lead stage.</p></td></tr>
+                        )}
+                    </tbody>
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingItem ? 'Edit Lead Stage' : 'Add Lead Stage'}>
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingItem?.id ? 'Edit Lead Stage' : 'Add Lead Stage'}>
                 <LeadStageForm item={editingItem} onSave={handleSave} onCancel={handleCloseModal} loading={modalLoading} locations={locations} />
             </Modal>
         </div>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Building, MapPin, Tags, Factory, Package, Target, Loader, ListTodo, Building2, Briefcase, Users } from 'lucide-react';
+import { Building, MapPin, Tags, Factory, Package, Target, Loader, ListTodo, Building2, Briefcase, Users, ListFilter } from 'lucide-react';
 import CompanyDetails from '../components/CompanyDetails';
 import LocationDetails from '../components/LocationDetails';
 import CrmCompanyType from '../components/CrmCompanyType';
 import CrmIndustry from '../components/CrmIndustry';
 import CrmProduct from '../components/CrmProduct';
 import ManageKpi from '../components/ManageKpi';
+import CrmLeadStage from '../components/CrmLeadStage';
 import TaskStage from '../components/TaskStage';
 import Department from '../../components/base/Department';
 import Designation from '../../components/base/Designation';
@@ -32,6 +33,7 @@ const crmNavLinks = [
     { name: 'Industry', icon: Factory, component: <CrmIndustry title="Industry" />, color: 'text-rose-500' },
     { name: 'Product', icon: Package, component: <CrmProduct title="Product" />, color: 'text-green-500' },
     { name: 'Manage KPI', icon: Target, component: <ManageKpi title="Manage KPI" />, color: 'text-indigo-500' },
+    { name: 'Lead Stage', icon: ListFilter, component: <CrmLeadStage title="Lead Stage" />, color: 'text-yellow-500' },
     { name: 'Task Stage', icon: ListTodo, component: <TaskStage title="Task Stage" />, color: 'text-teal-500' },
 ];
 

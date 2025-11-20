@@ -26,6 +26,13 @@ import LeadInfo from './crm/pages/Leadinfo.jsx';
 import SalesLayout from './sales/SalesLayout.jsx'
 import SalesDashboard from './sales/SalesDashboard.jsx';
 import Orders from './sales/pages/Orders.jsx';
+import Quotation from './sales/pages/Quotation.jsx'
+import SalesCustomer from './sales/pages/SalesCustomer.jsx';
+import SalesProduct from './sales/pages/SalesProduct.jsx';
+import SalesSetting from './sales/pages/SalesSetting.jsx'
+import PartyType from './components/PartyType/PartyType.jsx'
+import PartyForm from './components/PartyType/PartyForm.jsx'
+import CrmContacts from './crm/pages/CrmContacts.jsx'
  
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
@@ -56,6 +63,9 @@ function App() {
             <Route path="hrms" element={<HrmsSettings />} />
             <Route path='production' element={<ProductionSettings /> } />
             <Route path='crm' element={<CrmSettings /> } />
+            <Route path='party-type' element={<PartyType />} />
+            <Route path="party-type/new" element={<PartyForm />} />
+            <Route path="party-type/edit/:id" element={<PartyForm />} />
           </Route>
           <Route path='/crm-dashboard' element={<CrmModule />}>
             <Route index element={<CrmPlaceholder pageName="CRM Dashboard" />} />
@@ -64,7 +74,7 @@ function App() {
             <Route path="leads" element={<CrmLead pageName="Leads" />} />
             <Route path="leads/:leadId" element={<LeadInfo />} />
             <Route path="companies" element={<CrmCompanies pageName="Companies" />} />
-            <Route path="contacts" element={<CrmPlaceholder pageName="Contacts" />} />
+            <Route path="contacts" element={<CrmContacts pageName="Contacts" />} />
             <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
             <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />
             <Route path="operations" element={<CrmPlaceholder pageName="Operations" />} />
@@ -74,7 +84,11 @@ function App() {
             <Route index element={<SalesDashboard />} />
           </Route>
           <Route path="/sales" element={<SalesLayout />}>
+            <Route path='quotations' element={<Quotation />} />
             <Route path="orders" element={<Orders />} />
+            <Route path="products" element={<SalesProduct />} />
+            <Route path="customers" element={<SalesCustomer />} />
+            <Route path='settings' element={<SalesSetting />} />
           </Route>
         </Routes>
       </Router>

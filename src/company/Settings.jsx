@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Store, Settings as SettingsIcon, Users, Factory, Palette } from 'lucide-react';
+import { SlidersHorizontal, Store, Settings as SettingsIcon, Users, Factory, Palette, BookUser } from 'lucide-react';
 import { useTenant } from '../context/TenantContext';
 import CompanyHubLayout from '../components/CompanyHubLayout';
 
@@ -8,6 +8,7 @@ const allSettingsSections = [
     { name: 'HRMS', path: '/company-settings/hrms', icon: SlidersHorizontal, module: 'HRMS_CORE', color: 'text-blue-500' },
     { name: 'POS', path: '/company-settings/pos', icon: Store, module: 'POS', color: 'text-orange-500' },
     { name: 'CRM', path: '/company-settings/crm', icon: Users, module: 'CRM', color: 'text-green-500' },
+    { name: 'PartyType', path: '/company-settings/party-type', icon: BookUser, color: 'text-indigo-500' },
     { name: 'Production', path: '/company-settings/production', icon: Factory, module: 'PRODUCTION', color: 'text-purple-500' },
 ];
 
