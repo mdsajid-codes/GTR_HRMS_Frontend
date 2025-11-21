@@ -30,7 +30,7 @@ const CrmTaskForm = ({ item, onSave, onCancel, loading: isSubmitting, leadId }) 
                 const headers = { "Authorization": `Bearer ${token}` };
                 const [employeesRes, contactsRes] = await Promise.all([
                     axios.get(`${API_URL}/employees/all`, { headers }),
-                    axios.get(`${API_URL}/crm/contacts`, { headers }),
+                    axios.get(`${API_URL}/contacts`, { headers }),
                 ]);
                 setSelectData({
                     employees: employeesRes.data,

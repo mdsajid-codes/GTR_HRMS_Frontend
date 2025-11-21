@@ -97,7 +97,7 @@ const CrmSettings = () => {
                 </nav>
             </div>
 
-            <div className="mt-6 flex-grow overflow-hidden">
+            <div className="mt-6 flex-grow overflow-y-auto">
                 {ActiveComponent ? 
                     React.cloneElement(ActiveComponent, { locationId: selectedLocation }) 
                     : <p>Select a tab.</p>}

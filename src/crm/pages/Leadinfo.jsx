@@ -6,8 +6,12 @@ import LeadFullDetailsModal from '../components/LeadFullDetailsModal'; // New mo
 import { AnimatePresence, motion } from 'framer-motion';
 import CrmTaskForm from '../components/CrmTaskForm';
 import CrmEventForm from '../components/CrmEventForm';
+import CrmCallLogForm from '../components/CrmCallLogForm'; // Import the new form
+import CrmEmailForm from '../components/CrmEmailForm'; // Import the new email form
 import EventsTab from '../components/EventsTab';
 import TasksTab from '../components/TasksTab';
+import CallLogsTab from '../components/CallLogsTab'; // Import the new tab
+import EmailsTab from '../components/EmailsTab'; // Import the new email tab
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 const InfoDisplay = ({ label, value, icon: Icon }) => (
     <div className="flex items-start gap-2">
@@ -127,12 +131,12 @@ const LeadStages = ({ allStages, currentStageName, onStatusChange, onStageChange
     );
 };
 
-const ActionGrid = ({ onNewTaskClick, onNewEventClick }) => {
+const ActionGrid = ({ onNewTaskClick, onNewEventClick, onLogCallClick, onEmailClick }) => {
     const actions = [
         { label: 'New Task', icon: CheckSquare, onClick: onNewTaskClick },
         { label: 'New Event', icon: Calendar, onClick: onNewEventClick },
-        { label: 'Log a Call', icon: Phone, onClick: () => alert('Log a Call clicked') },
-        { label: 'Email', icon: Mail, onClick: () => alert('Email clicked') },
+        { label: 'Log a Call', icon: Phone, onClick: onLogCallClick },
+        { label: 'Email', icon: Mail, onClick: onEmailClick },
     ];
 
     // Handle case where onNewTaskClick might be undefined
@@ -188,6 +192,10 @@ const LeadInfo = () => {
     const [isEventFormOpen, setIsEventFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
     const [formSubmitting, setFormSubmitting] = useState(false);
+    const [isCallLogFormOpen, setIsCallLogFormOpen] = useState(false);
+    const [editingCallLog, setEditingCallLog] = useState(null);
+    const [isEmailFormOpen, setIsEmailFormOpen] = useState(false);
+
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -308,6 +316,53 @@ const LeadInfo = () => {
         }
     };
 
+    const handleOpenLogCall = () => {
+        setEditingCallLog(null);
+        setIsCallLogFormOpen(true);
+    };
+
+    const handleEditCallLog = (log) => {
+        setEditingCallLog(log);
+        setIsCallLogFormOpen(true);
+    };
+
+    const handleSaveCallLog = async (logData) => {
+        setFormSubmitting(true);
+        const isUpdating = Boolean(editingCallLog?.id);
+        const url = isUpdating ? `${API_URL}/crm/call-logs/${editingCallLog.id}` : `${API_URL}/crm/call-logs`;
+        const method = isUpdating ? 'put' : 'post';
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios[method](url, logData, { headers: { "Authorization": `Bearer ${token}` } });
+            setIsCallLogFormOpen(false);
+            // The CallLogsTab will refetch data automatically when it's rendered again.
+        } catch (err) {
+            alert(`Error: ${err.response?.data?.message || 'Failed to save call log.'}`);
+        } finally {
+            setFormSubmitting(false);
+        }
+    };
+
+    const handleOpenEmailForm = () => {
+        setIsEmailFormOpen(true);
+    };
+
+    const handleSendEmail = async (emailData) => {
+        setFormSubmitting(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API_URL}/crm/emails/send`, emailData, { headers: { "Authorization": `Bearer ${token}` } });
+            setIsEmailFormOpen(false);
+            // The EmailsTab will refetch its data automatically when it becomes active again.
+            alert("Email sent successfully!");
+        } catch (err) {
+            alert(`Error: ${err.response?.data?.message || 'Failed to send email. Check SMTP settings.'}`);
+        } finally {
+            setFormSubmitting(false);
+        }
+    };
+
     if (loading) {
         return <div className="flex justify-center items-center h-full"><Loader className="animate-spin h-8 w-8 text-primary" /></div>;
     }
@@ -381,6 +436,8 @@ const LeadInfo = () => {
                         <ContentTab icon={LayoutGrid} label="Details Grid" isActive={activeSidebarTab === 'Details Grid'} onClick={() => setActiveSidebarTab('Details Grid')} />
                         <ContentTab icon={CheckSquare} label="Tasks" isActive={activeSidebarTab === 'Tasks'} onClick={() => setActiveSidebarTab('Tasks')} />
                         <ContentTab icon={Calendar} label="Events" isActive={activeSidebarTab === 'Events'} onClick={() => setActiveSidebarTab('Events')} />
+                        <ContentTab icon={Phone} label="Call Logs" isActive={activeSidebarTab === 'Call Logs'} onClick={() => setActiveSidebarTab('Call Logs')} />
+                        <ContentTab icon={Mail} label="Emails" isActive={activeSidebarTab === 'Emails'} onClick={() => setActiveSidebarTab('Emails')} />
                         <ContentTab icon={StickyNote} label="Notes" isActive={activeSidebarTab === 'Notes'} onClick={() => setActiveSidebarTab('Notes')} />
                     </nav>
                 </div>
@@ -391,12 +448,14 @@ const LeadInfo = () => {
                     {activeSidebarTab === 'Lead Stages' && (
                         <div>
                             <LeadStages allStages={leadStages} currentStageName={lead.currentStageName} onStatusChange={handleStatusUpdate} onStageChange={handleStageUpdate} />
-                            <ActionGrid onNewTaskClick={handleOpenNewTask} onNewEventClick={handleOpenNewEvent} />
+                            <ActionGrid onNewTaskClick={handleOpenNewTask} onNewEventClick={handleOpenNewEvent} onLogCallClick={handleOpenLogCall} onEmailClick={handleOpenEmailForm} />
                         </div>
                     )}
                     {activeSidebarTab === 'Details Grid' && <LeadDetailsGrid lead={lead} />}
                     {activeSidebarTab === 'Tasks' && <TasksTab leadId={leadId} onAddTask={handleOpenNewTask} onEditTask={handleEditTask} />}
                     {activeSidebarTab === 'Events' && <EventsTab leadId={leadId} onAddEvent={handleOpenNewEvent} onEditEvent={handleEditEvent} />}
+                    {activeSidebarTab === 'Call Logs' && <CallLogsTab leadId={leadId} onAddCallLog={handleOpenLogCall} onEditCallLog={handleEditCallLog} />}
+                    {activeSidebarTab === 'Emails' && <EmailsTab leadId={leadId} onComposeEmail={handleOpenEmailForm} />}
                     {activeSidebarTab === 'Notes' && (
                         <div className="p-4">
                             <h3 className="font-semibold text-foreground mb-2">Notes</h3>
@@ -442,6 +501,38 @@ const LeadInfo = () => {
                             className="fixed top-0 right-0 h-full w-full max-w-lg bg-card text-card-foreground shadow-lg z-50"
                         >
                             <CrmEventForm item={editingEvent} onSave={handleSaveEvent} onCancel={() => setIsEventFormOpen(false)} loading={formSubmitting} leadId={leadId} />
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Call Log Form Sidebar */}
+            <AnimatePresence>
+                {isCallLogFormOpen && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsCallLogFormOpen(false)} />
+                        <motion.div
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className="fixed top-0 right-0 h-full w-full max-w-lg bg-card text-card-foreground shadow-lg z-50"
+                        >
+                            <CrmCallLogForm item={editingCallLog} onSave={handleSaveCallLog} onCancel={() => setIsCallLogFormOpen(false)} loading={formSubmitting} leadId={leadId} />
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Email Form Sidebar */}
+            <AnimatePresence>
+                {isEmailFormOpen && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsEmailFormOpen(false)} />
+                        <motion.div
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className="fixed top-0 right-0 h-full w-full max-w-lg bg-card text-card-foreground shadow-lg z-50"
+                        >
+                            <CrmEmailForm lead={lead} onSave={handleSendEmail} onCancel={() => setIsEmailFormOpen(false)} loading={formSubmitting} />
                         </motion.div>
                     </>
                 )}

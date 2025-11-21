@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Sparkles, Settings, Menu, Building, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Sparkles, Settings, Menu, Building, DollarSign, Landmark } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTenant } from '../context/TenantContext';
 
@@ -21,6 +21,7 @@ const SidebarContent = ({ onLinkClick }) => {
         { name: 'POS', icon: ShoppingCart, href: '/pos-dashboard', module: 'POS' },
         { name: 'Sales', icon: DollarSign, href: '/sales-dashboard', module: 'SALES' },
         { name: 'CRM', icon: Users, href: '/crm-dashboard', module: 'CRM' },
+        { name: 'Account', icon: Landmark, href: '/account-dashboard'},
         { name: 'Production', icon: Building, href: '/production-dashboard', module: 'PRODUCTION' },
         { name: 'Settings', icon: Settings, href: '/company-settings' },
     ];

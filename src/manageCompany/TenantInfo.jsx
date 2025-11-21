@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const getAuthHeaders = () => {
+const getAuthHeaders = () => { 
     const token = localStorage.getItem('token');
     if (!token) throw new Error("No authentication token found.");
     return { "Authorization": `Bearer ${token}` };
@@ -12,6 +12,7 @@ const getAuthHeaders = () => {
 
 const api = {
     getTenantInfo: async () => {
+       // Assuming the endpoint is /api/pos/tenant/current from your backend code
        const response = await axios.get(`${API_URL}/pos/tenant/current`, { headers: getAuthHeaders() });
         return response.data;
     },
@@ -21,7 +22,7 @@ const api = {
     },
     uploadLogo: async (file) => {
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', file); 
         const response = await axios.post(`${API_URL}/pos/tenant/current/logo`, formData, {
             headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' }
         });
@@ -51,6 +52,11 @@ const TenantInfo = () => {
         contactEmail: '',
         contactPhone: '',
         address: '',
+        smtpHost: '',
+        smtpPort: '',
+        smtpUsername: '',
+        smtpPassword: '',
+        companyEmail: '',
     });
     const [staticData, setStaticData] = useState({});
     const [loading, setLoading] = useState(true);
@@ -71,21 +77,26 @@ const TenantInfo = () => {
                     contactEmail: data.contactEmail,
                     contactPhone: data.contactPhone,
                     address: data.address || '',
+                    smtpHost: data.smtpHost || '',
+                    smtpPort: data.smtpPort || '',
+                    smtpUsername: data.smtpUsername || '',
+                    smtpPassword: '', // Password is not sent from backend for security
+                    companyEmail: data.companyEmail || '',
                 });
                 setLogoPreview(data.logoImgUrl);
                 // Set non-editable fields
                 setStaticData({
-                    id: data.id,
+                    tenantId: data.tenantId, // Assuming tenantId is part of the response
                 });
             } catch (err) {
-                console.error("Failed to fetch tenant info", error);
+                console.error("Failed to fetch tenant info", err);
                 setError('Failed to load tenant information.');
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [error]);
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -104,7 +115,12 @@ const TenantInfo = () => {
         setSaving(true);
         setError('');
         try {
-            await api.updateTenantInfo(formData);
+            // Don't send an empty password if it hasn't been changed
+            const payload = { ...formData };
+            if (!payload.smtpPassword) {
+                delete payload.smtpPassword;
+            }
+            await api.updateTenantInfo(payload);
             alert("Tenant information updated successfully!");
         } catch (err) {
             const errorMessage = err.response?.data?.message || "Failed to update tenant information.";
@@ -141,12 +157,12 @@ const TenantInfo = () => {
     }
 
     return (
-        <div className="p-6 bg-card rounded-lg shadow-sm space-y-8">
+        <div className="p-4 sm:p-6 bg-card rounded-lg shadow-sm h-full flex flex-col">
+            <div className="flex-grow overflow-y-auto space-y-8 pr-2">
             {error && <div className="bg-red-500/10 text-red-700 p-3 rounded-md text-sm">{error}</div>}
-            
             {/* Logo Section */}
             <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4">Company Logo</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4 border-b border-border pb-2">Company Logo</h3>
                 <div className="flex items-center gap-6">
                     {logoPreview ? (
                         <img src={logoPreview} alt="Logo" className="h-20 w-20 object-contain rounded-md border p-1 bg-card" />
@@ -164,22 +180,40 @@ const TenantInfo = () => {
             </div>
 
             {/* Details Section */}
-            <form onSubmit={handleSubmit} className="space-y-6 border-t border-border pt-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Company Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <ReadOnlyField label="Database ID" value={staticData.id} />
-                    <FormField label="Company Name"><input type="text" name="name" value={formData.name} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
-                    <FormField label="Primary Contact Email"><input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
-                    <FormField label="Primary Contact Phone"><input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
-                    <FormField label="Address"><input type="text" name="address" value={formData.address} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
-                </div>
-                <div className="flex justify-end pt-4">
-                    <button type="submit" className="btn-primary flex items-center gap-2" disabled={saving}>
-                        {saving ? <Loader className="animate-spin h-4 w-4" /> : <Save className="h-4 w-4" />}
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
+            <form id="tenant-info-form" onSubmit={handleSubmit} className="space-y-8">
+                {/* Company Details */}
+                <section>
+                    <h3 className="text-lg font-semibold text-foreground mb-4 border-b border-border pb-2">Company Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ReadOnlyField label="Tenant ID" value={staticData.tenantId} />
+                        <FormField label="Company Name"><input type="text" name="name" value={formData.name} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></FormField>
+                        <FormField label="Primary Contact Email"><input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></FormField>
+                        <FormField label="Primary Contact Phone"><input type="tel" name="contactPhone" value={formData.contactPhone} onChange={handleChange} className="input bg-background-muted border-border text-foreground" required /></FormField>
+                        <div className="md:col-span-2">
+                            <FormField label="Address"><input type="text" name="address" value={formData.address} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                        </div>
+                    </div>
+                </section>
+                {/* SMTP Settings */}
+                <section>
+                    <h3 className="text-lg font-semibold text-foreground mb-4 border-b border-border pb-2">SMTP Settings</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField label="SMTP Host"><input type="text" name="smtpHost" value={formData.smtpHost} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                        <FormField label="SMTP Port"><input type="number" name="smtpPort" value={formData.smtpPort} onChange={handleChange} className="input bg-background-muted border-border text-foreground" min="0" max="65535" /></FormField>
+                        <FormField label="SMTP Username"><input type="text" name="smtpUsername" value={formData.smtpUsername} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                        <FormField label="SMTP Password"><input type="password" name="smtpPassword" value={formData.smtpPassword} onChange={handleChange} placeholder="Enter new password to update" className="input bg-background-muted border-border text-foreground" /></FormField>
+                        <FormField label="Company 'From' Email"><input type="email" name="companyEmail" value={formData.companyEmail} onChange={handleChange} className="input bg-background-muted border-border text-foreground" /></FormField>
+                    </div>
+                </section>
+
             </form>
+            </div>
+            {/* Fixed Footer */}
+            <div className="flex-shrink-0 pt-4 border-t border-border mt-4">
+                <div className="flex justify-end">
+                    <button type="submit" form="tenant-info-form" className="btn-primary flex items-center gap-2" disabled={saving}>{saving ? <Loader className="animate-spin h-4 w-4" /> : <Save className="h-4 w-4" />}{saving ? 'Saving...' : 'Save Changes'}</button>
+                </div>
+            </div>
         </div>
     );
 };

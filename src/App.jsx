@@ -33,9 +33,19 @@ import SalesSetting from './sales/pages/SalesSetting.jsx'
 import PartyType from './components/PartyType/PartyType.jsx'
 import PartyForm from './components/PartyType/PartyForm.jsx'
 import CrmContacts from './crm/pages/CrmContacts.jsx'
+import Account from './accounting/pages/Account.jsx'
+import AccountSetting from './accounting/settings/AccountSetting.jsx'
  
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
+  <div className="text-center py-20">
+    <h1 className="text-3xl font-bold text-foreground">{pageName}</h1>
+    <p className="text-foreground-muted mt-2">This page is under construction.</p>
+  </div>
+);
+
+// Placeholder for ACCOUNT child pages
+const AccountPlaceholder = ({ pageName }) => (
   <div className="text-center py-20">
     <h1 className="text-3xl font-bold text-foreground">{pageName}</h1>
     <p className="text-foreground-muted mt-2">This page is under construction.</p>
@@ -61,6 +71,7 @@ function App() {
           <Route path='/company-dashboard' element={<CompanyDashboard />} />
           <Route path='/company-settings' element={<Settings />}>
             <Route path="hrms" element={<HrmsSettings />} />
+            <Route path='account' element={<AccountSetting />} />
             <Route path='production' element={<ProductionSettings /> } />
             <Route path='crm' element={<CrmSettings /> } />
             <Route path='party-type' element={<PartyType />} />
@@ -89,6 +100,15 @@ function App() {
             <Route path="products" element={<SalesProduct />} />
             <Route path="customers" element={<SalesCustomer />} />
             <Route path='settings' element={<SalesSetting />} />
+          </Route>
+          <Route path='/account-dashboard' element={<Account />}>
+            <Route index element={<AccountPlaceholder pageName="Chart Of Accounts" />} />
+            <Route path="chart-of-accounts" element={<AccountPlaceholder pageName="Chart Of Accounts" />} />
+            <Route path="add-entry" element={<AccountPlaceholder pageName="Add Entry" />} />
+            <Route path="manage-entry" element={<AccountPlaceholder pageName="Manage Entry" />} />
+            <Route path="incoming-pdc" element={<AccountPlaceholder pageName="Manage Incoming PDC" />} />
+            <Route path="outgoing-pdc" element={<AccountPlaceholder pageName="Manage Outgoing PDC" />} />
+            <Route path="bank-reconciliation" element={<AccountPlaceholder pageName="Bank Reconciliation" />} />
           </Route>
         </Routes>
       </Router>
