@@ -1,34 +1,24 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
     LayoutDashboard, 
-    Home, 
-    Phone, 
-    Users, 
-    Building, 
-    Contact, 
-    Activity, 
-    Handshake, 
-    ListTodo, 
+    ShoppingCart, 
+    Receipt, 
+    CreditCard, 
+    FileMinus,
     Settings, 
     LogOut, 
     Menu,
-    ArrowLeft,
-    Package
+    ArrowLeft
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const crmNavLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/crm-dashboard/dashboard', color: 'text-blue-500' },
-    { name: 'Home', icon: Home, href: '/crm-dashboard/home', color: 'text-green-500' },
-    { name: 'Calling Data', icon: Phone, href: '/crm-dashboard/calling-data', color: 'text-yellow-500' },
-    { name: 'Leads', icon: Users, href: '/crm-dashboard/leads', color: 'text-purple-500' },
-    { name: 'Companies', icon: Building, href: '/crm-dashboard/companies', color: 'text-indigo-500' },
-    { name: 'Contacts', icon: Contact, href: '/crm-dashboard/contacts', color: 'text-rose-500' },
-    { name: 'Products', icon: Package, href: '/crm-dashboard/products', color: 'text-teal-500' },
-    { name: 'Deals', icon: Handshake, href: '/crm-dashboard/deals', color: 'text-orange-500' },
-    { name: 'Tasks', icon: ListTodo, href: '/crm-dashboard/tasks', color: 'text-cyan-500' },
-    { name: 'Operations', icon: Activity, href: '/crm-dashboard/operations', color: 'text-lime-500' },
+const purchaseNavLinks = [
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/purchase-dashboard/dashboard', color: 'text-blue-500' },
+    { name: 'Purchase Order', icon: ShoppingCart, href: '/purchase-dashboard/purchase-orders', color: 'text-green-500' },
+    { name: 'Bills', icon: Receipt, href: '/purchase-dashboard/bills', color: 'text-yellow-500' },
+    { name: 'Payments', icon: CreditCard, href: '/purchase-dashboard/payments', color: 'text-purple-500' },
+    { name: 'Debit Notes', icon: FileMinus, href: '/purchase-dashboard/debit-notes', color: 'text-rose-500' },
 ];
 
 const SidebarContent = ({ onLinkClick }) => {
@@ -41,10 +31,9 @@ const SidebarContent = ({ onLinkClick }) => {
     };
 
     const NavItem = ({ item }) => {
-        const isActive = location.pathname === item.href;
         return (
             <NavLink to={item.href} onClick={onLinkClick} end className={({ isActive }) => `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${ isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted' }`}>
-                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? '' : item.color}`} />
+                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${location.pathname.startsWith(item.href) ? '' : item.color}`} />
                 <span>{item.name}</span>
             </NavLink>
         );
@@ -59,10 +48,10 @@ const SidebarContent = ({ onLinkClick }) => {
                 </button>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-                {crmNavLinks.map((item) => <NavItem key={item.name} item={item} />)}
+                {purchaseNavLinks.map((item) => <NavItem key={item.name} item={item} />)}
             </nav>
             <div className="p-4 border-t border-border flex-shrink-0 space-y-2">
-                <NavLink to="/company-settings/crm" onClick={onLinkClick} className={({ isActive }) => `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${ isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted' }`}>
+                <NavLink to="/company-settings/purchase" onClick={onLinkClick} className={({ isActive }) => `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${ isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted' }`}>
                     <Settings className="h-5 w-5 mr-3" />
                     <span>Settings</span>
                 </NavLink>
@@ -75,7 +64,7 @@ const SidebarContent = ({ onLinkClick }) => {
     );
 };
 
-const CrmLayout = ({ children }) => {
+const PurchaseLayout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
@@ -102,7 +91,7 @@ const CrmLayout = ({ children }) => {
             <main className="flex-1 flex flex-col overflow-hidden">
                 <header className="lg:hidden sticky top-0 z-10 flex-shrink-0 flex h-16 bg-card shadow-sm items-center px-4">
                     <button type="button" className="text-foreground-muted" onClick={() => setSidebarOpen(true)}><Menu className="h-6 w-6" /></button>
-                    <div className="flex-1 flex justify-center items-center"><span className="font-bold text-lg text-foreground">CRM Module</span></div>
+                    <div className="flex-1 flex justify-center items-center"><span className="font-bold text-lg text-foreground">Purchases Module</span></div>
                 </header>
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-background-muted">{children}</div>
             </main>
@@ -110,12 +99,12 @@ const CrmLayout = ({ children }) => {
     );
 };
 
-const CrmModule = () => {
+const PurchaseModule = () => {
     return (
-        <CrmLayout>
+        <PurchaseLayout>
             <Outlet />
-        </CrmLayout>
+        </PurchaseLayout>
     );
 }
 
-export default CrmModule;
+export default PurchaseModule;

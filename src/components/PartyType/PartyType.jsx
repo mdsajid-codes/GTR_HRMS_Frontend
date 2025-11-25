@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Loader2, Search, X, Building, User, Mail, Phone, ChevronLeft, ChevronRight, HelpCircle, Download, LayoutGrid, List, Eye, MapPin, Hash, Briefcase, Banknote, Users, FileText, ChevronDown, Landmark, CreditCard, Truck, CircleDollarSign, Code, Percent, Share2, Globe, CalendarDays, BookUser, Info, MessageSquare, Link as LinkIcon, TrendingUp, UserCheck, ShieldCheck, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Search, X, Building, User, Mail, Phone, ChevronLeft, ChevronRight, HelpCircle, Download, LayoutGrid, List, Eye, MapPin, Hash, Briefcase, Banknote, Users, FileText, ChevronDown, Landmark, CreditCard, Truck, CircleDollarSign, Code, Percent, Share2, Globe, CalendarDays, BookUser, Info, MessageSquare, Link as LinkIcon, TrendingUp, UserCheck, ShieldCheck, Upload, FileSpreadsheet, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -434,32 +434,46 @@ const PartyType = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Parties</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Add, edit, or remove customer and vendor information.</p>
+        <div className="flex flex-col h-full bg-slate-50">
+            <header className="bg-white shadow-sm p-4 border-b border-slate-200">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-slate-100">
+                            <ArrowLeft className="h-5 w-5 text-slate-600" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-bold text-slate-800">Manage Parties</h1>
+                            <p className="text-sm text-slate-500">Add, edit, or remove customer and vendor information.</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <input type="file" ref={fileInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx, .xls" />
-                        <button onClick={() => fileInputRef.current.click()} disabled={isImporting} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
-                            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Import
-                        </button>
-                        <button onClick={handleDownloadTemplate} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <Download className="mr-2 h-4 w-4" />
-                            Template
-                        </button>
-                        <button onClick={handleExport} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <FileSpreadsheet className="mr-2 h-4 w-4" />
-                            Export
-                        </button>
+            </header>
+
+            <div className="flex-grow p-4 sm:p-6 flex flex-col">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    {/* Left side buttons */}
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <input type="file" ref={fileInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx, .xls" />
+                            <button onClick={() => fileInputRef.current.click()} disabled={isImporting} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">
+                                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Import
+                            </button>
+                            <button onClick={handleDownloadTemplate} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <Download className="mr-2 h-4 w-4" />
+                                Template
+                            </button>
+                            <button onClick={handleExport} className="flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Export
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2 p-1 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                            <button onClick={() => setViewMode('table')} className={`p-2 rounded-md ${viewMode === 'table' ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}><List className="h-5 w-5" /></button>
+                            <button onClick={() => setViewMode('card')} className={`p-2 rounded-md ${viewMode === 'card' ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}><LayoutGrid className="h-5 w-5" /></button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 p-1 bg-gray-200 dark:bg-gray-700 rounded-lg">
-                        <button onClick={() => setViewMode('table')} className={`p-2 rounded-md ${viewMode === 'table' ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}><List className="h-5 w-5" /></button>
-                        <button onClick={() => setViewMode('card')} className={`p-2 rounded-md ${viewMode === 'card' ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}><LayoutGrid className="h-5 w-5" /></button>
-                    </div>
+                    {/* Right side buttons */}
                     <div className="flex items-center gap-2">
                         <button onClick={() => setIsImportGuideOpen(true)} className="p-2 text-gray-500 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                             <HelpCircle className="h-5 w-5" />
@@ -470,7 +484,6 @@ const PartyType = () => {
                         </button>
                     </div>
                 </div>
-            </header>
 
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="relative flex-grow">
@@ -662,6 +675,7 @@ const PartyType = () => {
                     isLoadingDetails={isLoadingDetails}
                 />
             )}
+            </div>
         </div>
     );
 }

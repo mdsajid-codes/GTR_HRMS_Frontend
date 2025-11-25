@@ -1,23 +1,21 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Store, Settings as SettingsIcon, Users, Factory, Palette, BookUser, Landmark } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { SlidersHorizontal, Store, Users, Factory, Palette, BookUser, Landmark } from "lucide-react";
 import { useTenant } from '../context/TenantContext';
 import CompanyHubLayout from '../components/CompanyHubLayout';
 
 const allSettingsSections = [
-    { name: 'HRMS', path: '/company-settings/hrms', icon: SlidersHorizontal, module: 'HRMS_CORE', color: 'text-blue-500' },
-    { name: 'Account', path: '/company-settings/account', icon: Landmark, color: 'text-cyan-500' },
-    { name: 'POS', path: '/company-settings/pos', icon: Store, module: 'POS', color: 'text-orange-500' },
-    { name: 'CRM', path: '/company-settings/crm', icon: Users, module: 'CRM', color: 'text-green-500' },
-    { name: 'PartyType', path: '/company-settings/party-type', icon: BookUser, color: 'text-indigo-500' },
-    { name: 'Production', path: '/company-settings/production', icon: Factory, module: 'PRODUCTION', color: 'text-purple-500' },
+    { name: 'HRMS', path: '/hrms-settings', icon: SlidersHorizontal, module: 'HRMS_CORE', color: 'text-blue-500' },
+    { name: 'Account', path: '/account-settings', icon: Landmark, color: 'text-cyan-500' },
+    { name: 'POS', path: '/pos-settings', icon: Store, module: 'POS', color: 'text-orange-500' },
+    { name: 'CRM', path: '/crm-settings', icon: Users, module: 'CRM', color: 'text-green-500' },
+    { name: 'PartyType', path: '/party-type-settings', icon: BookUser, color: 'text-indigo-500' },
+    { name: 'Production', path: '/production-settings', icon: Factory, module: 'PRODUCTION', color: 'text-purple-500' },
 ];
 
 const Settings = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
     const { hasModule } = useTenant();
-    const themes = ['light', 'dark', 'greenish', 'blueish'];
+    const themes = ["light", "dark", "greenish", "blueish"];
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
     useEffect(() => {
@@ -41,21 +39,14 @@ const Settings = () => {
         return allSettingsSections.filter(section => !section.module || hasModule(section.module));
     }, [hasModule]);
 
-    // Redirect to the first settings section if the base URL is hit
-    useEffect(() => {
-        if ((location.pathname === '/company-settings' || location.pathname === '/company-settings/') && settingsSections.length > 0) {
-            navigate(settingsSections[0].path, { replace: true });
-        }
-    }, [location.pathname, navigate]);
-
     return (
         <CompanyHubLayout>
-            <div className="flex flex-col h-full"> {/* Added h-full to ensure the flex column takes full height */}
-                <nav className="bg-card text-card-foreground border-b border-border">
-                    <div className="flex items-center justify-between p-4">
-                        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-                        <div className="flex items-center justify-between capitalize">
-                            <span className="text-sm text-foreground-muted">{theme} Mode</span>
+            <div className="flex flex-col h-full bg-background text-foreground">
+                <header className="bg-card text-card-foreground border-b border-border p-4">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold">Settings</h1>
+                        <div className="flex items-center gap-2 capitalize">
+                            <span className="text-sm text-foreground-muted hidden sm:inline">{theme} Mode</span>
                             <button
                                 onClick={cycleTheme}
                                 className="p-2 rounded-full hover:bg-background-muted text-foreground-muted"
@@ -65,34 +56,28 @@ const Settings = () => {
                             </button>
                         </div>
                     </div>
-                    <div className="flex space-x-6 overflow-x-auto px-4" aria-label="Tabs">
-                        {settingsSections.map(section => (
-                            <NavLink
+                </header>
+
+                <main className="flex-1 p-4 sm:p-6 md:p-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {settingsSections.map((section) => (
+                            <Link
                                 key={section.name}
                                 to={section.path}
-                                className={({ isActive }) =>
-                                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-left whitespace-nowrap ${
-                                        isActive
-                                            ? 'bg-primary text-primary-foreground shadow-sm'
-                                            : 'text-foreground-muted hover:bg-background-muted'
-                                    }`
-                                }
+                                className="group bg-card border border-border rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary"
                             >
-                                {({ isActive }) => (
-                                    <><section.icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? '' : section.color}`} /><span>{section.name} Settings</span></>
-                                )}
-                            </NavLink>
+                                <div className={`mb-4 p-4 rounded-full bg-primary/10`}>
+                                    <section.icon className={`h-8 w-8 ${section.color}`} />
+                                </div>
+                                <h2 className="text-lg font-semibold text-foreground">{section.name}</h2>
+                                <p className="text-sm text-foreground-muted mt-1">Manage {section.name} settings</p>
+                            </Link>
                         ))}
                     </div>
-                </nav>
-
-                {/* Main Settings Content */}
-                <div className="flex-1 bg-card rounded-xl shadow-sm overflow-hidden"> {/* Removed duplicate padding here */}
-                    <Outlet />
-                </div>
+                </main>
             </div>
         </CompanyHubLayout>
     );
-}
+};
 
 export default Settings;

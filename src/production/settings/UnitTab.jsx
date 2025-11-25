@@ -4,60 +4,15 @@ import { Edit, Trash2, PlusCircle, Loader, Search, X, AlertCircle } from 'lucide
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const Modal = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-card text-card-foreground rounded-lg shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b border-border flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-foreground">{title}</h3>
-                    <button onClick={onClose} className="p-1 rounded-full text-foreground-muted hover:bg-background-muted"><X size={20} /></button>
-                </div>
-                <div className="p-6">{children}</div>
-            </div>
-        </div>
-    );
-};
-
-const UnitForm = ({ item, onSave, onCancel, loading, locations }) => {
-    const [formData, setFormData] = useState({ name: '', description: '', locationId: '' });
-    useEffect(() => {
-        setFormData({
-            name: item?.name || '',
-            description: item?.description || '',
-            locationId: item?.locationId || ''
-        });
-    }, [item]);
-    const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    const handleSubmit = (e) => { e.preventDefault(); onSave({ id: item?.id, ...formData }); };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div><label htmlFor="name" className="label">Unit Name</label><input id="name" name="name" value={formData.name} onChange={handleChange} required className="input" placeholder="e.g., Kilogram" /></div>
-            <div><label htmlFor="description" className="label">Description</label><input id="description" name="description" value={formData.description} onChange={handleChange} className="input" placeholder="e.g., Standard unit of mass" /></div>
-            <div>
-                <label htmlFor="locationId" className="label">Location (Optional)</label>
-                <select id="locationId" name="locationId" value={formData.locationId} onChange={handleChange} className="input">
-                    <option value="">All Locations</option>
-                    {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-                </select>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={onCancel} className="btn-secondary" disabled={loading}>Cancel</button>
-                <button type="submit" className="btn-primary flex items-center" disabled={loading}>{loading && <Loader className="animate-spin h-4 w-4 mr-2" />} Save</button>
-            </div>
-        </form>
-    );
-};
-
 const UnitTab = ({ locationId }) => {
     const [units, setUnits] = useState([]);
     const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showForm, setShowForm] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
-    const [modalLoading, setModalLoading] = useState(false);
+    const [formLoading, setFormLoading] = useState(false);
+    const [formData, setFormData] = useState({ name: '', description: '', locationId: '' });
     const [searchTerm, setSearchTerm] = useState('');
     const authHeaders = useMemo(() => ({ "Authorization": `Bearer ${localStorage.getItem('token')}` }), []);
 
@@ -77,14 +32,37 @@ const UnitTab = ({ locationId }) => {
         }
     }, [authHeaders]);
 
+   
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    const handleAdd = () => { setEditingItem({ locationId: locationId !== 'all' ? locationId : '' }); setIsModalOpen(true); };
-    const handleEdit = (item) => { setEditingItem(item); setIsModalOpen(true); };
-    const handleCloseModal = () => { setIsModalOpen(false); setEditingItem(null); };
+    useEffect(() => {
+        if (editingItem) {
+            setFormData({
+                name: editingItem.name || '',
+                description: editingItem.description || '',
+                locationId: editingItem.locationId || (locationId !== 'all' ? locationId : '')
+            });
+        }
+    }, [editingItem, locationId]);
+
+    const handleAdd = () => {
+        setEditingItem({}); // Use an empty object to signify a new item
+        setShowForm(true);
+    };
+
+    const handleEdit = (item) => {
+        setEditingItem(item);
+        setShowForm(true);
+    };
+
+    const handleCancel = () => {
+        setShowForm(false);
+        setEditingItem(null);
+        setFormData({ name: '', description: '', locationId: '' });
+    };
 
     const handleSave = async (itemData) => {
-        setModalLoading(true);
+        setFormLoading(true);
         const payload = { ...itemData, locationId: itemData.locationId || null };
         const isUpdating = Boolean(itemData.id);
         const url = isUpdating ? `${API_URL}/production/units/${itemData.id}` : `${API_URL}/production/units`;
@@ -92,13 +70,15 @@ const UnitTab = ({ locationId }) => {
         try {
             await axios[method](url, itemData, { headers: authHeaders });
             await fetchData();
-            handleCloseModal();
+            handleCancel();
         } catch (err) {
             alert(`Error: ${err.response?.data?.message || 'Failed to save unit.'}`);
         } finally {
-            setModalLoading(false);
+            setFormLoading(false);
         }
     };
+
+
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this unit?')) {
@@ -110,6 +90,8 @@ const UnitTab = ({ locationId }) => {
             }
         }
     };
+
+    const handleSubmit = (e) => { e.preventDefault(); handleSave({ id: editingItem?.id, ...formData }); };
 
     const filteredData = useMemo(() => {
         let filtered = units;
@@ -130,6 +112,26 @@ const UnitTab = ({ locationId }) => {
                     <button onClick={handleAdd} className="flex items-center gap-2 btn-secondary"><PlusCircle size={16} /> Add Unit</button>
                 </div>
             </div>
+            {showForm && (
+                <div className="bg-card p-4 rounded-lg border border-border mb-4">
+                    <h4 className="text-md font-semibold mb-3">{editingItem?.id ? 'Edit Unit' : 'Add New Unit'}</h4>
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                        <div className="col-span-1"><label htmlFor="name" className="label">Unit Name</label><input id="name" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="input" placeholder="e.g., Kilogram" /></div>
+                        <div className="col-span-1"><label htmlFor="description" className="label">Description</label><input id="description" name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} className="input" placeholder="e.g., Standard unit of mass" /></div>
+                        <div className="col-span-1">
+                            <label htmlFor="locationId" className="label">Location (Optional)</label>
+                            <select id="locationId" name="locationId" value={formData.locationId} onChange={(e) => setFormData(prev => ({ ...prev, locationId: e.target.value }))} className="input">
+                                <option value="">All Locations</option>
+                                {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-2 col-span-1">
+                            <button type="button" onClick={handleCancel} className="btn-secondary" disabled={formLoading}>Cancel</button>
+                            <button type="submit" className="btn-primary flex items-center" disabled={formLoading}>{formLoading && <Loader className="animate-spin h-4 w-4 mr-2" />} Save</button>
+                        </div>
+                    </form>
+                </div>
+            )}
             {error && <p className="text-red-500 mb-4">{error}</p>}
             <div className="overflow-x-auto border border-border rounded-lg">
                 <table className="min-w-full divide-y divide-border">
@@ -159,9 +161,6 @@ const UnitTab = ({ locationId }) => {
                     </tbody>
                 </table>
             </div>
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingItem ? 'Edit Unit' : 'Add Unit'}>
-                <UnitForm item={editingItem} onSave={handleSave} onCancel={handleCloseModal} loading={modalLoading} locations={locations} />
-            </Modal>
         </div>
     );
 };

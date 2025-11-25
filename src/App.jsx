@@ -19,10 +19,12 @@ import CompanyDashboard from './pages/CompanyDashboard'
 import LeaveManagement from './pages/LeaveManagement.jsx'
 import ProductionSettings from './production/settings/ProductionSettings.jsx'
 import CrmSettings from './crm/settings/CrmSettings.jsx'
+import Production from './production/pages/Production.jsx'
 import CrmModule from './crm/pages/CrmModule.jsx'
 import CrmLead from './crm/pages/CrmLead.jsx'
 import CrmCompanies from './crm/pages/CrmCompanies.jsx'
 import LeadInfo from './crm/pages/Leadinfo.jsx';
+import PurchaseModule from './purchase/pages/PurchaseModule.jsx';
 import SalesLayout from './sales/SalesLayout.jsx'
 import SalesDashboard from './sales/SalesDashboard.jsx';
 import Orders from './sales/pages/Orders.jsx';
@@ -35,6 +37,7 @@ import PartyForm from './components/PartyType/PartyForm.jsx'
 import CrmContacts from './crm/pages/CrmContacts.jsx'
 import Account from './accounting/pages/Account.jsx'
 import AccountSetting from './accounting/settings/AccountSetting.jsx'
+import CrmSalesProduct from './crm/components/CrmSalesProduct.jsx'
  
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
@@ -51,6 +54,23 @@ const AccountPlaceholder = ({ pageName }) => (
     <p className="text-foreground-muted mt-2">This page is under construction.</p>
   </div>
 );
+
+// Placeholder for PRODUCTION child pages
+const ProductionPlaceholder = ({ pageName }) => (
+  <div className="text-center py-20">
+    <h1 className="text-3xl font-bold text-foreground">{pageName}</h1>
+    <p className="text-foreground-muted mt-2">This page is under construction.</p>
+  </div>
+);
+
+// Placeholder for PURCHASE child pages
+const PurchasePlaceholder = ({ pageName }) => (
+  <div className="text-center py-20">
+    <h1 className="text-3xl font-bold text-foreground">{pageName}</h1>
+    <p className="text-foreground-muted mt-2">This page is under construction.</p>
+  </div>
+);
+
 function App() {
   return (
     <TenantProvider>
@@ -69,15 +89,18 @@ function App() {
           <Route path='/payroll-management' element={<PayrollManagement />} />
           <Route path='/pos-dashboard' element={<PosDashboard />} />
           <Route path='/company-dashboard' element={<CompanyDashboard />} />
-          <Route path='/company-settings' element={<Settings />}>
-            <Route path="hrms" element={<HrmsSettings />} />
-            <Route path='account' element={<AccountSetting />} />
-            <Route path='production' element={<ProductionSettings /> } />
-            <Route path='crm' element={<CrmSettings /> } />
-            <Route path='party-type' element={<PartyType />} />
-            <Route path="party-type/new" element={<PartyForm />} />
-            <Route path="party-type/edit/:id" element={<PartyForm />} />
-          </Route>
+          {/* Standalone HRMS Settings Route */}
+          <Route path='/hrms-settings' element={<HrmsSettings />} />
+          {/* Settings Hub Route */}
+          <Route path='/company-settings' element={<Settings />} />
+          {/* Standalone Module Settings Routes */}
+          <Route path='/account-settings' element={<AccountSetting />} />
+          <Route path='/production-settings' element={<ProductionSettings /> } />
+          <Route path='/crm-settings' element={<CrmSettings /> } />
+          {/* The PartyType setting is a CRUD interface, so it gets its own group of routes */}
+          <Route path='/party-type-settings' element={<PartyType />} />
+          <Route path="/party-type-settings/new" element={<PartyForm />} />
+          <Route path="/party-type-settings/edit/:id" element={<PartyForm />} />
           <Route path='/crm-dashboard' element={<CrmModule />}>
             <Route index element={<CrmPlaceholder pageName="CRM Dashboard" />} />
             <Route path="home" element={<CrmPlaceholder pageName="Home" />} />
@@ -86,6 +109,7 @@ function App() {
             <Route path="leads/:leadId" element={<LeadInfo />} />
             <Route path="companies" element={<CrmCompanies pageName="Companies" />} />
             <Route path="contacts" element={<CrmContacts pageName="Contacts" />} />
+            <Route path='products' element={<CrmSalesProduct pageName="Products" />} />
             <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
             <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />
             <Route path="operations" element={<CrmPlaceholder pageName="Operations" />} />
@@ -109,6 +133,26 @@ function App() {
             <Route path="incoming-pdc" element={<AccountPlaceholder pageName="Manage Incoming PDC" />} />
             <Route path="outgoing-pdc" element={<AccountPlaceholder pageName="Manage Outgoing PDC" />} />
             <Route path="bank-reconciliation" element={<AccountPlaceholder pageName="Bank Reconciliation" />} />
+          </Route>
+          {/* Production Module Routes */}
+          <Route path="/production-dashboard" element={<Production />}>
+            <Route index element={<ProductionPlaceholder pageName="Manage Manufacturing Order" />} />
+            <Route path="manage-manufacturing-order" element={<ProductionPlaceholder pageName="Manage Manufacturing Order" />} />
+            <Route path="view-manufacturing-order" element={<ProductionPlaceholder pageName="View Manufacturing Order" />} />
+            <Route path="production-schedule" element={<ProductionPlaceholder pageName="Production Schedule" />} />
+            <Route path="production-operation" element={<ProductionPlaceholder pageName="Production Operation" />} />
+            <Route path="my-production" element={<ProductionPlaceholder pageName="My Production" />} />
+            <Route path="material-requisition" element={<ProductionPlaceholder pageName="Material Requisition" />} />
+            <Route path="work-order-report" element={<ProductionPlaceholder pageName="Work Order Report" />} />
+          </Route>
+          {/* Purchase Module Routes */}
+          <Route path="/purchase-dashboard" element={<PurchaseModule />}>
+            <Route index element={<PurchasePlaceholder pageName="Purchase Dashboard" />} />
+            <Route path="dashboard" element={<PurchasePlaceholder pageName="Purchase Dashboard" />} />
+            <Route path="purchase-orders" element={<PurchasePlaceholder pageName="Purchase Orders" />} />
+            <Route path="bills" element={<PurchasePlaceholder pageName="Bills" />} />
+            <Route path="payments" element={<PurchasePlaceholder pageName="Payments" />} />
+            <Route path="debit-notes" element={<PurchasePlaceholder pageName="Debit Notes" />} />
           </Route>
         </Routes>
       </Router>

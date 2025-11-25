@@ -158,7 +158,7 @@ const ManageProcess = ({ locationId }) => {
             setLocations(Array.isArray(locationsRes.data) ? locationsRes.data : []);
             setTotalPages(processesRes.data.totalPages || 0);
             setTotalElements(processesRes.data.totalElements || 0);
-            setWorkGroups(Array.isArray(workGroupsRes.data.content) ? workGroupsRes.data.content : []);
+            setWorkGroups(Array.isArray(workGroupsRes.data) ? workGroupsRes.data : []);
         } catch (err) {
             setError('Failed to fetch data.');
             console.error(err);

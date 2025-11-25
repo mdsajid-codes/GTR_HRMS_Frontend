@@ -16,14 +16,15 @@ const SidebarContent = ({ onLinkClick }) => {
     };
 
     const allNavLinks = [
-        { name: 'Dashboard', icon: LayoutDashboard, href: '/company-dashboard' },
-        { name: 'HRMS', icon: Users, href: '/hrdashboard', module: 'HRMS_CORE' },
-        { name: 'POS', icon: ShoppingCart, href: '/pos-dashboard', module: 'POS' },
-        { name: 'Sales', icon: DollarSign, href: '/sales-dashboard', module: 'SALES' },
-        { name: 'CRM', icon: Users, href: '/crm-dashboard', module: 'CRM' },
-        { name: 'Account', icon: Landmark, href: '/account-dashboard'},
-        { name: 'Production', icon: Building, href: '/production-dashboard', module: 'PRODUCTION' },
-        { name: 'Settings', icon: Settings, href: '/company-settings' },
+        { name: 'Dashboard', icon: LayoutDashboard, href: '/company-dashboard', color: 'text-indigo-500' },
+        { name: 'HRMS', icon: Users, href: '/hrdashboard', module: 'HRMS_CORE', color: 'text-blue-500' },
+        { name: 'POS', icon: ShoppingCart, href: '/pos-dashboard', module: 'POS', color: 'text-green-500' },
+        { name: 'Sales', icon: DollarSign, href: '/sales-dashboard', module: 'SALES', color: 'text-emerald-500' },
+        { name: 'Purchases', icon: ShoppingCart, href: '/purchase-dashboard', color: 'text-orange-500' },
+        { name: 'CRM', icon: Users, href: '/crm-dashboard', module: 'CRM', color: 'text-rose-500' },
+        { name: 'Account', icon: Landmark, href: '/account-dashboard', color: 'text-amber-500' },
+        { name: 'Production', icon: Building, href: '/production-dashboard', module: 'PRODUCTION', color: 'text-cyan-500' },
+        { name: 'Settings', icon: Settings, href: '/company-settings', color: 'text-slate-500' },
     ];
 
     const navLinks = useMemo(() => {
@@ -43,7 +44,7 @@ const SidebarContent = ({ onLinkClick }) => {
                 }
             >
                 {/* The icon color can also be determined by NavLink's active state */}
-                {({ isActive }) => (<><item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-foreground-muted group-hover:text-foreground'}`} /><span>{item.name}</span></>)}
+                {({ isActive }) => (<><item.icon className={`h-5 w-5 mr-3 flex-shrink-0 transition-colors ${isActive ? 'text-primary-foreground' : `${item.color} group-hover:text-primary`}`} /><span>{item.name}</span></>)}
             </NavLink>
         );
     };
