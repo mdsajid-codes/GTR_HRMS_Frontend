@@ -1,4 +1,4 @@
-import {Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import './App.css'
 import { TenantProvider } from './context/TenantContext.jsx'
 import Home from './pages/Home'
@@ -28,9 +28,10 @@ import PurchaseModule from './purchase/pages/PurchaseModule.jsx';
 import SalesLayout from './sales/SalesLayout.jsx'
 import SalesDashboard from './sales/SalesDashboard.jsx';
 import Orders from './sales/pages/Orders.jsx';
+import OrderForm from './sales/pages/OrderForm.jsx';
+import QuotationForm from './sales/pages/QuotationForm.jsx';
 import Quotation from './sales/pages/Quotation.jsx'
-import SalesCustomer from './sales/pages/SalesCustomer.jsx';
-import SalesProduct from './sales/pages/SalesProduct.jsx';
+import ViewQuotation from './sales/pages/ViewQuotation.jsx';
 import SalesSetting from './sales/pages/SalesSetting.jsx'
 import PartyType from './components/PartyType/PartyType.jsx'
 import PartyForm from './components/PartyType/PartyForm.jsx'
@@ -38,7 +39,8 @@ import CrmContacts from './crm/pages/CrmContacts.jsx'
 import Account from './accounting/pages/Account.jsx'
 import AccountSetting from './accounting/settings/AccountSetting.jsx'
 import CrmSalesProduct from './crm/components/CrmSalesProduct.jsx'
- 
+import CrmSalesProductForm from './crm/components/CrmSalesProductForm.jsx'
+
 // Placeholder for CRM child pages
 const CrmPlaceholder = ({ pageName }) => (
   <div className="text-center py-20">
@@ -85,7 +87,7 @@ function App() {
           <Route path='/employee-dashboard' element={<EmployeeDashboard />} />
           <Route path="/users-details" element={<UsersDetails />} />
           <Route path='/attendance' element={<Attendance />} />
-          <Route path='/leave' element={<LeaveManagement /> } />
+          <Route path='/leave' element={<LeaveManagement />} />
           <Route path='/payroll-management' element={<PayrollManagement />} />
           <Route path='/pos-dashboard' element={<PosDashboard />} />
           <Route path='/company-dashboard' element={<CompanyDashboard />} />
@@ -95,12 +97,14 @@ function App() {
           <Route path='/company-settings' element={<Settings />} />
           {/* Standalone Module Settings Routes */}
           <Route path='/account-settings' element={<AccountSetting />} />
-          <Route path='/production-settings' element={<ProductionSettings /> } />
-          <Route path='/crm-settings' element={<CrmSettings /> } />
+          <Route path='/production-settings' element={<ProductionSettings />} />
+          <Route path='/crm-settings' element={<CrmSettings />} />
           {/* The PartyType setting is a CRUD interface, so it gets its own group of routes */}
-          <Route path='/party-type-settings' element={<PartyType />} />
-          <Route path="/party-type-settings/new" element={<PartyForm />} />
-          <Route path="/party-type-settings/edit/:id" element={<PartyForm />} />
+          <Route path='/company-settings/party-type'>
+            <Route index element={<PartyType />} />
+            <Route path="new" element={<PartyForm />} />
+            <Route path="edit/:id" element={<PartyForm />} />
+          </Route>
           <Route path='/crm-dashboard' element={<CrmModule />}>
             <Route index element={<CrmPlaceholder pageName="CRM Dashboard" />} />
             <Route path="home" element={<CrmPlaceholder pageName="Home" />} />
@@ -109,7 +113,11 @@ function App() {
             <Route path="leads/:leadId" element={<LeadInfo />} />
             <Route path="companies" element={<CrmCompanies pageName="Companies" />} />
             <Route path="contacts" element={<CrmContacts pageName="Contacts" />} />
-            <Route path='products' element={<CrmSalesProduct pageName="Products" />} />
+            <Route path='products'>
+              <Route index element={<CrmSalesProduct pageName="Products" />} />
+              <Route path="new" element={<CrmSalesProductForm />} />
+              <Route path="edit/:id" element={<CrmSalesProductForm />} />
+            </Route>
             <Route path="deals" element={<CrmPlaceholder pageName="Deals" />} />
             <Route path="tasks" element={<CrmPlaceholder pageName="Tasks" />} />
             <Route path="operations" element={<CrmPlaceholder pageName="Operations" />} />
@@ -119,10 +127,17 @@ function App() {
             <Route index element={<SalesDashboard />} />
           </Route>
           <Route path="/sales" element={<SalesLayout />}>
-            <Route path='quotations' element={<Quotation />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="products" element={<SalesProduct />} />
-            <Route path="customers" element={<SalesCustomer />} />
+            <Route path='quotations'>
+              <Route index element={<Quotation />} />
+              <Route path='new' element={<QuotationForm />} />
+              <Route path='edit/:id' element={<QuotationForm />} />
+              <Route path=':id' element={<ViewQuotation />} />
+            </Route>
+            <Route path="orders">
+              <Route index element={<Orders />} />
+              <Route path="new" element={<OrderForm />} />
+              <Route path="edit/:id" element={<OrderForm />} />
+            </Route>
             <Route path='settings' element={<SalesSetting />} />
           </Route>
           <Route path='/account-dashboard' element={<Account />}>

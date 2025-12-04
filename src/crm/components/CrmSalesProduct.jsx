@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useLocation, Routes, Route, Outlet } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Loader2, Search, ArrowLeft, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
-import CrmSalesProductForm from './CrmSalesProductForm';
+import { Plus, Edit, Trash2, Loader2, Search, ArrowLeft, ChevronLeft, ChevronRight, ImageOff, List, Grid } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 const CrmSalesProduct = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -16,20 +14,19 @@ const CrmSalesProduct = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
-
-    const isFormOpen = location.pathname.includes('/crm-products/new') || location.pathname.includes('/crm-products/edit');
+    const [view, setView] = useState('table'); // 'table' or 'card'
 
     const authHeaders = useMemo(() => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }), []);
 
     const fetchProducts = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({
+            const params = {
                 page: currentPage,
                 size: pageSize,
                 search: searchTerm,
-            });
-            const response = await axios.get(`${API_URL}/crm/sales-products?${params.toString()}`, authHeaders);
+            };
+            const response = await axios.get(`${API_URL}/crm/sales-products`, { params, ...authHeaders });
             setProducts(response.data.content || []);
             setTotalPages(response.data.totalPages);
             setError(null);
@@ -59,21 +56,34 @@ const CrmSalesProduct = () => {
         }
     };
 
-    const handleFormClose = (needsRefresh) => {
-        navigate('/crm-products');
-        if (needsRefresh) {
-            fetchProducts();
-        }
+    const getImageUrl = (productId) => {
+        if (!productId) return null;
+        // Use a timestamp to prevent browser caching issues when an image is updated
+        return `${API_URL}/crm/sales-products/${productId}/image?t=${new Date().getTime()}`;
     };
 
-    const getImageUrl = (path) => {
-        if (!path) return null;
-        // The backend controller serves images from /api/crm/sales-products/images/**
-        return `${API_URL}/crm/sales-products/images/${path}`;
+    const ProductCard = ({ product }) => {
+        return (
+            <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+                <div className="h-40 bg-gray-100 flex items-center justify-center">
+                    {product.imageUrl ? (
+                        <img src={getImageUrl(product.id)} alt={product.name} className="h-full w-full object-cover" />
+                    ) : (
+                        <ImageOff className="h-12 w-12 text-gray-400" />
+                    )}
+                </div>
+                <div className="p-4">
+                    <h3 className="font-semibold text-gray-800 truncate">{product.name}</h3>
+                    <p className="text-sm text-gray-500">{product.itemCode || 'No Code'}</p>
+                    <p className="text-lg font-bold text-gray-900 mt-2">₹{product.salesPrice}</p>
+                </div>
+                <div className="p-2 bg-gray-50 border-t flex justify-end gap-2"><button onClick={() => navigate(`/crm-dashboard/products/edit/${product.id}`)} className="p-2 rounded-md hover:bg-gray-200"><Edit className="h-4 w-4 text-gray-600" /></button><button onClick={() => handleDelete(product.id)} className="p-2 rounded-md hover:bg-gray-200"><Trash2 className="h-4 w-4 text-red-500" /></button></div>
+            </div>
+        );
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 relative">
+        <div className="flex flex-col h-full bg-slate-50">
             <header className="bg-white shadow-sm p-4 border-b border-slate-200">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -85,9 +95,18 @@ const CrmSalesProduct = () => {
                             <p className="text-sm text-slate-500">Manage your sales products and services.</p>
                         </div>
                     </div>
-                    <button onClick={() => navigate('/crm-products/new')} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700">
-                        <Plus className="mr-2 h-4 w-4" /> Add Product
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center rounded-lg border bg-gray-100 p-0.5">
+                            <button onClick={() => setView('table')} className={`p-1.5 rounded-md ${view === 'table' ? 'bg-white shadow-sm' : 'text-gray-500'}`}><List size={18} /></button>
+                            <button onClick={() => setView('card')} className={`p-1.5 rounded-md ${view === 'card' ? 'bg-white shadow-sm' : 'text-gray-500'}`}><Grid size={18} /></button>
+                        </div>
+                        <button
+                            onClick={() => navigate('/crm-dashboard/products/new')}
+                            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
+                        >
+                            <Plus className="mr-2 h-4 w-4" /> Add Product
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -110,42 +129,47 @@ const CrmSalesProduct = () => {
                 <main className="flex-grow overflow-auto">
                     {loading ? (
                         <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
-                    ) : products.length > 0 ? (
-                        <div className="overflow-x-auto rounded-lg border border-gray-200">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3">Image</th>
-                                        <th className="px-6 py-3">Name</th>
-                                        <th className="px-6 py-3">Item Code</th>
-                                        <th className="px-6 py-3">Type</th>
-                                        <th className="px-6 py-3">Sales Price</th>
-                                        <th className="px-6 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {products.map(product => (
-                                        <tr key={product.id} className="bg-white border-b hover:bg-gray-50">
-                                            <td className="px-6 py-4">
-                                                {product.imageUrl ? (
-                                                    <img src={getImageUrl(product.imageUrl)} alt={product.name} className="h-10 w-10 rounded-md object-cover" />
-                                                ) : (
-                                                    <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center text-gray-400"><ImageOff size={20} /></div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
-                                            <td className="px-6 py-4">{product.itemCode}</td>
-                                            <td className="px-6 py-4">{product.itemType}</td>
-                                            <td className="px-6 py-4">₹{product.salesPrice}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button onClick={() => navigate(`/crm-products/edit/${product.id}`)} className="p-2 rounded-md hover:bg-gray-100"><Edit className="h-4 w-4 text-gray-600" /></button>
-                                                <button onClick={() => handleDelete(product.id)} className="p-2 rounded-md hover:bg-gray-100"><Trash2 className="h-4 w-4 text-red-500" /></button>
-                                            </td>
+                    ) : products.length > 0 ? ( view === 'table' ? (
+                            <div className="overflow-x-auto rounded-lg border border-gray-200">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3">Image</th>
+                                            <th className="px-6 py-3">Name</th>
+                                            <th className="px-6 py-3">Item Code</th>
+                                            <th className="px-6 py-3">Type</th>
+                                            <th className="px-6 py-3">Sales Price</th>
+                                            <th className="px-6 py-3 text-right">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(product => (
+                                            <tr key={product.id} className="bg-white border-b hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    {product.imageUrl ? (
+                                                        <img src={getImageUrl(product.id)} alt={product.name} className="h-10 w-10 rounded-md object-cover" />
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center text-gray-400"><ImageOff size={20} /></div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
+                                                <td className="px-6 py-4">{product.itemCode}</td>
+                                                <td className="px-6 py-4">{product.itemType}</td>
+                                                <td className="px-6 py-4">₹{product.salesPrice}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button onClick={() => navigate(`/crm-dashboard/products/edit/${product.id}`)} className="p-2 rounded-md hover:bg-gray-100"><Edit className="h-4 w-4 text-gray-600" /></button>
+                                                    <button onClick={() => handleDelete(product.id)} className="p-2 rounded-md hover:bg-gray-100"><Trash2 className="h-4 w-4 text-red-500" /></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {products.map(product => <ProductCard key={product.id} product={product} />)}
+                            </div>
+                        )
                     ) : (
                         <div className="text-center py-16"><h3 className="text-lg font-semibold">No Products Found</h3></div>
                     )}
@@ -165,13 +189,6 @@ const CrmSalesProduct = () => {
                     </footer>
                 )}
             </div>
-
-            {/* Sidebar Form Outlet */}
-            <Routes>
-                <Route path="new" element={<CrmSalesProductForm onFormClose={handleFormClose} />} />
-                <Route path="edit/:id" element={<CrmSalesProductForm onFormClose={handleFormClose} />} />
-            </Routes>
-            
         </div>
     );
 };

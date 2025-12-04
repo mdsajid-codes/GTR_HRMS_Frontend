@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { X, Save, Loader2, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Image as ImageIcon } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const CrmSalesProductForm = ({ onFormClose }) => {
+const CrmSalesProductForm = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditing = !!id;
@@ -90,14 +90,26 @@ const CrmSalesProductForm = ({ onFormClose }) => {
         }
     };
 
+    // Function to handle cancel/close action
+    const handleCancel = () => {
+        navigate('/crm-dashboard/products'); // Navigate back to the product list
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         const formData = new FormData();
-        // The backend expects a part named "product" of type application/json
-        formData.append('product', new Blob([JSON.stringify(product)], { type: 'application/json' }));
+
+        // Create a copy of the product data to send
+        const productData = { ...product };
+        // Ensure empty strings for prices are sent as null so the backend can handle them
+        if (productData.purchasePrice === '') productData.purchasePrice = null;
+        if (productData.salesPrice === '') productData.salesPrice = null;
+
+        formData.append('product', new Blob([JSON.stringify(productData)], { type: 'application/json' }));
+
         if (imageFile) {
             formData.append('image', imageFile);
         }
@@ -115,7 +127,7 @@ const CrmSalesProductForm = ({ onFormClose }) => {
             } else {
                 await axios.post(`${API_URL}/crm/sales-products`, formData, config);
             }
-            onFormClose(true); // Pass true to indicate success and trigger a refresh
+            navigate('/crm-dashboard/products'); // Navigate back to list on success
         } catch (err) {
             setError(err.response?.data?.message || `Failed to ${isEditing ? 'update' : 'create'} product.`);
             console.error(err);
@@ -125,18 +137,33 @@ const CrmSalesProductForm = ({ onFormClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => onFormClose(false)}>
-            <div className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white shadow-xl z-50 flex flex-col" onClick={e => e.stopPropagation()}>
-                <header className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
-                    <button onClick={() => onFormClose(false)} className="p-2 rounded-full hover:bg-gray-100">
-                        <X className="h-5 w-5" />
+        <div className="flex flex-col h-screen bg-slate-50">
+            <header className="bg-white shadow-sm p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-4">
+                    <button onClick={handleCancel} className="p-2 rounded-full hover:bg-slate-100">
+                        <ArrowLeft className="h-5 w-5 text-slate-600" />
                     </button>
-                </header>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-800">
+                            {isEditing ? 'Edit Product' : 'Add New Product'}
+                        </h1>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button type="button" onClick={handleCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" form="product-form" disabled={loading} className="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:bg-blue-300">
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isEditing ? 'Save Changes' : 'Create Product'}
+                    </button>
+                </div>
+            </header>
 
-                <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6 space-y-6">
-                    {loading && !product.name && (
-                        <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
+            <main className="flex-grow overflow-y-auto">
+                <form id="product-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {loading && !product.name && isEditing && (
+                        <div className="flex justify-center items-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
                     )}
 
                     {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">{error}</div>}
@@ -168,15 +195,15 @@ const CrmSalesProductForm = ({ onFormClose }) => {
                         <div className="md:col-span-2 space-y-4">
                             <div>
                                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">Product Name *</label>
-                                <input type="text" name="name" id="name" value={product.name} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                <input type="text" name="name" id="name" value={product.name} onChange={handleChange} required className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" />
                             </div>
                             <div>
                                 <label htmlFor="itemCode" className="block text-sm font-medium text-gray-700">Item Code</label>
-                                <input type="text" name="itemCode" id="itemCode" value={product.itemCode} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                                <input type="text" name="itemCode" id="itemCode" value={product.itemCode} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" />
                             </div>
                              <div>
                                 <label htmlFor="itemType" className="block text-sm font-medium text-gray-700">Item Type</label>
-                                <select id="itemType" name="itemType" value={product.itemType} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <select id="itemType" name="itemType" value={product.itemType} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
                                     <option value="PRODUCT">Product</option>
                                     <option value="SERVICE">Service</option>
                                 </select>
@@ -186,7 +213,7 @@ const CrmSalesProductForm = ({ onFormClose }) => {
 
                     <div>
                         <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-                        <textarea id="description" name="description" rows="3" value={product.description} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                        <textarea id="description" name="description" rows="3" value={product.description} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"></textarea>
                     </div>
 
                     <div className="flex items-center space-x-8">
@@ -212,11 +239,11 @@ const CrmSalesProductForm = ({ onFormClose }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="purchasePrice" className="block text-sm font-medium text-gray-700">Purchase Price (₹)</label>
-                            <input type="number" name="purchasePrice" id="purchasePrice" value={product.purchasePrice} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <input type="number" name="purchasePrice" id="purchasePrice" value={product.purchasePrice} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" />
                         </div>
                         <div>
                             <label htmlFor="salesPrice" className="block text-sm font-medium text-gray-700">Sales Price (₹)</label>
-                            <input type="number" name="salesPrice" id="salesPrice" value={product.salesPrice} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <input type="number" name="salesPrice" id="salesPrice" value={product.salesPrice} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" />
                         </div>
                     </div>
 
@@ -224,11 +251,11 @@ const CrmSalesProductForm = ({ onFormClose }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="unitOfMeasure" className="block text-sm font-medium text-gray-700">Unit of Measure</label>
-                            <input type="text" name="unitOfMeasure" id="unitOfMeasure" value={product.unitOfMeasure} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="e.g., pcs, kg, ltr" />
+                            <input type="text" name="unitOfMeasure" id="unitOfMeasure" value={product.unitOfMeasure} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" placeholder="e.g., pcs, kg, ltr" />
                         </div>
                         <div>
                             <label htmlFor="reorderLimit" className="block text-sm font-medium text-gray-700">Reorder Limit</label>
-                            <input type="number" name="reorderLimit" id="reorderLimit" value={product.reorderLimit} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+                            <input type="number" name="reorderLimit" id="reorderLimit" value={product.reorderLimit} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" />
                         </div>
                     </div>
 
@@ -236,34 +263,19 @@ const CrmSalesProductForm = ({ onFormClose }) => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                          <div>
                             <label htmlFor="tax" className="block text-sm font-medium text-gray-700">Tax</label>
-                            <input type="text" name="tax" id="tax" value={product.tax} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="e.g., GST, VAT" />
+                            <input type="text" name="tax" id="tax" value={product.tax} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" placeholder="e.g., GST, VAT" />
                         </div>
                         <div>
                             <label htmlFor="taxRate" className="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
-                            <input type="number" name="taxRate" id="taxRate" value={product.taxRate} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="e.g., 18" />
+                            <input type="number" name="taxRate" id="taxRate" value={product.taxRate} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" placeholder="e.g., 18" />
                         </div>
                         <div>
                             <label htmlFor="vatClassificationCode" className="block text-sm font-medium text-gray-700">VAT/GST Code</label>
-                            <input type="text" name="vatClassificationCode" id="vatClassificationCode" value={product.vatClassificationCode} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="HSN/SAC Code" />
+                            <input type="text" name="vatClassificationCode" id="vatClassificationCode" value={product.vatClassificationCode} onChange={handleChange} className="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1" placeholder="HSN/SAC Code" />
                         </div>
                     </div>
                 </form>
-
-                <footer className="flex justify-end items-center p-4 border-t bg-gray-50">
-                    <button type="button" onClick={() => onFormClose(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="ml-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:bg-blue-300"
-                    >
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {isEditing ? 'Save Changes' : 'Create Product'}
-                    </button>
-                </footer>
-            </div>
+            </main>
         </div>
     );
 };

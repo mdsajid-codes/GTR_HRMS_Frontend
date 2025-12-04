@@ -1,32 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, Save, Loader2, Plus, Trash2, Paperclip } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const QuotationForm = () => {
+const OrderForm = () => {
     const navigate = useNavigate();
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const quotationId = searchParams.get('quotationId');
     const isEditing = !!id;
 
     const [formData, setFormData] = useState({
-        quotationDate: new Date().toISOString().split('T')[0],
+        salesOrderDate: new Date().toISOString().split('T')[0],
         customerId: '',
         reference: '',
-        expiryDate: '',
-        quotationType: 'WITHOUT_DISCOUNT',
+        customerPoNo: '',
+        customerPoDate: '',
+        salespersonId: '',
+        saleType: 'With Discount At Order Level',
         items: [],
         termsAndConditions: '',
         notes: '',
-        emailTo: '',
+        emailTo: false,
         status: 'DRAFT',
+        totalDiscount: 0,
+        otherCharges: 0,
+        template: 'Standard',
+        // UI only fields for calculation
         totalDiscountPercentage: 0,
-        otherChargesPercentage: 0,
-        salespersonId: '',
+        otherChargesPercentage: 0
     });
 
-    const [selectData, setSelectData] = useState({ customers: [], products: [], employees: [] });
+    const [selectData, setSelectData] = useState({ customers: [], products: [], categories: [], employees: [] });
     const [loading, setLoading] = useState(true);
     const [attachmentFiles, setAttachmentFiles] = useState([]);
     const [error, setError] = useState(null);
@@ -50,24 +57,47 @@ const QuotationForm = () => {
             });
 
             if (isEditing) {
-                const quotationRes = await axios.get(`${API_URL}/sales/quotations/${id}`, { headers: { Authorization: token } });
-                const data = quotationRes.data;
+                const orderRes = await axios.get(`${API_URL}/sales/orders/${id}`, { headers: { Authorization: token } });
+                const data = orderRes.data;
                 const subTotal = data.subTotal || 0;
+                // Calculate percentages if amounts exist
                 const discountPercentage = subTotal > 0 ? ((data.totalDiscount || 0) / subTotal) * 100 : 0;
                 const chargesPercentage = subTotal > 0 ? ((data.otherCharges || 0) / subTotal) * 100 : 0;
 
                 setFormData({
                     ...data,
-                    quotationDate: data.quotationDate ? new Date(data.quotationDate).toISOString().split('T')[0] : '',
-                    expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString().split('T')[0] : '',
+                    salesOrderDate: data.salesOrderDate ? new Date(data.salesOrderDate).toISOString().split('T')[0] : '',
+                    customerPoDate: data.customerPoDate ? new Date(data.customerPoDate).toISOString().split('T')[0] : '',
                     items: data.items.map(item => ({
                         ...item,
-                        taxRate: 0, // taxRate is not sent from backend, initialize for UI
+                        taxPercentage: item.taxPercentage || 0,
                     })),
                     totalDiscountPercentage: discountPercentage.toFixed(2),
                     otherChargesPercentage: chargesPercentage.toFixed(2),
-                    salespersonId: data.salespersonId || '',
                 });
+            } else if (quotationId) {
+                const quotationRes = await axios.get(`${API_URL}/sales/quotations/${quotationId}`, { headers: { Authorization: token } });
+                const data = quotationRes.data;
+                const subTotal = data.subTotal || 0;
+                const discountPercentage = subTotal > 0 ? ((data.totalDiscount || 0) / subTotal) * 100 : 0;
+                const chargesPercentage = subTotal > 0 ? ((data.otherCharges || 0) / subTotal) * 100 : 0;
+
+                setFormData(prev => ({
+                    ...prev,
+                    customerId: data.customerId,
+                    reference: data.quotationNumber, // Use quotation number as reference
+                    salespersonId: data.salespersonId || '',
+                    items: data.items.map(item => ({
+                        ...item,
+                        taxPercentage: item.taxPercentage || 0,
+                        // Ensure IDs are preserved if needed, or clear them if they are specific to quotation items
+                        id: undefined, // Clear ID to treat as new items
+                    })),
+                    termsAndConditions: data.termsAndConditions || '',
+                    notes: data.notes || '',
+                    totalDiscountPercentage: discountPercentage.toFixed(2),
+                    otherChargesPercentage: chargesPercentage.toFixed(2),
+                }));
             }
         } catch (err) {
             setError('Failed to load data. Please try again.');
@@ -75,21 +105,26 @@ const QuotationForm = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, isEditing]);
+    }, [id, isEditing, quotationId]);
 
     useEffect(() => {
         fetchDependencies();
     }, [fetchDependencies]);
 
     const handleHeaderChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
     const handleItemChange = (index, e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         const newItems = [...formData.items];
-        newItems[index][name] = value;
+
+        if (type === 'checkbox') {
+            newItems[index][name] = checked;
+        } else {
+            newItems[index][name] = value;
+        }
 
         if (name === 'crmProductId') {
             const product = selectData.products.find(p => p.id.toString() === value);
@@ -101,9 +136,7 @@ const QuotationForm = () => {
         }
 
         if (name === 'categoryId') {
-            // Reset subcategory when category changes
             newItems[index].subcategoryId = '';
-            // Fetch subcategories for the new category
             const categoryId = value;
             if (categoryId) {
                 const token = `Bearer ${localStorage.getItem('token')}`;
@@ -111,6 +144,8 @@ const QuotationForm = () => {
                     .then(res => {
                         newItems[index].availableSubcategories = res.data || [];
                     }).catch(err => console.error("Failed to fetch subcategories", err));
+            } else {
+                newItems[index].availableSubcategories = [];
             }
         }
         setFormData(prev => ({ ...prev, items: newItems }));
@@ -119,7 +154,7 @@ const QuotationForm = () => {
     const addItem = () => {
         setFormData(prev => ({
             ...prev,
-            items: [...prev.items, { crmProductId: '', quantity: 1, rate: 0, taxRate: 0, taxValue: 0, isTaxExempt: false, categoryId: '', subcategoryId: '', availableSubcategories: [] }]
+            items: [...prev.items, { crmProductId: '', quantity: 1, rate: 0, taxPercentage: 0, taxValue: 0, isTaxExempt: false, categoryId: '', subcategoryId: '', availableSubcategories: [] }]
         }));
     };
 
@@ -139,7 +174,6 @@ const QuotationForm = () => {
 
     const getAttachmentUrl = (path) => `${API_URL}/sales/attachments/${path}`;
 
-
     const calculateTotals = () => {
         let subTotal = 0;
         let totalTax = 0;
@@ -147,17 +181,23 @@ const QuotationForm = () => {
             const amount = (item.quantity || 0) * (item.rate || 0);
             subTotal += amount;
             if (!item.isTaxExempt) {
-                const taxRate = parseFloat(item.taxRate || 0);
+                const taxRate = parseFloat(item.taxPercentage || 0);
                 const taxValue = amount * (taxRate / 100);
                 totalTax += taxValue;
             }
         });
+
+        // Calculate discount and charges based on percentage
         const discountPercentage = parseFloat(formData.totalDiscountPercentage) || 0;
         const chargesPercentage = parseFloat(formData.otherChargesPercentage) || 0;
+
         const discount = subTotal * (discountPercentage / 100);
         const charges = subTotal * (chargesPercentage / 100);
-        const netTotal = subTotal - discount + totalTax + charges;
-        return { subTotal, totalTax, netTotal };
+
+        const grossTotal = subTotal - discount;
+        const netTotal = grossTotal + totalTax + charges;
+
+        return { subTotal, totalTax, discount, charges, grossTotal, netTotal };
     };
 
     const totals = calculateTotals();
@@ -168,30 +208,31 @@ const QuotationForm = () => {
         setError(null);
         try {
             const token = `Bearer ${localStorage.getItem('token')}`;
-            const subTotal = formData.items.reduce((acc, item) => acc + (item.quantity || 0) * (item.rate || 0), 0);
-            const discountAmount = subTotal * (parseFloat(formData.totalDiscountPercentage) / 100);
-            const chargesAmount = subTotal * (parseFloat(formData.otherChargesPercentage) / 100);
 
-            const quotationData = {
+            const orderData = {
                 ...formData,
                 items: formData.items.map(item => {
                     const amount = (item.quantity || 0) * (item.rate || 0);
-                    const taxValue = amount * (parseFloat(item.taxRate || 0) / 100);
+                    const taxValue = !item.isTaxExempt ? amount * (parseFloat(item.taxPercentage || 0) / 100) : 0;
                     return {
                         ...item,
                         crmProductId: parseInt(item.crmProductId, 10) || null,
                         categoryId: item.categoryId ? parseInt(item.categoryId, 10) : null,
                         subcategoryId: item.subcategoryId ? parseInt(item.subcategoryId, 10) : null,
-                        taxValue: taxValue.toFixed(2) // Send calculated tax value
+                        taxValue: taxValue.toFixed(2),
+                        taxPercentage: parseFloat(item.taxPercentage || 0)
                     };
                 }),
-                totalDiscount: discountAmount.toFixed(2),
-                otherCharges: chargesAmount.toFixed(2),
-                salespersonId: formData.salespersonId ? parseInt(formData.salespersonId, 10) : null,
+                totalDiscount: totals.discount.toFixed(2),
+                otherCharges: totals.charges.toFixed(2),
+                // Remove UI-only fields
+                totalDiscountPercentage: undefined,
+                otherChargesPercentage: undefined,
+                availableSubcategories: undefined
             };
 
             const payload = new FormData();
-            payload.append('quotation', new Blob([JSON.stringify(quotationData)], { type: 'application/json' }));
+            payload.append('salesOrder', new Blob([JSON.stringify(orderData)], { type: 'application/json' }));
 
             attachmentFiles.forEach(file => {
                 payload.append('attachments', file);
@@ -205,13 +246,13 @@ const QuotationForm = () => {
             };
 
             if (isEditing) {
-                await axios.put(`${API_URL}/sales/quotations/${id}`, payload, config);
+                await axios.put(`${API_URL}/sales/orders/${id}`, payload, config);
             } else {
-                await axios.post(`${API_URL}/sales/quotations`, payload, config);
+                await axios.post(`${API_URL}/sales/orders`, payload, config);
             }
-            navigate('/sales/quotations');
+            navigate('/sales/orders');
         } catch (err) {
-            setError(err.response?.data?.message || `Failed to ${isEditing ? 'update' : 'create'} quotation.`);
+            setError(err.response?.data?.message || `Failed to ${isEditing ? 'update' : 'create'} sales order.`);
             console.error(err);
         } finally {
             setLoading(false);
@@ -226,62 +267,64 @@ const QuotationForm = () => {
         <div className="flex flex-col h-screen bg-slate-50">
             <header className="bg-white shadow-sm p-4 border-b flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/sales/quotations')} className="p-2 rounded-full hover:bg-slate-100"><ArrowLeft className="h-5 w-5 text-slate-600" /></button>
-                    <h1 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Quotation' : 'New Quotation'}</h1>
+                    <button onClick={() => navigate('/sales/orders')} className="p-2 rounded-full hover:bg-slate-100"><ArrowLeft className="h-5 w-5 text-slate-600" /></button>
+                    <h1 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Sales Order' : 'New Sales Order'}</h1>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button type="button" onClick={() => navigate('/sales/quotations')} className="btn-secondary">Cancel</button>
-                    <button type="submit" form="quotation-form" disabled={loading} className="btn-primary flex items-center gap-2">
+                    <button type="button" onClick={() => navigate('/sales/orders')} className="btn-secondary">Cancel</button>
+                    <button type="submit" form="order-form" disabled={loading} className="btn-primary flex items-center gap-2">
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        {isEditing ? 'Save Changes' : 'Create Quotation'}
+                        {isEditing ? 'Save Changes' : 'Create Order'}
                     </button>
                 </div>
             </header>
 
             <main className="flex-grow overflow-y-auto p-6">
-                <form id="quotation-form" onSubmit={handleSubmit} className="space-y-6">
+                <form id="order-form" onSubmit={handleSubmit} className="space-y-6">
                     {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md">{error}</div>}
 
                     {/* Header Fields */}
                     <div className="p-4 border rounded-lg bg-white grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="label">Customer *</label>
+                            <label className="label">Customer Name *</label>
                             <select name="customerId" value={formData.customerId} onChange={handleHeaderChange} required className="input">
                                 <option value="">Select Customer</option>
                                 {selectData.customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
                             </select>
                         </div>
-                        <div><label className="label">Quotation Date *</label><input type="date" name="quotationDate" value={formData.quotationDate} onChange={handleHeaderChange} required className="input" /></div>
-                        <div><label className="label">Expiry Date</label><input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleHeaderChange} className="input" /></div>
+                        <div><label className="label">Sales Order Date *</label><input type="date" name="salesOrderDate" value={formData.salesOrderDate} onChange={handleHeaderChange} required className="input" /></div>
                         <div><label className="label">Reference</label><input type="text" name="reference" value={formData.reference} onChange={handleHeaderChange} className="input" /></div>
+                        <div><label className="label">Customer PO No.</label><input type="text" name="customerPoNo" value={formData.customerPoNo} onChange={handleHeaderChange} className="input" /></div>
+                        <div><label className="label">Customer PO Date</label><input type="date" name="customerPoDate" value={formData.customerPoDate} onChange={handleHeaderChange} className="input" /></div>
                         <div>
                             <label className="label">Salesperson</label>
                             <select name="salespersonId" value={formData.salespersonId} onChange={handleHeaderChange} className="input">
                                 <option value="">Select Salesperson</option>
-                                {selectData.employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
+                                {selectData.employees.map(e => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.firstName} {e.lastName}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>
-                            <label className="label">Status</label>
-                            <select name="status" value={formData.status} onChange={handleHeaderChange} className="input">
-                                <option value="DRAFT">Draft</option>
-                                <option value="SENT">Sent</option>
-                                <option value="ACCEPTED">Accepted</option>
-                                <option value="REJECTED">Rejected</option>
+                            <label className="label">Sale Type</label>
+                            <select name="saleType" value={formData.saleType} onChange={handleHeaderChange} className="input">
+                                <option value="With Discount At Order Level">With Discount At Order Level</option>
+                                <option value="Without Discount">Without Discount</option>
                             </select>
                         </div>
                         <div>
-                            <label className="label">Quotation Type</label>
-                            <select name="quotationType" value={formData.quotationType} onChange={handleHeaderChange} className="input">
-                                <option value="WITHOUT_DISCOUNT">Without Discount</option>
-                                <option value="WITH_DISCOUNT">With Discount</option>
+                            <label className="label">Template</label>
+                            <select name="template" value={formData.template} onChange={handleHeaderChange} className="input">
+                                <option value="Standard">Standard</option>
                             </select>
                         </div>
                     </div>
 
                     {/* Items Table */}
                     <div className="p-4 border rounded-lg bg-white">
-                        <h3 className="font-semibold mb-4">Items</h3>
+                        <h3 className="font-semibold mb-4">Item & Description</h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
@@ -320,7 +363,14 @@ const QuotationForm = () => {
                                             </td>
                                             <td className="p-2"><input type="number" name="quantity" value={item.quantity} onChange={(e) => handleItemChange(index, e)} className="input text-sm" min="1" /></td>
                                             <td className="p-2"><input type="number" name="rate" value={item.rate} onChange={(e) => handleItemChange(index, e)} className="input text-sm" /></td>
-                                            <td className="p-2"><input type="number" name="taxRate" value={item.taxRate || 0} onChange={(e) => handleItemChange(index, e)} className="input text-sm" /></td>
+                                            <td className="p-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <input type="number" name="taxPercentage" value={item.taxPercentage || 0} onChange={(e) => handleItemChange(index, e)} className="input text-sm" disabled={item.isTaxExempt} />
+                                                    <label className="flex items-center gap-1 text-xs text-gray-500">
+                                                        <input type="checkbox" name="isTaxExempt" checked={item.isTaxExempt} onChange={(e) => handleItemChange(index, e)} /> Exempt
+                                                    </label>
+                                                </div>
+                                            </td>
                                             <td className="p-2 text-right font-medium">AED {((item.quantity || 0) * (item.rate || 0)).toFixed(2)}</td>
                                             <td className="p-2 text-center"><button type="button" onClick={() => removeItem(index)} className="p-1 text-red-500 hover:bg-red-100 rounded-full"><Trash2 size={16} /></button></td>
                                         </tr>
@@ -333,19 +383,21 @@ const QuotationForm = () => {
 
                     {/* Attachments */}
                     <div className="p-4 border rounded-lg bg-white">
-                        <h3 className="font-semibold mb-4">Attachments</h3>
+                        <h3 className="font-semibold mb-4">Attach File</h3>
                         <div className="flex items-center gap-4">
                             <input type="file" multiple onChange={handleFileChange} className="hidden" id="attachment-upload" />
                             <label htmlFor="attachment-upload" className="btn-secondary cursor-pointer flex items-center gap-2">
-                                <Paperclip size={16} /> Select Files
+                                <Paperclip size={16} /> Browse...
                             </label>
+                            <span className="text-sm text-gray-500">{attachmentFiles.length > 0 ? `${attachmentFiles.length} file(s) selected` : 'No file selected.'}</span>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1">You can upload a maximum of 5 files, 5MB each</p>
+
                         {(attachmentFiles.length > 0 || (isEditing && formData.attachments?.length > 0)) && (
                             <div className="mt-4 space-y-3">
                                 {isEditing && formData.attachments?.map((att, index) => (
                                     <div key={index} className="text-sm flex items-center justify-between p-2 bg-slate-100 rounded">
                                         <a href={getAttachmentUrl(att)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">{att.split('/').pop()}</a>
-                                        {/* Delete existing attachment logic would go here if needed */}
                                     </div>
                                 ))}
                                 {attachmentFiles.map((file, index) => (
@@ -361,21 +413,34 @@ const QuotationForm = () => {
                     {/* Totals and Notes */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <div><label className="label">Terms & Conditions</label><textarea name="termsAndConditions" value={formData.termsAndConditions} onChange={handleHeaderChange} rows="4" className="input"></textarea></div>
-                            <div><label className="label">Notes</label><textarea name="notes" value={formData.notes} onChange={handleHeaderChange} rows="3" className="input"></textarea></div>
+                            <div><label className="label">Terms & Conditions</label><textarea name="termsAndConditions" value={formData.termsAndConditions} onChange={handleHeaderChange} rows="4" className="input" placeholder="Mention your company's Terms and Conditions."></textarea></div>
+                            <div><label className="label">Notes</label><textarea name="notes" value={formData.notes} onChange={handleHeaderChange} rows="3" className="input" placeholder="Will be displayed on Sales Order"></textarea></div>
+                            <div className="flex items-center gap-2">
+                                <input type="checkbox" name="emailTo" checked={formData.emailTo} onChange={handleHeaderChange} id="emailTo" />
+                                <label htmlFor="emailTo" className="label mb-0">Email To</label>
+                            </div>
                         </div>
                         <div className="p-4 border rounded-lg bg-white space-y-2">
-                            <div className="flex justify-between items-center"><span className="text-sm text-gray-600">Sub Total:</span><span className="font-medium">AED {totals.subTotal.toFixed(2)}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-sm text-gray-600">Total Tax:</span><span className="font-medium">AED {totals.totalTax.toFixed(2)}</span></div>
-                            <div className="flex justify-between items-center border-t pt-2 mt-2">
-                                <label className="text-sm text-gray-600">Discount (%):</label>
-                                <input type="number" name="totalDiscountPercentage" value={formData.totalDiscountPercentage} onChange={handleHeaderChange} className="input text-sm w-32 text-right" />
-                            </div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-gray-600">Sub Total</span><span className="font-medium">AED {totals.subTotal.toFixed(2)}</span></div>
                             <div className="flex justify-between items-center">
-                                <label className="text-sm text-gray-600">Other Charges (%):</label>
-                                <input type="number" name="otherChargesPercentage" value={formData.otherChargesPercentage} onChange={handleHeaderChange} className="input text-sm w-32 text-right" />
+                                <label className="text-sm text-gray-600">Total Discount</label>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" name="totalDiscountPercentage" value={formData.totalDiscountPercentage} onChange={handleHeaderChange} className="input text-sm w-20 text-right" placeholder="%" />
+                                    <span className="text-sm">%</span>
+                                    <span className="font-medium w-24 text-right">{totals.discount.toFixed(2)}</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2"><span className="">Net Total:</span><span className="">AED {totals.netTotal.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-gray-600">Gross Total</span><span className="font-medium">AED {totals.grossTotal.toFixed(2)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-sm text-gray-600">Total Tax</span><span className="font-medium">AED {totals.totalTax.toFixed(2)}</span></div>
+                            <div className="flex justify-between items-center">
+                                <label className="text-sm text-gray-600">Other Charges</label>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" name="otherChargesPercentage" value={formData.otherChargesPercentage} onChange={handleHeaderChange} className="input text-sm w-20 text-right" placeholder="%" />
+                                    <span className="text-sm">%</span>
+                                    <span className="font-medium w-24 text-right">{totals.charges.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2"><span className="">Net Total</span><span className="">AED {totals.netTotal.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                         </div>
                     </div>
                 </form>
@@ -384,4 +449,4 @@ const QuotationForm = () => {
     );
 };
 
-export default QuotationForm;
+export default OrderForm;

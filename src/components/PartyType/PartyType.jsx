@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Loader2, Search, X, Building, User, Mail, Phone, ChevronLeft, ChevronRight, HelpCircle, Download, LayoutGrid, List, Eye, MapPin, Hash, Briefcase, Banknote, Users, FileText, ChevronDown, Landmark, CreditCard, Truck, CircleDollarSign, Code, Percent, Share2, Globe, CalendarDays, BookUser, Info, MessageSquare, Link as LinkIcon, TrendingUp, UserCheck, ShieldCheck, Upload, FileSpreadsheet, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Edit, Trash2, Loader2, Search, X, Building, User, Mail, Phone, ChevronLeft, ChevronRight, HelpCircle, Download, LayoutGrid, List, Eye, MapPin, Hash, Briefcase, Banknote, Users as UsersIcon, FileText, ChevronDown, Landmark, CreditCard, Truck, CircleDollarSign, Code, Percent, Share2, Globe, CalendarDays, BookUser, Info, MessageSquare, Link as LinkIcon, TrendingUp, UserCheck, ShieldCheck, Upload, FileSpreadsheet, ArrowLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const INITIAL_PARTY_STATE = {
@@ -30,7 +30,7 @@ const PartyCard = ({ party, onEdit, onDelete, onView }) => (
             <button onClick={() => onView(party)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <Eye className="h-4 w-4" />
             </button>
-            <button onClick={() => onEdit(party)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onClick={() => onEdit(party.id)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <Edit className="h-4 w-4" />
             </button>
             <button onClick={() => onDelete(party.id)} className="p-2 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500">
@@ -128,7 +128,7 @@ const PartyViewModal = ({ party, onClose, onEdit, onDelete, isLoadingDetails }) 
                             <DetailItem icon={<Phone className="w-4 h-4" />} label="Contact Phone" value={party.contactPhone} />
                             <DetailItem icon={<Phone className="w-4 h-4" />} label="Mobile" value={party.mobile} />
                             <DetailItem icon={<Briefcase className="w-4 h-4" />} label="Designation" value={party.designation} />
-                            <DetailItem icon={<Users className="w-4 h-4" />} label="Department" value={party.department} />
+                            <DetailItem icon={<UsersIcon className="w-4 h-4" />} label="Department" value={party.department} />
                             <DetailItem icon={<Hash className="w-4 h-4" />} label="Customer Code" value={party.customerCode} />
                             <DetailItem icon={<Hash className="w-4 h-4" />} label="Vendor/Customer Code" value={party.vendorCustomerCode} />
                             <DetailItem icon={<Globe className="w-4 h-4" />} label="Website" value={party.website} />
@@ -197,7 +197,7 @@ const PartyViewModal = ({ party, onClose, onEdit, onDelete, isLoadingDetails }) 
                                         <DetailItem icon={<Hash className="w-4 h-4" />} label="Account Number" value={bank.accountNumber} />
                                         <DetailItem icon={<Code className="w-4 h-4" />} label="IFSC Code" value={bank.ifsCode} />
                                         <DetailItem icon={<Code className="w-4 h-4" />} label="IBAN Code" value={bank.ibanCode} />
-                                        <DetailItem icon={<Hash className="w-4 h-4" />} label="Corporate ID" value={bank.corporateId} />
+                                        <DetailItem icon={<Hash className="w-4 h-4" />} label="Corporate ID" value={bank.corporateId} /> 
                                         <DetailItem icon={<MapPin className="w-4 h-4" />} label="Branch" value={bank.locationBranch} />
                                         <DetailItem icon={<Mail className="w-4 h-4" />} label="Beneficiary Email" value={bank.beneficiaryMailId} />
                                         <div className="sm:col-span-2 lg:col-span-4"><DetailItem icon={<MapPin className="w-4 h-4" />} label="Branch Address" value={bank.branchAddress} /></div>
@@ -219,7 +219,7 @@ const PartyViewModal = ({ party, onClose, onEdit, onDelete, isLoadingDetails }) 
                                         <DetailItem icon={<Phone className="w-4 h-4" />} label="Work Phone" value={person.workPhone} />
                                         <DetailItem icon={<Phone className="w-4 h-4" />} label="Mobile" value={person.mobile} />
                                         <DetailItem icon={<Briefcase className="w-4 h-4" />} label="Designation" value={person.designation} />
-                                        <DetailItem icon={<Users className="w-4 h-4" />} label="Department" value={person.department} />
+                                        <DetailItem icon={<UsersIcon className="w-4 h-4" />} label="Department" value={person.department} />
                                     </div>
                                 ))}
                             </div>
@@ -272,6 +272,7 @@ const PartyType = () => {
     const [totalPages, setTotalPages] = useState(0);
 
     const fileInputRef = useRef(null);
+    const location = useLocation();
 
 
     const navigate = useNavigate();
@@ -296,9 +297,7 @@ const PartyType = () => {
             if (partyTypeFilter !== 'ALL') {
                 params.append('type', partyTypeFilter);
             }
-            if (searchTerm) {
-                params.append('search', searchTerm);
-            }
+            // The provided backend controller doesn't support a search parameter.
 
             const response = await axios.get(`${API_URL}/parties?${params.toString()}`, getAuthHeaders());
             setParties(response.data.content || []);
@@ -321,10 +320,6 @@ const PartyType = () => {
         setCurrentPage(0);
     }, [partyTypeFilter, searchTerm]);
 
-    const handleEdit = (party) => {
-        navigate(`/company-settings/party-type/edit/${party.id}`);
-    };
-    
     const handleView = async (party) => {
         try {
             // Show modal immediately with basic data
@@ -434,7 +429,7 @@ const PartyType = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50">
+        <div className="flex flex-col h-full bg-slate-50 relative">
             <header className="bg-white shadow-sm p-4 border-b border-slate-200">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -532,7 +527,7 @@ const PartyType = () => {
                     viewMode === 'card' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {parties.map(party => (
-                                <PartyCard key={party.id} party={party} onEdit={handleEdit} onDelete={handleDelete} onView={handleView} />
+                                <PartyCard key={party.id} party={party} onEdit={() => navigate(`/company-settings/party-type/edit/${party.id}`)} onDelete={handleDelete} onView={handleView} />
                             ))}
                         </div>
                     ) : (
@@ -568,7 +563,7 @@ const PartyType = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button onClick={() => handleView(party)} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"><Eye className="h-4 w-4 text-gray-600 dark:text-gray-300" /></button>
-                                                <button onClick={() => handleEdit(party)} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"><Edit className="h-4 w-4 text-gray-600 dark:text-gray-300" /></button>
+                                                <button onClick={() => navigate(`/company-settings/party-type/edit/${party.id}`)} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"><Edit className="h-4 w-4 text-gray-600 dark:text-gray-300" /></button>
                                                 <button onClick={() => handleDelete(party.id)} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"><Trash2 className="h-4 w-4 text-red-500" /></button>
                                             </td>
                                         </tr>
@@ -670,7 +665,7 @@ const PartyType = () => {
                 <PartyViewModal
                     party={viewingParty}
                     onClose={() => setViewingParty(null)}
-                    onEdit={handleEdit}
+                    onEdit={(party) => navigate(`/company-settings/party-type/edit/${party.id}`)}
                     onDelete={handleDelete}
                     isLoadingDetails={isLoadingDetails}
                 />

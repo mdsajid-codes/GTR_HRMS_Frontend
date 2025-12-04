@@ -9,7 +9,7 @@ const allSettingsSections = [
     { name: 'Account', path: '/account-settings', icon: Landmark, color: 'text-cyan-500' },
     { name: 'POS', path: '/pos-settings', icon: Store, module: 'POS', color: 'text-orange-500' },
     { name: 'CRM', path: '/crm-settings', icon: Users, module: 'CRM', color: 'text-green-500' },
-    { name: 'PartyType', path: '/party-type-settings', icon: BookUser, color: 'text-indigo-500' },
+    { name: 'PartyType', path: '/company-settings/party-type', icon: BookUser, color: 'text-indigo-500' },
     { name: 'Production', path: '/production-settings', icon: Factory, module: 'PRODUCTION', color: 'text-purple-500' },
 ];
 
