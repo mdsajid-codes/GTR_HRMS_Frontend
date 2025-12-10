@@ -32,6 +32,18 @@ import OrderForm from './sales/pages/OrderForm.jsx';
 import QuotationForm from './sales/pages/QuotationForm.jsx';
 import Quotation from './sales/pages/Quotation.jsx'
 import ViewQuotation from './sales/pages/ViewQuotation.jsx';
+import ViewSales from './sales/pages/ViewSales.jsx';
+import RentalQuotation from './sales/pages/RentalQuotation.jsx';
+import RentalQuotationForm from './sales/pages/RentalQuotationForm.jsx';
+import RentalSalesOrder from './sales/pages/RentalSalesOrder.jsx';
+import RentalSalesOrderForm from './sales/pages/RentalSalesOrderForm.jsx';
+import RentalQuotationView from './sales/pages/RentalQuotationView.jsx';
+import ProformaInvoice from './sales/pages/ProformaInvoice.jsx';
+import ProformaInvoiceForm from './sales/pages/ProformaInvoiceForm.jsx';
+import ProformaInvoiceView from './sales/pages/ProformaInvoiceView.jsx';
+import Invoice from './sales/pages/Invoice.jsx';
+import InvoiceForm from './sales/pages/InvoiceForm.jsx';
+import InvoiceView from './sales/pages/InvoiceView.jsx';
 import SalesSetting from './sales/pages/SalesSetting.jsx'
 import PartyType from './components/PartyType/PartyType.jsx'
 import PartyForm from './components/PartyType/PartyForm.jsx'
@@ -133,10 +145,34 @@ function App() {
               <Route path='edit/:id' element={<QuotationForm />} />
               <Route path=':id' element={<ViewQuotation />} />
             </Route>
+            <Route path='invoices'>
+              <Route index element={<Invoice />} />
+              <Route path='new' element={<InvoiceForm />} />
+              <Route path='edit/:id' element={<InvoiceForm />} />
+              <Route path=':id' element={<InvoiceView />} />
+            </Route>
+            <Route path="rental-quotations">
+              <Route index element={<RentalQuotation />} />
+              <Route path="new" element={<RentalQuotationForm />} />
+              <Route path="edit/:id" element={<RentalQuotationForm />} />
+              <Route path=":id" element={<RentalQuotationView />} />
+            </Route>
+            <Route path="rental-sales-orders">
+              <Route index element={<RentalSalesOrder />} />
+              <Route path="new" element={<RentalSalesOrderForm />} />
+              <Route path="edit/:id" element={<RentalSalesOrderForm />} />
+            </Route>
             <Route path="orders">
               <Route index element={<Orders />} />
               <Route path="new" element={<OrderForm />} />
               <Route path="edit/:id" element={<OrderForm />} />
+              <Route path=":id" element={<ViewSales />} />
+            </Route>
+            <Route path="proforma-invoices">
+              <Route index element={<ProformaInvoice />} />
+              <Route path="new" element={<ProformaInvoiceForm />} />
+              <Route path="edit/:id" element={<ProformaInvoiceForm />} />
+              <Route path=":id" element={<ProformaInvoiceView />} />
             </Route>
             <Route path='settings' element={<SalesSetting />} />
           </Route>

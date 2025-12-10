@@ -4,11 +4,14 @@ import { LayoutDashboard, ShoppingCart, Users, FileText, Settings, Menu, X, Arro
 import { AnimatePresence, motion } from 'framer-motion';
 
 const salesNavLinks = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/sales-dashboard' },
-    { name: 'Quotations', icon: ClipboardList, href: '/sales/quotations' },
-    { name: 'Orders', icon: ShoppingCart, href: '/sales/orders' },
-    { name: 'Invoices', icon: FileText, href: '/sales/invoices' },
-    { name: 'Settings', icon: Settings, href: '/sales/settings' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/sales-dashboard', color: 'text-sky-500' },
+    { name: 'Quotations', icon: ClipboardList, href: '/sales/quotations', color: 'text-yellow-500' },
+    { name: 'Rental Quotations', icon: Package, href: '/sales/rental-quotations', color: 'text-orange-500' },
+    { name: 'Rental Sales Order', icon: ClipboardList, href: '/sales/rental-sales-orders', color: 'text-teal-500' },
+    { name: 'Orders', icon: ShoppingCart, href: '/sales/orders', color: 'text-blue-500' },
+    { name: 'Proforma Invoice', icon: FileText, href: '/sales/proforma-invoices', color: 'text-indigo-500' },
+    { name: 'Invoices', icon: FileText, href: '/sales/invoices', color: 'text-purple-500' },
+    { name: 'Settings', icon: Settings, href: '/sales/settings', color: 'text-gray-500' },
 ];
 
 const SidebarContent = ({ onLinkClick }) => {
@@ -34,7 +37,7 @@ const SidebarContent = ({ onLinkClick }) => {
                     >
                         {({ isActive }) => (
                             <>
-                                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-foreground-muted group-hover:text-foreground'}`} />
+                                <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 ${isActive ? 'text-primary-foreground' : item.color}`} />
                                 <span>{item.name}</span>
                             </>
                         )}

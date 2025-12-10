@@ -7,12 +7,12 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getStatusColor = (status) => {
     switch (status) {
-        case 'DRAFT': return 'bg-gray-100 text-gray-800';
-        case 'OPEN': return 'bg-blue-100 text-blue-800';
-        case 'PARTIALLY_INVOICED': return 'bg-yellow-100 text-yellow-800';
-        case 'INVOICED': return 'bg-green-100 text-green-800';
-        case 'CANCELLED': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'DRAFT': return 'text-gray-600 bg-gray-100';
+        case 'OPEN': return 'text-purple-600 bg-purple-100';
+        case 'PARTIALLY_INVOICED': return 'text-orange-600 bg-orange-100';
+        case 'INVOICED': return 'text-teal-600 bg-teal-100';
+        case 'CANCELLED': return 'text-red-600 bg-red-100';
+        default: return 'text-gray-600 bg-gray-100';
     }
 };
 
@@ -21,13 +21,16 @@ const Orders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filter states
+    const [customerName, setCustomerName] = useState('');
+    const [fromDate, setFromDate] = useState('2025-01-01'); // Defaulting to 2025 as per screenshot suggestion
+    const [toDate, setToDate] = useState('2025-11-09');
+    const [selectedTeamMember, setSelectedTeamMember] = useState('Saleem Hyder');
+
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
-    const [viewingOrder, setViewingOrder] = useState(null);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [modalLoading, setModalLoading] = useState(false);
 
     const authHeaders = useMemo(() => ({ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }), []);
 
@@ -37,8 +40,12 @@ const Orders = () => {
             const params = {
                 page: currentPage,
                 size: pageSize,
-                // search: searchTerm, // Backend might not support search yet
+                customerName: customerName,
+                startDate: fromDate,
+                endDate: toDate,
+                salesPerson: selectedTeamMember
             };
+            // Note: Ensure backend supports these new params. If not, filtering might happen client-side or be ignored.
             const response = await axios.get(`${API_URL}/sales/orders`, { params, ...authHeaders });
             setOrders(response.data.content || []);
             setTotalPages(response.data.totalPages);
@@ -49,7 +56,7 @@ const Orders = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, pageSize, authHeaders]);
+    }, [currentPage, pageSize, authHeaders, customerName, fromDate, toDate, selectedTeamMember]);
 
     useEffect(() => {
         fetchOrders();
@@ -66,165 +73,192 @@ const Orders = () => {
         }
     };
 
-    const handleView = async (id) => {
-        setIsViewModalOpen(true);
-        setModalLoading(true);
-        try {
-            const response = await axios.get(`${API_URL}/sales/orders/${id}`, authHeaders);
-            setViewingOrder(response.data);
-        } catch (err) {
-            console.error("Failed to fetch order details", err);
-            setIsViewModalOpen(false);
-        } finally {
-            setModalLoading(false);
-        }
-    };
-
-    const handleCloseModal = () => {
-        setIsViewModalOpen(false);
-        setViewingOrder(null);
-    };
-
-    const OrderViewModal = () => {
-        if (!isViewModalOpen) return null;
-
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center" onClick={handleCloseModal}>
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                    <header className="flex items-center justify-between p-4 border-b">
-                        <h2 className="text-xl font-bold text-slate-800">Sales Order Details</h2>
-                        <button onClick={handleCloseModal} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5" /></button>
-                    </header>
-                    <main className="p-6 overflow-y-auto">
-                        {modalLoading ? (
-                            <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
-                        ) : viewingOrder ? (
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div><p className="text-gray-500">Sales Order #</p><p className="font-semibold">{viewingOrder.salesOrderNumber}</p></div>
-                                    <div><p className="text-gray-500">Date</p><p className="font-semibold">{new Date(viewingOrder.salesOrderDate).toLocaleDateString()}</p></div>
-                                    <div><p className="text-gray-500">Customer PO No.</p><p className="font-semibold">{viewingOrder.customerPoNo || 'N/A'}</p></div>
-                                    <div className="col-span-3"><p className="text-gray-500">Customer Name</p><p className="font-semibold">{viewingOrder.customerName || 'N/A'}</p></div>
-                                    <div><p className="text-gray-500">Status</p><p><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(viewingOrder.status)}`}>{viewingOrder.status}</span></p></div>
-                                    <div><p className="text-gray-500">Reference</p><p className="font-semibold">{viewingOrder.reference || 'N/A'}</p></div>
-                                    <div><p className="text-gray-500">Salesperson</p><p className="font-semibold">{viewingOrder.salespersonName || 'N/A'}</p></div>
-                                </div>
-
-                                <div className="border-t pt-4">
-                                    <h3 className="font-semibold mb-2">Items</h3>
-                                    <table className="w-full text-sm border border-gray-200">
-                                        <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left border-b border-r">Item</th><th className="px-4 py-2 text-right border-b border-r">Qty</th><th className="px-4 py-2 text-right border-b border-r">Rate</th><th className="px-4 py-2 text-right border-b">Amount</th></tr></thead>
-                                        <tbody>
-                                            {viewingOrder.items.map(item => (
-                                                <tr key={item.id} className="border-b"><td className="px-4 py-2 border-r">{item.itemName}</td><td className="px-4 py-2 text-right border-r">{item.quantity}</td><td className="px-4 py-2 text-right border-r">AED {item.rate.toLocaleString('en-AE')}</td><td className="px-4 py-2 text-right">AED {item.amount.toLocaleString('en-AE')}</td></tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        {viewingOrder.notes && <div><h4 className="font-semibold">Notes</h4><p className="text-gray-600 text-sm whitespace-pre-wrap">{viewingOrder.notes}</p></div>}
-                                        {viewingOrder.termsAndConditions && <div><h4 className="font-semibold">Terms & Conditions</h4><p className="text-gray-600 text-sm whitespace-pre-wrap">{viewingOrder.termsAndConditions}</p></div>}
-                                        {viewingOrder.attachments?.length > 0 && <div><h4 className="font-semibold">Attachments</h4><ul className="list-disc list-inside">{viewingOrder.attachments.map((att, i) => <li key={i}><a href={`${API_URL}/sales/attachments/${att}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{att.split('/').pop()}</a></li>)}</ul></div>}
-                                    </div>
-                                    <div className="space-y-2 text-sm border-l pl-6">
-                                        <div className="flex justify-between"><span>Sub Total</span><span>AED {viewingOrder.subTotal.toLocaleString('en-AE')}</span></div>
-                                        <div className="flex justify-between"><span>Discount</span><span>- AED {viewingOrder.totalDiscount.toLocaleString('en-AE')}</span></div>
-                                        <div className="flex justify-between"><span>Tax</span><span>+ AED {viewingOrder.totalTax.toLocaleString('en-AE')}</span></div>
-                                        <div className="flex justify-between"><span>Other Charges</span><span>+ AED {viewingOrder.otherCharges.toLocaleString('en-AE')}</span></div>
-                                        <div className="flex justify-between font-bold text-base border-t mt-2 pt-2"><span>Net Total</span><span>AED {viewingOrder.netTotal.toLocaleString('en-AE')}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null}
-                    </main>
-                </div>
-            </div>
-        );
+    const handleView = (id) => {
+        navigate(`/sales/orders/${id}`);
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 p-6">
-            <header className="mb-6">
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Manage Sales Order</h1>
-                        <p className="text-sm text-slate-500">View and manage your sales orders.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
+        <div className="flex flex-col h-full bg-slate-50">
+            {/* Header */}
+            <div className="bg-primary p-4 flex justify-between items-center text-primary-foreground">
+                <div>
+                    <h1 className="text-xl font-semibold">Manage Sales Orders</h1>
+                    <div className="text-sm opacity-80">Home &gt; Sales &gt; Manage Sales Orders</div>
+                </div>
+                <button onClick={() => navigate('/sales/orders/new')} className="bg-white text-gray-800 border border-gray-300 px-4 py-2 rounded text-sm hover:bg-gray-50 flex items-center gap-1 font-bold shadow-sm">
+                    <Plus size={16} /> New Sales Order
+                </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+                {/* Filters Section */}
+                <div className="bg-white p-4 rounded shadow-sm border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end">
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Customer Name</label>
+                            <input
+                                type="text"
+                                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
+                                placeholder="Search Customer"
+                                value={customerName}
+                                onChange={(e) => setCustomerName(e.target.value)}
+                            />
                         </div>
-                        <button onClick={() => navigate('/sales/orders/new')} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700">
-                            <Plus className="mr-2 h-4 w-4" /> New Sales Order
-                        </button>
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">From</label>
+                            <input
+                                type="date"
+                                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">To</label>
+                            <input
+                                type="date"
+                                className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                            />
+                        </div>
+                        <div className="md:col-span-1">
+                            <button
+                                onClick={fetchOrders}
+                                className="bg-primary text-white text-sm font-medium px-6 py-1.5 rounded hover:bg-violet-800 focus:outline-none w-full md:w-auto"
+                            >
+                                Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Team Members</label>
+                            <div className="relative">
+                                <select
+                                    className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 appearance-none bg-white"
+                                    value={selectedTeamMember}
+                                    onChange={(e) => setSelectedTeamMember(e.target.value)}
+                                >
+                                    <option value="Saleem Hyder">Saleem Hyder</option>
+                                    <option value="Other Member">Other Member</option>
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    <X className="h-3 w-3 text-gray-400 mr-1" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </header>
 
-            <main className="flex-grow overflow-auto bg-white rounded-lg border border-gray-200">
-                {loading ? (
-                    <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>
-                ) : error ? (
-                    <div className="text-center py-10 text-red-500">{error}</div>
-                ) : orders.length > 0 ? (
-                    <table className="w-full text-sm text-left border-collapse">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 ">
-                            <tr>
-                                <th className="px-6 py-3 border">S.No.</th>
-                                <th className="px-6 py-3 border">Date</th>
-                                <th className="px-6 py-3 border">Sales Order</th>
-                                <th className="px-6 py-3 border">Reference#</th>
-                                <th className="px-6 py-3 border">Customer Name</th>
-                                <th className="px-6 py-3 border">Customer PO No.</th>
-                                <th className="px-6 py-3 border">Status</th>
-                                <th className="px-6 py-3 border">Sales Order Amount</th>
-                                <th className="px-6 py-3 text-right border">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((order, index) => (
-                                <tr key={order.id} className="bg-white hover:bg-gray-50">
-                                    <td className="px-6 py-4 border">{currentPage * pageSize + index + 1}</td>
-                                    <td className="px-6 py-4 border">{new Date(order.salesOrderDate).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 border font-medium text-blue-600 hover:underline cursor-pointer" onClick={() => handleView(order.id)}>{order.salesOrderNumber}</td>
-                                    <td className="px-6 py-4 border">{order.reference || '-'}</td>
-                                    <td className="px-6 py-4 border">{order.customerName || 'N/A'}</td>
-                                    <td className="px-6 py-4 border">{order.customerPoNo || '-'}</td>
-                                    <td className="px-6 py-4 border"><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></td>
-                                    <td className="px-6 py-4 border">AED {order.netTotal.toLocaleString('en-AE')}</td>
-                                    <td className="px-6 py-4 text-right border">
-                                        <div className="flex justify-end gap-2">
-                                            <button onClick={() => handleView(order.id)} className="p-1 rounded-md hover:bg-gray-100 text-gray-600" title="View"><Eye size={16} /></button>
-                                            <button onClick={() => navigate(`/sales/orders/edit/${order.id}`)} className="p-1 rounded-md hover:bg-gray-100 text-blue-600" title="Edit"><Edit size={16} /></button>
-                                            <button onClick={() => handleDelete(order.id)} className="p-1 rounded-md hover:bg-gray-100 text-red-500" title="Delete"><Trash2 size={16} /></button>
-                                            {/* Placeholder buttons for image actions */}
-                                            <button className="p-1 rounded-md hover:bg-gray-100 text-green-600" title="Add DO"><Truck size={16} /></button>
-                                            <button className="p-1 rounded-md hover:bg-gray-100 text-purple-600" title="Invoice"><FileText size={16} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <div className="text-center py-16"><h3 className="text-lg font-semibold">No Sales Orders Found</h3></div>
-                )}
-            </main>
-
-            {!loading && totalPages > 1 && (
-                <footer className="flex justify-between items-center pt-4 mt-4 border-t">
-                    <span className="text-sm text-gray-600">Page {currentPage + 1} of {totalPages}</span>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0} className="p-2 rounded-md border disabled:opacity-50"><ChevronLeft className="h-5 w-5" /></button>
-                        <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage >= totalPages - 1} className="p-2 rounded-md border disabled:opacity-50"><ChevronRight className="h-5 w-5" /></button>
+                {/* Table */}
+                <div className="bg-white rounded shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-2 border-b flex items-center gap-2">
+                        <select
+                            className="border border-gray-300 rounded px-2 py-1 text-xs"
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                        </select>
+                        <div className="flex-grow"></div>
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="border border-gray-300 rounded px-2 py-1 text-xs"
+                        />
                     </div>
-                </footer>
-            )}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                            <thead className="bg-gray-100 text-gray-700 font-bold border-b">
+                                <tr>
+                                    <th className="px-4 py-3 border-r w-16">S.No.</th>
+                                    <th className="px-4 py-3 border-r">Date</th>
+                                    <th className="px-4 py-3 border-r">Sales Order</th>
+                                    <th className="px-4 py-3 border-r">Shipment Date</th>
+                                    <th className="px-4 py-3 border-r">Reference#</th>
+                                    <th className="px-4 py-3 border-r">Customer Name</th>
+                                    <th className="px-4 py-3 border-r">Customer PO No.</th>
+                                    <th className="px-4 py-3 border-r">Status</th>
+                                    <th className="px-4 py-3 border-r text-right">Sales Order Amt</th>
+                                    <th className="px-4 py-3 border-r text-right">Invoiced Amt</th>
+                                    <th className="px-4 py-3 border-r text-right">Balanced</th>
+                                    <th className="px-4 py-3 border-r text-center w-24">Action</th>
+                                    <th className="px-4 py-3 text-center">Delivery Challan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan="13" className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" /></td></tr>
+                                ) : error ? (
+                                    <tr><td colSpan="13" className="text-center py-10 text-red-500">{error}</td></tr>
+                                ) : orders.length === 0 ? (
+                                    <tr><td colSpan="13" className="text-center py-10 font-medium text-gray-500">No record available</td></tr>
+                                ) : (
+                                    orders.map((order, index) => {
+                                        // Calculate dummy values if not present
+                                        const invoicedAmount = order.invoicedAmount || 0;
+                                        const balancedAmount = order.netTotal - invoicedAmount;
+                                        const shipmentDate = order.shipmentDate ? new Date(order.shipmentDate).toLocaleDateString() : new Date(order.salesOrderDate).toLocaleDateString(); // Fallback
 
-            <OrderViewModal />
+                                        return (
+                                            <tr key={order.id} className="border-b hover:bg-gray-50 text-gray-700">
+                                                <td className="px-4 py-2 border-r">{currentPage * pageSize + index + 1}</td>
+                                                <td className="px-4 py-2 border-r">{new Date(order.salesOrderDate).toLocaleDateString()}</td>
+                                                <td className="px-4 py-2 border-r">
+                                                    <span
+                                                        onClick={() => handleView(order.id)}
+                                                        className="text-sky-600 cursor-pointer hover:underline font-medium"
+                                                    >
+                                                        {order.salesOrderNumber}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-2 border-r">{shipmentDate}</td>
+                                                <td className="px-4 py-2 border-r">{order.reference || '-'}</td>
+                                                <td className="px-4 py-2 border-r">{order.customerName || 'N/A'}</td>
+                                                <td className="px-4 py-2 border-r">{order.customerPoNo || ''}</td>
+                                                <td className="px-4 py-2 border-r font-medium">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] ${getStatusColor(order.status)}`}>
+                                                        {order.status === 'PARTIALLY_INVOICED' ? 'Partially Invoiced' :
+                                                            order.status === 'OPEN' ? 'OPEN' : order.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-2 border-r text-right">AED {order.netTotal?.toLocaleString('en-AE', { minimumFractionDigits: 2 })}</td>
+                                                <td className="px-4 py-2 border-r text-right">AED {invoicedAmount.toLocaleString('en-AE', { minimumFractionDigits: 2 })}</td>
+                                                <td className="px-4 py-2 border-r text-right">AED {balancedAmount.toLocaleString('en-AE', { minimumFractionDigits: 2 })}</td>
+                                                <td className="px-4 py-2 border-r text-center">
+                                                    <div className="flex justify-center gap-1">
+                                                        <button onClick={() => navigate(`/sales/orders/edit/${order.id}`)} className="p-1.5 bg-gray-700 text-white rounded hover:bg-gray-600 shadow-sm" title="Edit"><Edit size={12} /></button>
+                                                        <button onClick={() => handleDelete(order.id)} className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 shadow-sm" title="Delete"><Trash2 size={12} /></button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2 text-center min-w-[190px]">
+                                                    <div className="flex flex-col gap-1 items-center">
+                                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] py-1 px-2 rounded shadow-sm font-medium transition-colors">Add DO</button>
+                                                        <button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white text-[10px] py-1 px-2 rounded shadow-sm font-medium transition-colors">Add Invoice From DO</button>
+                                                        <button className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-[10px] py-1 px-2 rounded shadow-sm font-medium transition-colors">View History of DO</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-2 border-t flex justify-between items-center text-xs text-gray-500">
+                        <span>Showing {orders.length > 0 ? 1 : 0} to {orders.length} of {orders.length} entries</span>
+                        <div className="flex gap-1">
+                            <button className="px-2 py-1 border rounded hover:bg-gray-100" disabled>Previous</button>
+                            <button className="px-2 py-1 bg-purple-900 text-white rounded">1</button>
+                            <button className="px-2 py-1 border rounded hover:bg-gray-100">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

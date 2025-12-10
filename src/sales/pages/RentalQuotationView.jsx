@@ -5,7 +5,7 @@ import { Edit, FileText, Printer, Mail, Paperclip, ChevronDown, ArrowLeft, Loade
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-const ViewQuotation = () => {
+const RentalQuotationView = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [quotation, setQuotation] = useState(null);
@@ -26,7 +26,7 @@ const ViewQuotation = () => {
                 const headers = { Authorization: `Bearer ${token}` };
 
                 const [quotationRes, companyRes] = await Promise.all([
-                    axios.get(`${API_URL}/sales/quotations/${id}`, { headers }),
+                    axios.get(`${API_URL}/sales/rental-quotations/${id}`, { headers }),
                     axios.get(`${API_URL}/company-info`, { headers }).catch(() => ({ data: null }))
                 ]);
 
@@ -73,20 +73,19 @@ const ViewQuotation = () => {
 
     const numberToWords = (amount) => {
         // Placeholder for number to words conversion
-        // In a real app, use a library like 'to-words'
         return `${amount} Dirhams`;
     };
 
     const handleDownloadPdf = async () => {
         try {
-            const response = await axios.get(`${API_URL}/sales/quotations/${id}/pdf`, {
+            const response = await axios.get(`${API_URL}/sales/rental-quotations/${id}/pdf`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `Quotation_${quotation.quotationNumber}.pdf`);
+            link.setAttribute('download', `Rental_Quotation_${quotation.quotationNumber}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -120,20 +119,20 @@ const ViewQuotation = () => {
                 <div className="px-6 py-2 text-xs text-gray-500 flex items-center gap-1">
                     <span className="cursor-pointer hover:text-blue-600" onClick={() => navigate('/')}>Home</span> &gt;
                     <span className="cursor-pointer hover:text-blue-600" onClick={() => navigate('/sales')}>Sales</span> &gt;
-                    <span className="font-medium text-gray-700">View Quotation</span>
+                    <span className="font-medium text-gray-700">View Rental Quotation</span>
                 </div>
-                <div className="px-6 py-3 bg-[#0099cc] text-white flex justify-between items-center">
-                    <h1 className="text-xl font-semibold">View Quotation</h1>
+                <div className="px-6 py-3 bg-primary text-white flex justify-between items-center">
+                    <h1 className="text-xl font-semibold">View Rental Quotation</h1>
                     <div className="flex gap-2">
-                        <button onClick={() => navigate('/sales/quotations')} className="px-3 py-1 bg-[#0088b5] hover:bg-[#00779e] text-sm rounded transition-colors">All Quotation</button>
-                        <button onClick={() => navigate('/sales/quotations/new')} className="px-3 py-1 bg-[#0088b5] hover:bg-[#00779e] text-sm rounded transition-colors">+ New Quotation</button>
+                        <button onClick={() => navigate('/sales/rental-quotations')} className="px-3 py-1 bg-primary hover:bg-violet-800 text-sm rounded transition-colors">All Quotations</button>
+                        <button onClick={() => navigate('/sales/rental-quotations/new')} className="px-3 py-1 bg-primary hover:bg-violet-800 text-sm rounded transition-colors">+ New Quotation</button>
                     </div>
                 </div>
             </div>
 
             {/* Toolbar */}
             <div className="px-6 py-3 flex flex-wrap gap-2 items-center bg-white border-b print:hidden">
-                <button onClick={() => navigate(`/sales/quotations/edit/${id}`)} className="p-2 bg-[#5bc0de] text-white rounded hover:bg-[#46b8da]" title="Edit"><Edit size={16} /></button>
+                <button onClick={() => navigate(`/sales/rental-quotations/edit/${id}`)} className="p-2 bg-[#5bc0de] text-white rounded hover:bg-[#46b8da]" title="Edit"><Edit size={16} /></button>
                 <button onClick={handleDownloadPdf} className="p-2 bg-[#d9534f] text-white rounded hover:bg-[#d43f3a]" title="PDF"><FileText size={16} /></button>
                 <button className="p-2 bg-[#5cb85c] text-white rounded hover:bg-[#4cae4c]" title="WhatsApp"><span className="font-bold text-xs">WA</span></button>
                 <button onClick={() => window.print()} className="p-2 bg-[#0275d8] text-white rounded hover:bg-[#025aa5]" title="Print"><Printer size={16} /></button>
@@ -142,26 +141,29 @@ const ViewQuotation = () => {
                 <button className="p-2 bg-[#aeb6bf] text-white rounded hover:bg-[#8e99a4]" title="Attachments"><Paperclip size={16} /></button>
 
                 <div className="relative" ref={convertMenuRef}>
-                    <button onClick={() => setShowConvertMenu(!showConvertMenu)} className="px-3 py-1.5 bg-[#333] text-white rounded text-sm hover:bg-[#222] flex items-center gap-1">
+                    <button onClick={() => setShowConvertMenu(!showConvertMenu)} className="px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-violet-800 flex items-center gap-1">
                         Convert <ChevronDown size={14} />
                     </button>
                     {showConvertMenu && (
-                        <div className="absolute top-full left-0 mt-1 w-40 bg-white border rounded shadow-lg z-10 text-sm">
-                            <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0099cc]" onClick={() => navigate(`/sales/orders/new?quotationId=${id}`)}>Convert to Sale</button>
-                            <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0099cc]">Convert to Invoice</button>
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-white border rounded shadow-lg z-10 text-sm">
+                            <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0099cc]" onClick={() => navigate(`/sales/rental-sales-orders/new?quotationId=${id}`)}>Convert to Rental Order</button>
+                            <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-[#0099cc]" onClick={() => alert('Convert to Rental Invoice feature coming soon')}>Convert to Rental Invoice</button>
                         </div>
                     )}
                 </div>
 
                 <div className="relative" ref={moreMenuRef}>
-                    <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="px-3 py-1.5 bg-[#333] text-white rounded text-sm hover:bg-[#222] flex items-center gap-1">
+                    <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-violet-800 flex items-center gap-1">
                         More <ChevronDown size={14} />
                     </button>
                     {showMoreMenu && (
                         <div className="absolute top-full left-0 mt-1 w-40 bg-white border rounded shadow-lg z-10 text-sm">
                             <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600" onClick={() => {
                                 if (window.confirm('Delete this quotation?')) {
-                                    // Delete logic
+                                    // Delete logic could simply be calling API and redirecting
+                                    axios.delete(`${API_URL}/sales/rental-quotations/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+                                        .then(() => navigate('/sales/rental-quotations'))
+                                        .catch(err => alert("Failed to delete"));
                                 }
                             }}>Delete</button>
                         </div>
@@ -172,16 +174,15 @@ const ViewQuotation = () => {
             {/* Status Bar */}
             <div className="px-6 py-2 bg-[#f9f9f9] border-b text-xs text-gray-500 flex flex-col gap-1 print:hidden">
                 <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-[#5cb85c] text-white rounded text-[10px] uppercase">+ View more</span>
-                    <span className="px-2 py-0.5 bg-[#d9534f] text-white rounded text-[10px] uppercase">- View less</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold text-white ${quotation.status === 'SENT' ? 'bg-blue-500' : quotation.status === 'ACCEPTED' ? 'bg-green-500' : 'bg-gray-400'}`}>{quotation.status}</span>
                 </div>
                 <div className="flex justify-between w-full max-w-3xl">
                     {quotation.updatedAt && (
-                        <span>{new Date(quotation.updatedAt).toLocaleString()}  Quotation Updated by {quotation.updatedBy || 'System'}</span>
+                        <span>{new Date(quotation.updatedAt).toLocaleString()}  Updated by {quotation.updatedBy || 'System'}</span>
                     )}
                 </div>
                 <div className="flex justify-between w-full max-w-3xl">
-                    <span>{quotation.createdAt ? new Date(quotation.createdAt).toLocaleString() : '-'}  Quotation Created by {quotation.createdBy || 'System'}</span>
+                    <span>{quotation.createdAt ? new Date(quotation.createdAt).toLocaleString() : '-'}  Created by {quotation.createdBy || 'System'}</span>
                 </div>
             </div>
 
@@ -207,7 +208,7 @@ const ViewQuotation = () => {
                             )}
                         </div>
                         <div className="text-right">
-                            <h2 className="text-2xl font-bold text-gray-800">Quotation</h2>
+                            <h2 className="text-2xl font-bold text-gray-800">Rental Quotation</h2>
                             <p className="text-xs font-semibold mt-1">TRN : {company?.pan || '104349488700003'}</p>
                         </div>
                     </div>
@@ -219,6 +220,7 @@ const ViewQuotation = () => {
                             <p className="font-semibold">{quotation.customerParty?.companyName || quotation.customerName}</p>
                             <p>{formatAddress(quotation.customerParty?.billingAddress)}</p>
                             <p className="font-semibold mt-1">TRN : {quotation.customerParty?.vatTrnNumber || 'N/A'}</p>
+                            {quotation.dearSir && <p className="mt-1">Attn: {quotation.dearSir}</p>}
                         </div>
                     </div>
 
@@ -229,27 +231,38 @@ const ViewQuotation = () => {
                                 <th className="py-2 text-center w-12">S.N</th>
                                 <th className="py-2 text-left">Item & Description</th>
                                 <th className="py-2 text-center w-24">Qty (Unit)</th>
-                                <th className="py-2 text-right w-24">Rate</th>
+                                <th className="py-2 text-right w-24">Rent/Unit</th>
+                                <th className="py-2 text-center w-20">Days</th>
                                 <th className="py-2 text-center w-20">VAT (%)</th>
                                 <th className="py-2 text-right w-24">VAT Amount</th>
                                 <th className="py-2 text-right w-24">Amount</th>
                             </tr>
                         </thead>
                         <tbody className="text-xs">
-                            {quotation.items.map((item, index) => (
-                                <tr key={item.id} className="border-b border-gray-200">
-                                    <td className="py-3 text-center">{index + 1}</td>
-                                    <td className="py-3">
-                                        <p className="font-semibold">{item.itemName}</p>
-                                        <p className="text-gray-500">{item.itemCode}</p>
-                                    </td>
-                                    <td className="py-3 text-center">{item.quantity}</td>
-                                    <td className="py-3 text-right">{item.rate.toFixed(2)}</td>
-                                    <td className="py-3 text-center">{item.taxPercentage || '0'}%</td>
-                                    <td className="py-3 text-right">{item.taxValue?.toFixed(2) || '0.00'}</td>
-                                    <td className="py-3 text-right">{item.amount.toFixed(2)}</td>
-                                </tr>
-                            ))}
+                            {quotation.items.map((item, index) => {
+                                const qty = Number(item.quantity) || 0;
+                                const rent = Number(item.rentalValue) || 0;
+                                const duration = Number(quotation.rentalDurationDays) || 1;
+                                const amount = qty * rent * duration;
+                                const vat = item.taxValue || ((amount * (item.taxPercentage || 0)) / 100);
+
+                                return (
+                                    <tr key={item.id || index} className="border-b border-gray-200">
+                                        <td className="py-3 text-center">{index + 1}</td>
+                                        <td className="py-3">
+                                            <p className="font-semibold">{item.itemName}</p>
+                                            <p className="text-gray-500">{item.itemCode}</p>
+                                            {item.description && <p className="text-gray-400 italic text-[10px]">{item.description}</p>}
+                                        </td>
+                                        <td className="py-3 text-center">{qty}</td>
+                                        <td className="py-3 text-right">{rent.toFixed(2)}</td>
+                                        <td className="py-3 text-center">{duration}</td>
+                                        <td className="py-3 text-center">{item.taxPercentage || '0'}%</td>
+                                        <td className="py-3 text-right">{vat.toFixed(2)}</td>
+                                        <td className="py-3 text-right">{amount.toFixed(2)}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
 
@@ -276,28 +289,36 @@ const ViewQuotation = () => {
 
                         <div className="w-full md:w-80">
                             <div className="flex justify-between py-1 text-sm border-b border-gray-100">
-                                <span>Sub Total</span>
-                                <span>{quotation.subTotal.toFixed(2)}</span>
+                                <span>Total Net Rental / Day</span>
+                                <span>{quotation.subTotalPerDay?.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between py-1 text-sm border-b border-gray-100">
+                                <span>Rental Duration</span>
+                                <span>{quotation.rentalDurationDays} Days</span>
+                            </div>
+                            <div className="flex justify-between py-1 text-sm border-b border-gray-100 font-medium">
+                                <span>Total Rental Price</span>
+                                <span>{quotation.totalRentalPrice?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between py-1 text-sm border-b border-gray-100">
                                 <span>Total Discount</span>
-                                <span>{quotation.totalDiscount.toFixed(2)}</span>
+                                <span>{quotation.totalDiscount?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between py-1 text-sm border-b border-gray-100">
-                                <span>Sub Total</span>
-                                <span>{(quotation.subTotal - quotation.totalDiscount).toFixed(2)}</span>
+                                <span>Gross Total</span>
+                                <span>{quotation.grossTotal?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between py-1 text-sm border-b border-gray-100">
                                 <span>Total VAT</span>
-                                <span>{quotation.totalTax.toFixed(2)}</span>
+                                <span>{quotation.totalTax?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between py-1 text-sm border-b border-gray-100">
                                 <span>Other Charges</span>
-                                <span>{quotation.otherCharges.toFixed(2)}</span>
+                                <span>{quotation.otherCharges?.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between py-2 text-base font-bold border-t border-gray-300 mt-2">
-                                <span>Total</span>
-                                <span>AED {quotation.netTotal.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>Net Total</span>
+                                <span>AED {quotation.netTotal?.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>
@@ -308,4 +329,4 @@ const ViewQuotation = () => {
     );
 };
 
-export default ViewQuotation;
+export default RentalQuotationView;
