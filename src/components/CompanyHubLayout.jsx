@@ -20,7 +20,7 @@ const SidebarContent = ({ onLinkClick }) => {
         { name: 'HRMS', icon: Users, href: '/hrdashboard', module: 'HRMS_CORE', color: 'text-blue-500' },
         { name: 'POS', icon: ShoppingCart, href: '/pos-dashboard', module: 'POS', color: 'text-green-500' },
         { name: 'Sales', icon: DollarSign, href: '/sales-dashboard', module: 'SALES', color: 'text-emerald-500' },
-        { name: 'Purchases', icon: ShoppingCart, href: '/purchase-dashboard', color: 'text-orange-500' },
+        { name: 'Purchases', icon: ShoppingCart, href: '/purchase-dashboard', module: 'PURCHASE', color: 'text-orange-500' },
         { name: 'CRM', icon: Users, href: '/crm-dashboard', module: 'CRM', color: 'text-rose-500' },
         { name: 'Account', icon: Landmark, href: '/account-dashboard', color: 'text-amber-500' },
         { name: 'Production', icon: Building, href: '/production-dashboard', module: 'PRODUCTION', color: 'text-cyan-500' },
@@ -38,8 +38,7 @@ const SidebarContent = ({ onLinkClick }) => {
                 onClick={onLinkClick}
                 // Let NavLink handle the active state with a function
                 className={({ isActive }) =>
-                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${
-                        isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted'
+                    `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors group ${isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground-muted hover:bg-background-muted'
                     }`
                 }
             >

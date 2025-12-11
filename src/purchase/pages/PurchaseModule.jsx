@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { 
     LayoutDashboard, 
     ShoppingCart, 
@@ -12,11 +12,24 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import PurchaseOrderPage from '../components/PurchaseOrderPage';
+import PurchaseOrderForm from '../components/PurchaseOrderForm';
+
+import PurchaseInvoicePage from '../components/PurchaseInvoicePage';
+import PurchaseInvoiceForm from '../components/PurchaseInvoiceForm';
+import PurchasePaymentPage from '../components/PurchasePaymentPage';
+import PurchasePaymentForm from '../components/PurchasePaymentForm';
+import PurchaseOrderView from '../components/PurchaseOrderView';
+import PurchaseInvoiceView from '../components/PurchaseInvoiceView';
+import PurchasePaymentView from '../components/PurchasePaymentView';
+import PurchaseGrnView from '../components/PurchaseGrnView';
+import PurchaseGrnForm from '../components/PurchaseGrnForm';
+
 
 const purchaseNavLinks = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/purchase-dashboard/dashboard', color: 'text-blue-500' },
     { name: 'Purchase Order', icon: ShoppingCart, href: '/purchase-dashboard/purchase-orders', color: 'text-green-500' },
-    { name: 'Bills', icon: Receipt, href: '/purchase-dashboard/bills', color: 'text-yellow-500' },
+    { name: 'Invoice', icon: Receipt, href: '/purchase-dashboard/bills', color: 'text-yellow-500' },
     { name: 'Payments', icon: CreditCard, href: '/purchase-dashboard/payments', color: 'text-purple-500' },
     { name: 'Debit Notes', icon: FileMinus, href: '/purchase-dashboard/debit-notes', color: 'text-rose-500' },
 ];
@@ -102,7 +115,27 @@ const PurchaseLayout = ({ children }) => {
 const PurchaseModule = () => {
     return (
         <PurchaseLayout>
-            <Outlet />
+            <Routes>
+                <Route path="purchase-orders" element={<PurchaseOrderPage />} />
+                <Route path="purchase-orders/new" element={<PurchaseOrderForm />} />
+                <Route path="purchase-orders/view/:id" element={<PurchaseOrderView />} />
+                <Route path="purchase-orders/edit/:id" element={<PurchaseOrderForm />} />
+                <Route path="purchase-orders/:id/grn/new" element={<PurchaseGrnForm />} />
+                <Route path="grns/:id" element={<PurchaseGrnView />} />
+
+
+
+                <Route path="bills" element={<PurchaseInvoicePage />} />
+                <Route path="bills/new" element={<PurchaseInvoiceForm />} />
+                <Route path="bills/edit/:id" element={<PurchaseInvoiceForm />} />
+                <Route path="bills/view/:id" element={<PurchaseInvoiceView />} />
+                <Route path="payments" element={<PurchasePaymentPage />} />
+                <Route path="payments/new" element={<PurchasePaymentForm />} />
+                <Route path="payments/edit/:id" element={<PurchasePaymentForm />} />
+                <Route path="payments/view/:id" element={<PurchasePaymentView />} />
+
+                {/* Add other purchase module routes here */}
+            </Routes>
         </PurchaseLayout>
     );
 }

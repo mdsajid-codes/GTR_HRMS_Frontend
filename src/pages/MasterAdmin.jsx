@@ -14,7 +14,8 @@ const serviceModulesOptions = [
     { value: 'POS', label: 'Point of Sale (POS)' },
     { value: 'CRM', label: 'CRM' },
     { value: 'PRODUCTION', label: 'Production' },
-    { value: 'SALES', label: 'Sales' }
+    { value: 'SALES', label: 'Sales' },
+    { value: 'PURCHASE', label: 'Purchase' }
 ];
 
 const adminRoleOptions = [
@@ -431,11 +432,10 @@ const MasterSidebar = ({ activeView, setActiveView, onLinkClick, theme, cycleThe
                 setActiveView(item.view);
                 onLinkClick && onLinkClick();
             }}
-            className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors w-full text-left ${
-                activeView === item.view
+            className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors w-full text-left ${activeView === item.view
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-foreground-muted hover:bg-background-muted'
-            }`}
+                }`}
         >
             <item.icon className={`h-5 w-5 mr-3 flex-shrink-0 transition-colors ${activeView === item.view ? 'text-primary-foreground' : item.color}`} />
             <span>{item.name}</span>
@@ -454,9 +454,9 @@ const MasterSidebar = ({ activeView, setActiveView, onLinkClick, theme, cycleThe
                 {masterNavLinks.map((item) => (
                     <NavItem key={item.name} item={item} />
                 ))}
-                 <div className="pt-4 mt-4 border-t border-border">
-                     <NavItem item={{ name: 'Users', view: 'users', icon: Users, color: 'text-blue-500' }} />
-                 </div>
+                <div className="pt-4 mt-4 border-t border-border">
+                    <NavItem item={{ name: 'Users', view: 'users', icon: Users, color: 'text-blue-500' }} />
+                </div>
             </nav>
             <div className="p-4 border-t border-border flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -658,14 +658,14 @@ const TenantRequestList = ({ requests, onApprove, onReject }) => (
                             <td className="td-cell">{request.adminEmail}</td>
                             <td className="td-cell">{request.adminPassword}</td>
                             <td className="py-3 px-4 flex items-center gap-2">
-                                <button 
+                                <button
                                     onClick={() => onApprove(request)}
                                     className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full hover:bg-green-200 transition-colors"
                                     title={`Approve ${request.tenantId}`}
                                 >
                                     <Check className="h-3 w-3" /> Approve
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => onReject(request.id, request.tenantId)}
                                     className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full hover:bg-red-200 transition-colors"
                                     title={`Reject ${request.tenantId}`}
@@ -723,25 +723,25 @@ const MasterAdmin = () => {
     ], [tenants.length, tenantRequests.length]);
 
     const fetchData = async () => {
-            setLoading(true);
-            setError('');
-            try {
-                const token = localStorage.getItem('token');
-                const headers = { "Authorization": `Bearer ${token}` };
+        setLoading(true);
+        setError('');
+        try {
+            const token = localStorage.getItem('token');
+            const headers = { "Authorization": `Bearer ${token}` };
 
-                const [tenantsRes, requestsRes] = await Promise.all([
-                    axios.get(`${API_URL}/master/tenants`, { headers }),
-                    axios.get(`${API_URL}/master/tenant-requests`, { headers })
-                ]);
+            const [tenantsRes, requestsRes] = await Promise.all([
+                axios.get(`${API_URL}/master/tenants`, { headers }),
+                axios.get(`${API_URL}/master/tenant-requests`, { headers })
+            ]);
 
-                setTenants(tenantsRes.data);
-                setTenantRequests(requestsRes.data);
-            } catch (err) {
-                setError('Failed to fetch data. Please try again later.');
-                console.error("Error fetching data:", err);
-            } finally {
-                setLoading(false);
-            }
+            setTenants(tenantsRes.data);
+            setTenantRequests(requestsRes.data);
+        } catch (err) {
+            setError('Failed to fetch data. Please try again later.');
+            console.error("Error fetching data:", err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -773,12 +773,12 @@ const MasterAdmin = () => {
         setFormDataForProvision(request);
         setIsModalOpen(true);
     };
-    
+
     const handleReject = async (requestId, tenantId) => {
         if (!window.confirm(`Are you sure you want to reject the request for tenant "${tenantId}"?`)) {
             return;
         }
-    
+
         try {
             const token = localStorage.getItem('token');
             await axios.delete(`${API_URL}/master/tenant-requests/${requestId}`, { headers: { "Authorization": `Bearer ${token}` } });
@@ -788,7 +788,7 @@ const MasterAdmin = () => {
             console.error("Error rejecting tenant request:", err);
         }
     };
-    
+
     const setFormDataForProvision = (request) => {
         setFormData({
             tenantId: request.tenantId,
@@ -918,8 +918,8 @@ const MasterAdmin = () => {
                     {sidebarOpen && (
                         <>
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed top-0 left-0 h-full w-64 z-30"
-                        >
-                            <MasterSidebar activeView={activeView} setActiveView={setActiveView} onLinkClick={() => setSidebarOpen(false)} theme={theme} cycleTheme={cycleTheme} />
+                            >
+                                <MasterSidebar activeView={activeView} setActiveView={setActiveView} onLinkClick={() => setSidebarOpen(false)} theme={theme} cycleTheme={cycleTheme} />
                             </motion.div>
                         </>
                     )}

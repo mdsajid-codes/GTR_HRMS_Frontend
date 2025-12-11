@@ -11,6 +11,7 @@ const serviceModulesOptions = [
     { value: 'CRM', label: 'CRM' },
     { value: 'PRODUCTION', label: 'Production' },
     { value: 'SALES', label: 'Sales' },
+    { value: 'PURCHASE', label: 'Purchase' },
 ];
 
 const adminRoleOptions = [

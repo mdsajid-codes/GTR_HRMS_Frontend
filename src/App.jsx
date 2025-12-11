@@ -197,14 +197,7 @@ function App() {
             <Route path="work-order-report" element={<ProductionPlaceholder pageName="Work Order Report" />} />
           </Route>
           {/* Purchase Module Routes */}
-          <Route path="/purchase-dashboard" element={<PurchaseModule />}>
-            <Route index element={<PurchasePlaceholder pageName="Purchase Dashboard" />} />
-            <Route path="dashboard" element={<PurchasePlaceholder pageName="Purchase Dashboard" />} />
-            <Route path="purchase-orders" element={<PurchasePlaceholder pageName="Purchase Orders" />} />
-            <Route path="bills" element={<PurchasePlaceholder pageName="Bills" />} />
-            <Route path="payments" element={<PurchasePlaceholder pageName="Payments" />} />
-            <Route path="debit-notes" element={<PurchasePlaceholder pageName="Debit Notes" />} />
-          </Route>
+          <Route path="/purchase-dashboard/*" element={<PurchaseModule />} />
         </Routes>
       </Router>
     </TenantProvider>
