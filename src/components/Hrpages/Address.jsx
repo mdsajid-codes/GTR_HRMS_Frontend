@@ -55,7 +55,8 @@ const Address = ({ employee }) => {
     const initialFormState = {
         address: '', city: '', state: '', country: '', postalCode: '',
         emergencyContactName: '', emergencyContactRelation: '', emergencyContactPhone: '',
-        bankName: '', bankAccountNumber: '', ifscCode: '', bloodGroup: '', notes: ''
+        bankName: '', bankAccountNumber: '', ifscCode: '', iban: '', bloodGroup: '', notes: '',
+        laborCardNumber: '', routingCode: '', isWpsRegistered: false
     };
 
     useEffect(() => {
@@ -184,10 +185,36 @@ const Address = ({ employee }) => {
                         <EditField label="Bank Name" name="bankName" value={formData.bankName} onChange={handleChange} />
                         <EditField label="Account Number" name="bankAccountNumber" value={formData.bankAccountNumber} onChange={handleChange} />
                         <EditField label="IFSC Code" name="ifscCode" value={formData.ifscCode} onChange={handleChange} />
+                        <EditField label="IBAN" name="iban" value={formData.iban} onChange={handleChange} />
                     </> : <>
                         <InfoField label="Bank Name" value={currentData.bankName} />
                         <InfoField label="Account Number" value={currentData.bankAccountNumber} />
                         <InfoField label="IFSC Code" value={currentData.ifscCode} />
+                        <InfoField label="IBAN" value={currentData.iban} />
+                    </>}
+                </ProfileCard>
+
+                <ProfileCard title="WPS & Statutory Details">
+                    {isEditing ? <>
+                        <EditField label="Labor Card Number (MOHRE ID)" name="laborCardNumber" value={formData.laborCardNumber} onChange={handleChange} />
+                        <EditField label="Routing Code (Agent ID)" name="routingCode" value={formData.routingCode} onChange={handleChange} />
+                        <div className="flex items-center pt-6">
+                            <input
+                                id="isWpsRegistered"
+                                name="isWpsRegistered"
+                                type="checkbox"
+                                checked={formData.isWpsRegistered || false}
+                                onChange={(e) => setFormData(prev => ({ ...prev, isWpsRegistered: e.target.checked }))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="isWpsRegistered" className="ml-2 block text-sm text-foreground">
+                                WPS Registered
+                            </label>
+                        </div>
+                    </> : <>
+                        <InfoField label="Labor Card Number (MOHRE ID)" value={currentData.laborCardNumber} />
+                        <InfoField label="Routing Code (Agent ID)" value={currentData.routingCode} />
+                        <InfoField label="WPS Registered" value={currentData.isWpsRegistered ? 'Yes' : 'No'} />
                     </>}
                 </ProfileCard>
 

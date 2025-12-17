@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Loader, PlusCircle, Play, Eye, CheckCircle, FileClock, AlertTriangle } from 'lucide-react';
+import { Loader, PlusCircle, Play, Eye, CheckCircle, FileClock, AlertTriangle, Download } from 'lucide-react';
 import ProcessPayrollRun from './ProcessPayrollRun';
 
 // --- Helper Components (copied from PayrollSettings for encapsulation) ---
@@ -156,6 +156,38 @@ const PayrollRun = () => {
         }
     };
 
+    const handleDownloadWpsSif = async (runId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/payroll-runs/${runId}/wps-sif`, {
+                headers: { "Authorization": `Bearer ${token}` },
+                responseType: 'blob', // Important for file download
+            });
+
+            // Create a temporary URL for the blob
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Extract filename from content-disposition header if available, or generate one
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = 'wps_sif.SIF';
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (fileNameMatch.length === 2)
+                    fileName = fileNameMatch[1];
+            }
+
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Error downloading WPS SIF:", err);
+            alert('Failed to download WPS SIF file.');
+        }
+    };
+
     if (loading) return <div className="flex justify-center items-center p-8"><Loader className="animate-spin h-8 w-8 text-blue-600" /></div>;
     if (error) return <div className="text-center text-red-600 p-4 bg-red-50 rounded-md">{error}</div>;
 
@@ -204,6 +236,11 @@ const PayrollRun = () => {
                             {(run.status === 'COMPLETED' || run.status === 'PAID' || run.status === 'GENERATED') && (
                                 <button onClick={() => handleViewPayslips(run)} className="btn-secondary py-1 px-3 text-sm flex items-center gap-2">
                                     <Eye size={14} /> View Payslips
+                                </button>
+                            )}
+                            {(run.status === 'COMPLETED' || run.status === 'PAID' || run.status === 'GENERATED') && (
+                                <button onClick={() => handleDownloadWpsSif(run.id)} className="btn-secondary py-1 px-3 text-sm flex items-center gap-2 ml-2" title="Download WPS SIF File">
+                                    <Download size={14} /> WPS SIF
                                 </button>
                             )}
                         </div>

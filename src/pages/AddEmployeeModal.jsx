@@ -73,6 +73,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
             bankAccountNumber: '',
             ifscCode: '',
             bloodGroup: '',
+            bloodGroup: '',
+            laborCardNumber: '',
+            routingCode: '',
             notes: '',
         },
 
@@ -146,7 +149,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
             const fetchDropdownData = async () => {
                 try {
                     const token = localStorage.getItem('token');
-                    const headers = { "Authorization": `Bearer ${token}` }; 
+                    const headers = { "Authorization": `Bearer ${token}` };
                     const [deptRes, desigRes, jobBandRes, natRes, workTypeRes, shiftTypeRes, leaveGroupRes, weekOffRes, timeTypeRes, locRes, attendanceTrackingRes] = await Promise.all([
                         axios.get(`${API_URL}/departments`, { headers }),
                         axios.get(`${API_URL}/designations`, { headers }),
@@ -246,7 +249,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
 
         try {
             const token = localStorage.getItem('token');
-            const headers = { "Authorization": `Bearer ${token}` };            
+            const headers = { "Authorization": `Bearer ${token}` };
             let employeeCodeToUse = formData.employee.employeeCode;
 
             if (employeeToEdit) { // EDITING EXISTING EMPLOYEE
@@ -266,11 +269,11 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
             } else { // ADDING NEW EMPLOYEE
                 // Step 1: Create User
                 await axios.post(`${API_URL}/users/register`, {
-                    name: formData.user.name, 
-                    email: formData.user.email, 
-                    password: formData.user.password, 
-                    roles: ['EMPLOYEE'], 
-                    isActive: true, 
+                    name: formData.user.name,
+                    email: formData.user.email,
+                    password: formData.user.password,
+                    roles: ['EMPLOYEE'],
+                    isActive: true,
                     isLocked: false,
                 }, { headers });
 
@@ -318,7 +321,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
     const getInitialFormData = () => ({
         user: { name: '', email: '', password: '', confirmPassword: '' },
         employee: { employeeCode: '', firstName: '', middleName: '', lastName: '', emailWork: '', emailPersonal: '', phonePrimary: '', dob: '', locationId: null, gender: '', martialStatus: '', status: 'ACTIVE' },
-        profile: { address: '', city: '', state: '', country: '', postalCode: '', emergencyContactName: '', emergencyContactRelation: '', emergencyContactPhone: '', bankName: '', bankAccountNumber: '', ifscCode: '', bloodGroup: '', notes: '' },
+        employee: { employeeCode: '', firstName: '', middleName: '', lastName: '', emailWork: '', emailPersonal: '', phonePrimary: '', dob: '', locationId: null, gender: '', martialStatus: '', status: 'ACTIVE' },
+        profile: { address: '', city: '', state: '', country: '', postalCode: '', emergencyContactName: '', emergencyContactRelation: '', emergencyContactPhone: '', bankName: '', bankAccountNumber: '', ifscCode: '', bloodGroup: '', laborCardNumber: '', routingCode: '', notes: '' },
+        jobDetails: { location: '', actualLocation: '', department: '', designation: '', jobBand: '', reportsTo: '', dateOfJoining: '', probationEndDate: '', loginId: '', profileName: '', employeeNumber: '', legalEntity: '' },
         jobDetails: { location: '', actualLocation: '', department: '', designation: '', jobBand: '', reportsTo: '', dateOfJoining: '', probationEndDate: '', loginId: '', profileName: '', employeeNumber: '', legalEntity: '' },
         timeAttendence: { timeTypeId: null, workTypeId: null, shiftTypeId: null, weeklyOffPolicyId: null, leaveGroupId: null, attendenceCaptureScheme: '', attendancePolicyId: null, holidayList: '', expensePolicy: '', recruitmentPolicy: '', isRosterBasedEmployee: false }
     });
@@ -331,8 +336,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
         return null;
     }
 
-    const allSteps = [ { title: 'User & Basic Info' }, { title: 'Personal & Contact' }, { title: 'Job & Attendance' }, { title: 'Profile Details' } ];
-    const simplifiedSteps = [ { title: 'User & Core Employee Details' }, { title: 'Job Details' } ];
+    const allSteps = [{ title: 'User & Basic Info' }, { title: 'Personal & Contact' }, { title: 'Job & Attendance' }, { title: 'Profile Details' }];
+    const simplifiedSteps = [{ title: 'User & Core Employee Details' }, { title: 'Job Details' }];
     const steps = simplified ? simplifiedSteps : allSteps;
 
     const isEditing = !!employeeToEdit;
@@ -347,7 +352,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <EditField label="Login Email" name="email" value={formData.user.email} onChange={handleNestedChange('user')} type="email" required disabled={isEditing} />
                         <EditField label="Password" name="password" value={formData.user.password} onChange={handleNestedChange('user')} type="password" required={!isEditing} placeholder={isEditing ? 'Leave blank to keep current' : ''} />
                         <EditField label="Confirm Password" name="confirmPassword" value={formData.user.confirmPassword} onChange={handleNestedChange('user')} type="password" required={!isEditing} />
-                        
+
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Core Employee Details</h3>
                         <EditField label="Employee Code" name="employeeCode" value={formData.employee.employeeCode} onChange={handleNestedChange('employee')} required disabled={isEditing} />
                         <EditField label="First Name" name="firstName" value={formData.employee.firstName} onChange={handleNestedChange('employee')} required />
@@ -384,7 +389,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                 return null;
         }
     };
-    
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1: // User & Basic Info
@@ -395,7 +400,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <EditField label="Login Email" name="email" value={formData.user.email} onChange={handleNestedChange('user')} type="email" required disabled={isEditing} />
                         <EditField label="Password" name="password" value={formData.user.password} onChange={handleNestedChange('user')} type="password" required={!isEditing} placeholder={isEditing ? 'Leave blank to keep current' : ''} />
                         <EditField label="Confirm Password" name="confirmPassword" value={formData.user.confirmPassword} onChange={handleNestedChange('user')} type="password" required={!isEditing} />
-                        
+
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Employee Information</h3>
                         <EditField label="Employee Code" name="employeeCode" value={formData.employee.employeeCode} onChange={handleNestedChange('employee')} required disabled={isEditing} />
                         <EditField label="First Name" name="firstName" value={formData.employee.firstName} onChange={handleNestedChange('employee')} required />
@@ -419,41 +424,41 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <div className="md:col-span-2"><EditField label="Address" name="address" value={formData.profile.address} onChange={handleNestedChange('profile')} /></div>
                         <EditField label="City" name="city" value={formData.profile.city} onChange={handleNestedChange('profile')} />
                         <EditField label="State" name="state" value={formData.profile.state} onChange={handleNestedChange('profile')} />
-                        <EditField 
-                            label="Country" 
-                            name="country" 
-                            value={formData.profile.country} 
-                            onChange={handleNestedChange('profile')} 
+                        <EditField
+                            label="Country"
+                            name="country"
+                            value={formData.profile.country}
+                            onChange={handleNestedChange('profile')}
                             type="select"
                             options={selectOptions.nationalities.map(n => ({ value: n.name, label: n.name }))} />
-                            <EditField label="Postal Code" name="postalCode" value={formData.profile.postalCode} onChange={handleNestedChange('profile')} />
+                        <EditField label="Postal Code" name="postalCode" value={formData.profile.postalCode} onChange={handleNestedChange('profile')} />
                     </div>
                 );
             case 3: // Job & Attendance
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <h3 className="col-span-full font-semibold text-lg mb-2">Job Details</h3>
-                        <EditField 
-                            label="Department" 
-                            name="department" 
-                            value={formData.jobDetails.department} 
-                            onChange={handleNestedChange('jobDetails')} 
+                        <EditField
+                            label="Department"
+                            name="department"
+                            value={formData.jobDetails.department}
+                            onChange={handleNestedChange('jobDetails')}
                             type="select"
                             options={selectOptions.departments.map(d => ({ value: d.name, label: d.name }))}
                         />
-                        <EditField 
-                            label="Designation" 
-                            name="designation" 
-                            value={formData.jobDetails.designation} 
-                            onChange={handleNestedChange('jobDetails')} 
+                        <EditField
+                            label="Designation"
+                            name="designation"
+                            value={formData.jobDetails.designation}
+                            onChange={handleNestedChange('jobDetails')}
                             type="select"
                             options={selectOptions.designations.map(d => ({ value: d.title, label: `${d.title} (${d.departmentName})` }))}
                         />
-                        <EditField 
-                            label="Job Band" 
-                            name="jobBand" 
-                            value={formData.jobDetails.jobBand} 
-                            onChange={handleNestedChange('jobDetails')} 
+                        <EditField
+                            label="Job Band"
+                            name="jobBand"
+                            value={formData.jobDetails.jobBand}
+                            onChange={handleNestedChange('jobDetails')}
                             type="select"
                             options={selectOptions.jobBands.map(d => ({ value: d.name, label: `${d.name} (${d.designationTitle})` }))}
                         />
@@ -482,42 +487,42 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                             onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.timeTypes.map(t => ({ value: t.id, label: t.name }))} />
-                        <EditField 
-                            label="Work Type" 
-                            name="workTypeId" 
-                            value={formData.timeAttendence.workTypeId} 
-                            onChange={handleNestedChange('timeAttendence')} 
+                        <EditField
+                            label="Work Type"
+                            name="workTypeId"
+                            value={formData.timeAttendence.workTypeId}
+                            onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.workTypes.map(w => ({ value: w.id, label: w.name }))} />
-                        <EditField 
-                            label="Shift Type" 
-                            name="shiftTypeId" 
-                            value={formData.timeAttendence.shiftTypeId} 
-                            onChange={handleNestedChange('timeAttendence')} 
+                        <EditField
+                            label="Shift Type"
+                            name="shiftTypeId"
+                            value={formData.timeAttendence.shiftTypeId}
+                            onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.shiftTypes.map(s => ({ value: s.id, label: `${s.name} (${s.startTime} - ${s.endTime})` }))} />
-                        <EditField 
-                            label="Weekly Off Policy" 
-                            name="weeklyOffPolicyId" 
-                            value={formData.timeAttendence.weeklyOffPolicyId} 
-                            onChange={handleNestedChange('timeAttendence')} 
+                        <EditField
+                            label="Weekly Off Policy"
+                            name="weeklyOffPolicyId"
+                            value={formData.timeAttendence.weeklyOffPolicyId}
+                            onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.weeklyOffPolicies.map(p => ({ value: p.id, label: p.name }))} />
-                        <EditField 
-                            label="Leave Group" 
-                            name="leaveGroupId" 
-                            value={formData.timeAttendence.leaveGroupId} 
-                            onChange={handleNestedChange('timeAttendence')} 
+                        <EditField
+                            label="Leave Group"
+                            name="leaveGroupId"
+                            value={formData.timeAttendence.leaveGroupId}
+                            onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.leaveGroups.map(lg => ({ value: lg.id, label: lg.name }))} />
                         <EditField label="Attendance Capture Scheme" name="attendenceCaptureScheme" value={formData.timeAttendence.attendenceCaptureScheme} onChange={handleNestedChange('timeAttendence')} />
                         <EditField label="Holiday List" name="holidayList" value={formData.timeAttendence.holidayList} onChange={handleNestedChange('timeAttendence')} />
-                        <EditField label="Expense Policy" name="expensePolicy" value={formData.timeAttendence.expensePolicy} onChange={handleNestedChange('timeAttendence')} /> 
-                        <EditField 
-                            label="Attendance Tracking Policy" 
-                            name="attendancePolicyId" 
-                            value={formData.timeAttendence.attendancePolicyId} 
-                            onChange={handleNestedChange('timeAttendence')} 
+                        <EditField label="Expense Policy" name="expensePolicy" value={formData.timeAttendence.expensePolicy} onChange={handleNestedChange('timeAttendence')} />
+                        <EditField
+                            label="Attendance Tracking Policy"
+                            name="attendancePolicyId"
+                            value={formData.timeAttendence.attendancePolicyId}
+                            onChange={handleNestedChange('timeAttendence')}
                             type="select"
                             options={selectOptions.attendanceTrackingPolicies.map(p => ({ value: p.id, label: p.policyName }))} />
                         <EditField label="Recruitment Policy" name="recruitmentPolicy" value={formData.timeAttendence.recruitmentPolicy} onChange={handleNestedChange('timeAttendence')} />
@@ -536,6 +541,15 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, simplified = false
                         <EditField label="Contact Name" name="emergencyContactName" value={formData.profile.emergencyContactName} onChange={handleNestedChange('profile')} />
                         <EditField label="Relation" name="emergencyContactRelation" value={formData.profile.emergencyContactRelation} onChange={handleNestedChange('profile')} />
                         <EditField label="Phone" name="emergencyContactPhone" value={formData.profile.emergencyContactPhone} onChange={handleNestedChange('profile')} />
+
+                        <EditField label="Phone" name="emergencyContactPhone" value={formData.profile.emergencyContactPhone} onChange={handleNestedChange('profile')} />
+                        <div className="md:col-span-2">
+                            <h4 className="font-semibold text-sm mb-2 mt-2">WPS / Labor Details</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <EditField label="Labor Card Number (MOHRE ID)" name="laborCardNumber" value={formData.profile.laborCardNumber} onChange={handleNestedChange('profile')} />
+                                <EditField label="Routing Code (Agent ID)" name="routingCode" value={formData.profile.routingCode} onChange={handleNestedChange('profile')} />
+                            </div>
+                        </div>
 
                         <h3 className="col-span-full font-semibold text-lg mt-4 mb-2">Bank Details</h3>
                         <EditField label="Bank Name" name="bankName" value={formData.profile.bankName} onChange={handleNestedChange('profile')} />

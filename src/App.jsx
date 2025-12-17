@@ -15,6 +15,7 @@ import HrmsSettings from './company/HrmsSettings.jsx';
 import Attendance from './pages/Attendance'
 import PayrollManagement from './pages/PayrollManagement'
 import PosDashboard from './pos/page/PosDashboard'
+import ProductScanResult from './pos/page/ProductScanResult'
 import CompanyDashboard from './pages/CompanyDashboard'
 import LeaveManagement from './pages/LeaveManagement.jsx'
 import ProductionSettings from './production/settings/ProductionSettings.jsx'
@@ -37,6 +38,25 @@ import RentalQuotation from './sales/pages/RentalQuotation.jsx';
 import RentalQuotationForm from './sales/pages/RentalQuotationForm.jsx';
 import RentalSalesOrder from './sales/pages/RentalSalesOrder.jsx';
 import RentalSalesOrderForm from './sales/pages/RentalSalesOrderForm.jsx';
+import RentalSalesOrderView from './sales/pages/RentalSalesOrderView.jsx';
+import RentalItemRecieved from './sales/pages/RentalItemRecieved.jsx';
+import RentalItemRecievedForm from './sales/pages/RentalItemRecievedForm.jsx';
+import RentalItemRecievedView from './sales/pages/RentalItemRecievedView.jsx';
+import RentalItemReceivedByOrder from './sales/pages/RentalItemReceivedByOrder.jsx';
+import RecievedAmount from './sales/pages/RecievedAmount.jsx';
+import RecievedAmountForm from './sales/pages/RecievedAmountForm.jsx';
+import RecievedAmountView from './sales/pages/RecievedAmountView.jsx';
+import CreditNotes from './sales/pages/CreditNotes.jsx';
+import CreditNotesForm from './sales/pages/CreditNotesForm.jsx';
+import CreditNotesView from './sales/pages/CreditNotesView.jsx';
+import PosReportsLayout from './pos/page/reports/PosReportsLayout.jsx';
+import BusinessSummary from './pos/page/reports/BusinessSummary.jsx';
+import DailySummaryReport from './pos/page/reports/DailySummaryReport';
+import TotalDailyReports from './pos/page/reports/TotalDailyReports';
+import ClosingReport from './pos/page/reports/ClosingReport.jsx';
+import DeliveryOrder from './sales/pages/DeliveryOrder.jsx';
+import DeliveryOrderForm from './sales/pages/DeliveryOrderForm.jsx';
+import DeliveryOrderView from './sales/pages/DeliveryOrderView.jsx';
 import RentalQuotationView from './sales/pages/RentalQuotationView.jsx';
 import ProformaInvoice from './sales/pages/ProformaInvoice.jsx';
 import ProformaInvoiceForm from './sales/pages/ProformaInvoiceForm.jsx';
@@ -44,6 +64,9 @@ import ProformaInvoiceView from './sales/pages/ProformaInvoiceView.jsx';
 import Invoice from './sales/pages/Invoice.jsx';
 import InvoiceForm from './sales/pages/InvoiceForm.jsx';
 import InvoiceView from './sales/pages/InvoiceView.jsx';
+import RentalInvoice from './sales/pages/RentalInvoice.jsx';
+import RentalInvoiceForm from './sales/pages/RentalInvoiceForm.jsx';
+import RentalInvoiceView from './sales/pages/RentalInvoiceView.jsx';
 import SalesSetting from './sales/pages/SalesSetting.jsx'
 import PartyType from './components/PartyType/PartyType.jsx'
 import PartyForm from './components/PartyType/PartyForm.jsx'
@@ -102,6 +125,14 @@ function App() {
           <Route path='/leave' element={<LeaveManagement />} />
           <Route path='/payroll-management' element={<PayrollManagement />} />
           <Route path='/pos-dashboard' element={<PosDashboard />} />
+          <Route path='/product-scan/:barcode' element={<ProductScanResult />} />
+          <Route path='/pos-reports' element={<PosReportsLayout />}>
+            <Route path='business-summary' element={<BusinessSummary />} />
+            <Route path='daily-sales' element={<DailySummaryReport />} />
+            <Route path='total-daily-sales' element={<TotalDailyReports />} />
+            <Route path='closing' element={<ClosingReport />} />
+            {/* Add other report routes here as they are created */}
+          </Route>
           <Route path='/company-dashboard' element={<CompanyDashboard />} />
           {/* Standalone HRMS Settings Route */}
           <Route path='/hrms-settings' element={<HrmsSettings />} />
@@ -139,10 +170,18 @@ function App() {
             <Route index element={<SalesDashboard />} />
           </Route>
           <Route path="/sales" element={<SalesLayout />}>
+            {/* Delivery Orders */}
+            <Route path="delivery-orders">
+              <Route index element={<DeliveryOrder />} />
+              <Route path="new" element={<DeliveryOrderForm />} />
+              <Route path="edit/:id" element={<DeliveryOrderForm />} />
+              <Route path=":id" element={<DeliveryOrderView />} />
+            </Route>
             <Route path='quotations'>
               <Route index element={<Quotation />} />
               <Route path='new' element={<QuotationForm />} />
               <Route path='edit/:id' element={<QuotationForm />} />
+              <Route path='revise/:id' element={<QuotationForm />} />
               <Route path=':id' element={<ViewQuotation />} />
             </Route>
             <Route path='invoices'>
@@ -161,7 +200,30 @@ function App() {
               <Route index element={<RentalSalesOrder />} />
               <Route path="new" element={<RentalSalesOrderForm />} />
               <Route path="edit/:id" element={<RentalSalesOrderForm />} />
+              <Route path=":id" element={<RentalSalesOrderView />} />
             </Route>
+            <Route path="rental-item-received">
+              <Route index element={<RentalItemRecieved />} />
+              <Route path="new" element={<RentalItemRecievedForm />} />
+              <Route path="edit/:id" element={<RentalItemRecievedForm />} />
+              <Route path="by-order/:orderId" element={<RentalItemReceivedByOrder />} />
+              <Route path=":id" element={<RentalItemRecievedView />} />
+            </Route>
+
+            <Route path="recieved-amounts">
+              <Route index element={<RecievedAmount />} />
+              <Route path="new" element={<RecievedAmountForm />} />
+              <Route path="edit/:id" element={<RecievedAmountForm />} />
+              <Route path=":id" element={<RecievedAmountView />} />
+            </Route>
+
+            <Route path="credit-notes">
+              <Route index element={<CreditNotes />} />
+              <Route path="new" element={<CreditNotesForm />} />
+              <Route path="edit/:id" element={<CreditNotesForm />} />
+              <Route path=":id" element={<CreditNotesView />} />
+            </Route>
+
             <Route path="orders">
               <Route index element={<Orders />} />
               <Route path="new" element={<OrderForm />} />
@@ -173,6 +235,12 @@ function App() {
               <Route path="new" element={<ProformaInvoiceForm />} />
               <Route path="edit/:id" element={<ProformaInvoiceForm />} />
               <Route path=":id" element={<ProformaInvoiceView />} />
+            </Route>
+            <Route path="rental-invoices">
+              <Route index element={<RentalInvoice />} />
+              <Route path="new" element={<RentalInvoiceForm />} />
+              <Route path="edit/:id" element={<RentalInvoiceForm />} />
+              <Route path=":id" element={<RentalInvoiceView />} />
             </Route>
             <Route path='settings' element={<SalesSetting />} />
           </Route>
